@@ -175,6 +175,14 @@
                             </thead>
                             <tbody class="divide-y divide-gray-100 bg-white">
                                 <tr>
+                                    <td class="py-2 px-3 font-mono font-bold text-blue-700">/login [user] [pass]</td>
+                                    <td class="py-2 px-3 text-gray-600">Đăng nhập tài khoản trực tiếp trên Telegram (VD: /login an 123456)</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-3 font-mono font-bold text-blue-700">/logout</td>
+                                    <td class="py-2 px-3 text-gray-600">Đăng xuất tài khoản khỏi Telegram Bot</td>
+                                </tr>
+                                <tr>
                                     <td class="py-2 px-3 font-mono font-bold text-blue-700">/start [mã]</td>
                                     <td class="py-2 px-3 text-gray-600">Kết nối tài khoản website với Bot</td>
                                 </tr>

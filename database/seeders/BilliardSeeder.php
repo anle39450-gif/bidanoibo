@@ -17,8 +17,8 @@ class BilliardSeeder extends Seeder
     {
         // 1. Create Default Telegram Bot Config
         TelegramBotConfig::updateOrCreate(['id' => 1], [
-            'bot_token' => env('TELEGRAM_BOT_TOKEN', ''),
-            'bot_username' => env('TELEGRAM_BOT_USERNAME', 'BidaNoiBoBot'),
+            'bot_token' => env('TELEGRAM_BOT_TOKEN', '9074081678:AAESu8XM6CgYeUG1Rw8phXe-Tue6Zh7BiqY'),
+            'bot_username' => env('TELEGRAM_BOT_USERNAME', 'BidaNoiBo_bot'),
             'is_active' => true,
         ]);
 
