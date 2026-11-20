@@ -22,7 +22,7 @@ class TelegramBotService
 
     public function isConfigured(): bool
     {
-        return !empty($this->token);
+        return ! empty($this->token);
     }
 
     protected function client(): PendingRequest
@@ -32,7 +32,7 @@ class TelegramBotService
 
     public function sendMessage(int|string $chatId, string $text, ?array $replyMarkup = null): bool
     {
-        if (!$this->isConfigured()) {
+        if (! $this->isConfigured()) {
             Log::info("Telegram bot not configured. Message would be: {$text}");
 
             return false;
@@ -53,7 +53,7 @@ class TelegramBotService
 
             return $response->successful();
         } catch (\Throwable $e) {
-            Log::error('Telegram sendMessage error: ' . $e->getMessage());
+            Log::error('Telegram sendMessage error: '.$e->getMessage());
 
             return false;
         }
@@ -61,7 +61,7 @@ class TelegramBotService
 
     public function sendMatchConfirmationRequest(BilliardMatch $match, User $recipient): bool
     {
-        if (!$recipient->telegram_id) {
+        if (! $recipient->telegram_id) {
             return false;
         }
 
@@ -153,7 +153,7 @@ class TelegramBotService
 
         $user = User::where('telegram_id', (string) $fromId)->first();
 
-        if (!$user) {
+        if (! $user) {
             $this->answerCallbackQuery($callbackId, '⚠️ Bạn chưa liên kết tài khoản website!');
 
             return;
@@ -163,7 +163,7 @@ class TelegramBotService
             $matchId = (int) substr($data, 8);
             $match = BilliardMatch::find($matchId);
 
-            if (!$match) {
+            if (! $match) {
                 $this->answerCallbackQuery($callbackId, '❌ Trận đấu không tồn tại!');
 
                 return;
@@ -175,7 +175,7 @@ class TelegramBotService
                 return;
             }
 
-            if (!$match->isWaitingForUser($user) && !$user->isAdmin()) {
+            if (! $match->isWaitingForUser($user) && ! $user->isAdmin()) {
                 $this->answerCallbackQuery($callbackId, '⚠️ Chỉ đối thủ mới có quyền xác nhận kết quả này!');
 
                 return;
@@ -192,7 +192,7 @@ class TelegramBotService
             $matchId = (int) substr($data, 9);
             $match = BilliardMatch::find($matchId);
 
-            if (!$match) {
+            if (! $match) {
                 $this->answerCallbackQuery($callbackId, '❌ Trận đấu không tồn tại!');
 
                 return;
@@ -426,7 +426,7 @@ class TelegramBotService
             return;
         }
 
-        if (!$user) {
+        if (! $user) {
             $this->sendMessage(
                 $chatId,
                 "⚠️ <b>Bạn chưa đăng nhập tài khoản website trên Telegram!</b>\n\n"
@@ -453,9 +453,9 @@ class TelegramBotService
             $out .= "⚡ Phong độ hiện tại: {$streakText}\n";
             $out .= "⭐ Chuỗi thắng dài nhất: <b>{$stats['longest_win_streak']}</b>\n";
 
-            if (!empty($stats['badges'])) {
+            if (! empty($stats['badges'])) {
                 $badgeNames = array_column($stats['badges'], 'name');
-                $out .= "\n🎖️ <b>Danh hiệu vui:</b> " . implode(', ', $badgeNames);
+                $out .= "\n🎖️ <b>Danh hiệu vui:</b> ".implode(', ', $badgeNames);
             }
 
             $this->sendMessage($chatId, $out);
@@ -567,7 +567,7 @@ class TelegramBotService
             $targetUsername = ltrim(trim($parts[1]), '@');
             $target = User::where('username', $targetUsername)->first();
 
-            if (!$target) {
+            if (! $target) {
                 $this->sendMessage($chatId, "❌ Không tìm thấy thành viên có username '{$targetUsername}'!");
 
                 return;
@@ -596,7 +596,7 @@ class TelegramBotService
             }
 
             $rawParts = preg_split('/\s+/', $clean);
-            $parts = array_values(array_filter($rawParts, fn($p) => strtolower($p) !== 'vs'));
+            $parts = array_values(array_filter($rawParts, fn ($p) => strtolower($p) !== 'vs'));
 
             if (count($parts) === 2) {
                 $u1 = ltrim($parts[0], '@');
@@ -625,9 +625,9 @@ class TelegramBotService
                     $this->sendMessage(
                         $chatId,
                         "🎱 <b>TẠO TRẬN ĐẤU ĐƠN (1vs1)</b>\n\n"
-                        . "⚔️ <b>Cơ thủ:</b> {$user1->name} vs {$user2->name}\n"
-                        . "🎁 <b>Kèo mặc định:</b> Kèo cà phê muối\n\n"
-                        . '<b>Ai là người chiến thắng?</b> Chọn ngay bên dưới:',
+                        ."⚔️ <b>Cơ thủ:</b> {$user1->name} vs {$user2->name}\n"
+                        ."🎁 <b>Kèo mặc định:</b> Kèo cà phê muối\n\n"
+                        .'<b>Ai là người chiến thắng?</b> Chọn ngay bên dưới:',
                         $kb
                     );
 
@@ -667,29 +667,29 @@ class TelegramBotService
                     $this->sendMessage(
                         $chatId,
                         "🎱 <b>TẠO TRẬN ĐÁNH ĐÔI (2vs2)</b>\n\n"
-                        . "👥 <b>Đội 1:</b> {$user1->name} & {$user2->name}\n"
-                        . "👥 <b>Đội 2:</b> {$user3->name} & {$user4->name}\n"
-                        . "🎁 <b>Kèo mặc định:</b> Kèo 4 ly cà phê muối\n\n"
-                        . '<b>Đội nào chiến thắng?</b> Chọn ngay bên dưới:',
+                        ."👥 <b>Đội 1:</b> {$user1->name} & {$user2->name}\n"
+                        ."👥 <b>Đội 2:</b> {$user3->name} & {$user4->name}\n"
+                        ."🎁 <b>Kèo mặc định:</b> Kèo 4 ly cà phê muối\n\n"
+                        .'<b>Đội nào chiến thắng?</b> Chọn ngay bên dưới:',
                         $kb
                     );
 
                     return;
                 } else {
                     $notFound = [];
-                    if (!$user1) {
+                    if (! $user1) {
                         $notFound[] = $u1;
                     }
-                    if (!$user2) {
+                    if (! $user2) {
                         $notFound[] = $u2;
                     }
-                    if (!$user3) {
+                    if (! $user3) {
                         $notFound[] = $u3;
                     }
-                    if (!$user4) {
+                    if (! $user4) {
                         $notFound[] = $u4;
                     }
-                    $this->sendMessage($chatId, '❌ Không tìm thấy các username: ' . implode(', ', $notFound) . '. Vui lòng kiểm tra lại!');
+                    $this->sendMessage($chatId, '❌ Không tìm thấy các username: '.implode(', ', $notFound).'. Vui lòng kiểm tra lại!');
 
                     return;
                 }
@@ -699,7 +699,7 @@ class TelegramBotService
 
     protected function answerCallbackQuery(string $callbackQueryId, string $text): void
     {
-        if (!$this->isConfigured()) {
+        if (! $this->isConfigured()) {
             return;
         }
 
@@ -710,13 +710,13 @@ class TelegramBotService
                 'show_alert' => false,
             ]);
         } catch (\Throwable $e) {
-            Log::error('Telegram answerCallbackQuery error: ' . $e->getMessage());
+            Log::error('Telegram answerCallbackQuery error: '.$e->getMessage());
         }
     }
 
     public function setWebhook(string $url): array
     {
-        if (!$this->isConfigured()) {
+        if (! $this->isConfigured()) {
             return ['ok' => false, 'description' => 'Bot token chưa được cấu hình!'];
         }
 
@@ -729,7 +729,7 @@ class TelegramBotService
 
     public function deleteWebhook(): array
     {
-        if (!$this->isConfigured()) {
+        if (! $this->isConfigured()) {
             return ['ok' => false, 'description' => 'Bot token chưa được cấu hình!'];
         }
 
@@ -740,7 +740,7 @@ class TelegramBotService
 
     public function getWebhookInfo(): array
     {
-        if (!$this->isConfigured()) {
+        if (! $this->isConfigured()) {
             return ['ok' => false, 'description' => 'Bot token chưa được cấu hình!'];
         }
 
@@ -751,7 +751,7 @@ class TelegramBotService
 
     public function getUpdates(int $offset = 0, int $timeout = 20): array
     {
-        if (!$this->isConfigured()) {
+        if (! $this->isConfigured()) {
             return [];
         }
 
@@ -763,7 +763,7 @@ class TelegramBotService
 
             return $res->json()['result'] ?? [];
         } catch (\Throwable $e) {
-            Log::error('Telegram getUpdates error: ' . $e->getMessage());
+            Log::error('Telegram getUpdates error: '.$e->getMessage());
 
             return [];
         }
