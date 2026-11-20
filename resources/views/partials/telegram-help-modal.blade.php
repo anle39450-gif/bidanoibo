@@ -104,13 +104,26 @@
                         <span class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0">1</span>
                         <span>Ghi nhận trận ĐƠN (1vs1) qua Telegram</span>
                     </div>
-                    <div class="pl-7 space-y-1.5 text-xs text-gray-600 leading-relaxed">
-                        <p>Trong khung chat với Bot (hoặc group chat có Bot), gõ cú pháp:</p>
-                        <div class="bg-gray-100 border border-gray-200 rounded-lg p-2.5 font-mono text-xs text-gray-900 font-bold">
-                            /username1 username2
+                    <div class="pl-7 space-y-2 text-xs text-gray-600 leading-relaxed">
+                        <div>
+                            <p class="font-semibold text-gray-800 mb-1">Cách 1 - Tạo nhanh với chính bạn (khi đã đăng nhập Bot):</p>
+                            <div class="bg-gray-100 border border-gray-200 rounded-lg p-2 font-mono text-xs text-gray-900 font-bold">
+                                /vs [đối_thủ] &nbsp;<span class="text-gray-400 font-normal">(hoặc /[đối_thủ])</span>
+                            </div>
+                            <p class="mt-1"><em>Ví dụ:</em> Bạn vừa đánh với Bình, gõ: <code class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-mono font-semibold">/vs binh</code> (hoặc <code class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-mono font-semibold">/binh</code>)</p>
                         </div>
-                        <p><em>Ví dụ thực tế:</em> Bạn đánh với An, gõ: <code class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-mono font-semibold">/an binh</code></p>
-                        <p>Bot sẽ phản hồi tin nhắn kèm 2 nút bấm: <span class="font-semibold text-gray-800">[🏆 An Thắng]</span> và <span class="font-semibold text-gray-800">[🏆 Bình Thắng]</span>. Bạn chỉ cần chạm vào nút người thắng là xong!</p>
+
+                        <div class="pt-1.5 border-t border-gray-100">
+                            <p class="font-semibold text-gray-800 mb-1">Cách 2 - Chỉ định cả 2 cơ thủ:</p>
+                            <div class="bg-gray-100 border border-gray-200 rounded-lg p-2 font-mono text-xs text-gray-900 font-bold">
+                                /user1 user2 &nbsp;<span class="text-gray-400 font-normal">(hoặc /tran user1 user2)</span>
+                            </div>
+                            <p class="mt-1"><em>Ví dụ:</em> Trận giữa Admin và Bình, gõ: <code class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-mono font-semibold">/admin binh</code></p>
+                        </div>
+
+                        <p class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 p-2 rounded-lg">
+                            💡 <b>Lưu ý:</b> Tên cơ thủ là <b>username</b> đã được tạo trên website (không phân biệt chữ hoa hay thường). Bot sẽ hiển thị ngay 2 nút bấm chọn ai thắng để bạn chạm chọn!
+                        </p>
                     </div>
                 </div>
 
@@ -125,11 +138,11 @@
                             <p class="font-semibold text-gray-800 mb-1">Cách 1 - Ghi nhận qua Telegram Bot:</p>
                             <p>Gõ cú pháp 4 cơ thủ (2 người Đội 1 và 2 người Đội 2):</p>
                             <div class="bg-gray-100 border border-gray-200 rounded-lg p-2.5 font-mono text-xs text-gray-900 font-bold mt-1">
-                                /user1 user2 vs user3 user4 &nbsp;<span class="text-gray-400 font-normal">(hoặc /user1 user2 user3 user4)</span>
+                                /user1 user2 vs user3 user4 &nbsp;<span class="text-gray-400 font-normal">(hoặc /doi u1 u2 u3 u4)</span>
                             </div>
-                            <p class="mt-1"><em>Ví dụ:</em> Đội (An & Bình) đấu với Đội (Cường & Dũng), gõ:</p>
-                            <code class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-mono font-bold block text-xs mt-0.5">/an binh vs cuong dung</code>
-                            <p class="mt-1">Bot sẽ hiện 2 nút: <span class="font-semibold text-gray-800">[🏆 Đội 1 Thắng]</span> hoặc <span class="font-semibold text-gray-800">[🏆 Đội 2 Thắng]</span>. Chạm vào đội thắng là trận đấu đôi được lưu ngay!</p>
+                            <p class="mt-1"><em>Ví dụ:</em> Đội (Admin & Bình) đấu với Đội (Cường & Dũng), gõ:</p>
+                            <code class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-mono font-bold block text-xs mt-0.5">/admin binh vs cuong dung</code>
+                            <p class="mt-1">Bot sẽ hiện 2 nút: <span class="font-semibold text-gray-800">[🏆 Đội 1 Thắng]</span> hoặc <span class="font-semibold text-gray-800">[🏆 Đội 2 Thắng]</span>. Chạm vào đội thắng là xong!</p>
                         </div>
 
                         <div class="pt-1 border-t border-gray-100">
@@ -176,11 +189,27 @@
                             <tbody class="divide-y divide-gray-100 bg-white">
                                 <tr>
                                     <td class="py-2 px-3 font-mono font-bold text-blue-700">/login [user] [pass]</td>
-                                    <td class="py-2 px-3 text-gray-600">Đăng nhập tài khoản trực tiếp trên Telegram (VD: /login an 123456)</td>
+                                    <td class="py-2 px-3 text-gray-600">Đăng nhập tài khoản trực tiếp trên Telegram (VD: /login admin password)</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-3 font-mono font-bold text-blue-700">/password [mới]</td>
+                                    <td class="py-2 px-3 text-gray-600">Đổi mật khẩu tài khoản trực tiếp trên Telegram (VD: /password 123456)</td>
                                 </tr>
                                 <tr>
                                     <td class="py-2 px-3 font-mono font-bold text-blue-700">/logout</td>
                                     <td class="py-2 px-3 text-gray-600">Đăng xuất tài khoản khỏi Telegram Bot</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-3 font-mono font-bold text-blue-700">/vs [đối_thủ]</td>
+                                    <td class="py-2 px-3 text-gray-600">Tạo nhanh trận đơn giữa bạn và đối thủ (VD: /vs binh)</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-3 font-mono font-bold text-blue-700">/u1 u2</td>
+                                    <td class="py-2 px-3 text-gray-600">Tạo trận đơn chỉ định 2 cơ thủ (VD: /admin binh)</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-3 font-mono font-bold text-blue-700">/u1 u2 vs u3 u4</td>
+                                    <td class="py-2 px-3 text-gray-600">Tạo trận đôi 2vs2 (VD: /admin binh vs cuong dung)</td>
                                 </tr>
                                 <tr>
                                     <td class="py-2 px-3 font-mono font-bold text-blue-700">/start [mã]</td>
