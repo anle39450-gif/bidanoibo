@@ -15,15 +15,15 @@ class BilliardSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Create Default Telegram Bot Config (only if not existing)
-        TelegramBotConfig::firstOrCreate(['id' => 1], [
+        // 1. Create Default Telegram Bot Config
+        TelegramBotConfig::updateOrCreate(['id' => 1], [
             'bot_token' => env('TELEGRAM_BOT_TOKEN', '9074081678:AAESu8XM6CgYeUG1Rw8phXe-Tue6Zh7BiqY'),
             'bot_username' => env('TELEGRAM_BOT_USERNAME', 'BidaNoiBo_bot'),
             'is_active' => true,
         ]);
 
-        // 2. Create Admin Account ONLY (only if not existing)
-        User::firstOrCreate(['username' => 'admin'], [
+        // 2. Create Admin Account ONLY
+        User::updateOrCreate(['username' => 'admin'], [
             'name' => 'Quản Trị Viên',
             'username' => 'admin',
             'email' => 'admin@bida.local',
