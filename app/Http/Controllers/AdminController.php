@@ -153,6 +153,29 @@ class AdminController extends Controller
         return back()->with('success', "Đã cập nhật vai trò của {$user->name} thành {$newRole}.");
     }
 
+    public function resetUserPassword(Request $request, User $user): RedirectResponse|JsonResponse
+    {
+        $validated = $request->validate([
+            'password' => ['required', 'string', 'min:6'],
+        ], [
+            'password.required' => 'Vui lòng nhập mật khẩu mới.',
+            'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
+        ]);
+
+        $user->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Đã đặt lại mật khẩu cho cơ thủ {$user->name} (@{$user->username}) thành công!",
+            ]);
+        }
+
+        return back()->with('success', "Đã đặt lại mật khẩu cho cơ thủ {$user->name} (@{$user->username}) thành công!");
+    }
+
     public function updateBotConfig(Request $request): RedirectResponse
     {
         $validated = $request->validate([

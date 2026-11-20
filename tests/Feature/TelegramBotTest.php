@@ -183,3 +183,31 @@ test('user can log out on telegram using /logout command', function () {
     expect($user->telegram_id)->toBeNull();
     expect($user->telegram_username)->toBeNull();
 });
+
+test('authenticated user can change password on telegram using /password command', function () {
+    $user = User::factory()->create([
+        'username' => 'cuongbida',
+        'password' => Hash::make('oldpass123'),
+        'telegram_id' => '999111',
+    ]);
+
+    Http::fake([
+        'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $botService = app(TelegramBotService::class);
+    $matchService = app(BilliardMatchService::class);
+    $statsService = app(BilliardStatsService::class);
+
+    // Send /password newpass789
+    $botService->handleWebhook([
+        'message' => [
+            'chat' => ['id' => 999111],
+            'from' => ['id' => 999111],
+            'text' => '/password newpass789',
+        ],
+    ], $matchService, $statsService);
+
+    $user->refresh();
+    expect(Hash::check('newpass789', $user->password))->toBeTrue();
+});

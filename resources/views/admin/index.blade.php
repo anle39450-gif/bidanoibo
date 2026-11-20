@@ -131,6 +131,13 @@
                                     </span>
                                 </td>
                                 <td class="py-3.5 px-3.5 text-right space-x-2 font-semibold">
+                                    <button 
+                                        type="button" 
+                                        onclick="openAdminResetModal({{ $mb->id }}, '{{ addslashes($mb->name) }}', '{{ $mb->username }}')" 
+                                        class="text-amber-600 hover:text-amber-800 hover:underline cursor-pointer"
+                                    >
+                                        Đổi MK
+                                    </button>
                                     <form method="POST" action="{{ route('admin.users.role', $mb->id) }}" class="inline">
                                         @csrf
                                         <button type="submit" class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">Đổi quyền</button>
@@ -254,4 +261,75 @@
             </div>
         </div>
     </div>
+
+    <!-- Admin Reset Member Password Modal -->
+    <div id="adminResetPasswordModal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="admin-reset-modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-xs transition-opacity" onclick="closeAdminResetModal()"></div>
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-gray-100">
+                <div class="bg-gray-50/80 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900" id="admin-reset-modal-title">Đặt Lại Mật Khẩu Cơ Thủ</h3>
+                        <p class="text-xs text-gray-500 mt-0.5" id="adminResetTargetInfo">Cơ thủ: ...</p>
+                    </div>
+                    <button type="button" onclick="closeAdminResetModal()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <form id="adminResetPasswordForm" method="POST" action="" class="p-6 space-y-4">
+                    @csrf
+                    <div>
+                        <label for="admin_new_password" class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                            Mật khẩu mới <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            name="password" 
+                            id="admin_new_password" 
+                            required 
+                            minlength="6"
+                            placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                            class="w-full text-sm rounded-lg border border-gray-300 px-3.5 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition font-mono"
+                        >
+                    </div>
+
+                    <div class="pt-3 border-t border-gray-100 flex items-center justify-end gap-2.5">
+                        <button type="button" onclick="closeAdminResetModal()" class="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-xs sm:text-sm font-semibold transition cursor-pointer">
+                            Hủy bỏ
+                        </button>
+                        <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition cursor-pointer">
+                            Lưu mật khẩu mới
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openAdminResetModal(userId, name, username) {
+            var form = document.getElementById('adminResetPasswordForm');
+            var info = document.getElementById('adminResetTargetInfo');
+            var input = document.getElementById('admin_new_password');
+            if (form) {
+                form.action = '/admin/users/' + userId + '/password';
+            }
+            if (info) {
+                info.innerText = 'Cơ thủ: ' + name + ' (@' + username + ')';
+            }
+            if (input) {
+                input.value = '';
+            }
+            var m = document.getElementById('adminResetPasswordModal');
+            if (m) {
+                m.classList.remove('hidden');
+                setTimeout(function() { if (input) input.focus(); }, 100);
+            }
+        }
+
+        function closeAdminResetModal() {
+            var m = document.getElementById('adminResetPasswordModal');
+            if (m) m.classList.add('hidden');
+        }
+    </script>
 @endsection

@@ -19,6 +19,7 @@ Route::middleware('guest')->group(function () {
 // Authenticated Application Routes (Private to logged-in users only)
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::post('/change-password', [AuthController::class, 'changePassword'])->name('password.change');
 
     // Default entry: Calendar
     Route::get('/', [MatchController::class, 'calendar'])->name('calendar');
@@ -46,6 +47,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/matches/{match}/resolve', [AdminController::class, 'resolveDispute'])->name('matches.resolve');
         Route::post('/users/{user}/status', [AdminController::class, 'toggleUserStatus'])->name('users.status');
         Route::post('/users/{user}/role', [AdminController::class, 'toggleUserRole'])->name('users.role');
+        Route::post('/users/{user}/password', [AdminController::class, 'resetUserPassword'])->name('users.password');
         Route::post('/bot/config', [AdminController::class, 'updateBotConfig'])->name('bot.config');
         Route::post('/logo', [AdminController::class, 'updateLogo'])->name('logo.update');
         Route::post('/logo/remove', [AdminController::class, 'removeLogo'])->name('logo.remove');

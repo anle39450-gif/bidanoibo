@@ -115,6 +115,36 @@
                                     </li>
                                 @endif
                             </ul>
+
+                            <!-- Mobile User Profile & Password / Logout -->
+                            <div class="pt-4 border-t border-gray-100 mt-auto">
+                                <div class="flex items-center justify-between">
+                                    <a href="{{ route('members.show', auth()->user()->username) }}" class="flex items-center gap-2.5 overflow-hidden group">
+                                        <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-8 h-8 rounded-full border border-gray-200 object-cover shrink-0">
+                                        <div class="overflow-hidden">
+                                            <div class="text-xs font-bold text-gray-900 group-hover:text-blue-600 truncate leading-tight">{{ auth()->user()->name }}</div>
+                                            <div class="text-[11px] text-gray-400 truncate mt-0.5">@<span>{{ auth()->user()->username }}</span></div>
+                                        </div>
+                                    </a>
+
+                                    <div class="flex items-center gap-1">
+                                        <button 
+                                            type="button" 
+                                            onclick="openChangePasswordModal(); mobileMenuOpen = false;" 
+                                            title="Đổi mật khẩu" 
+                                            class="text-gray-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                                        >
+                                            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                                        </button>
+                                        <form method="POST" action="{{ route('logout') }}">
+                                            @csrf
+                                            <button type="submit" title="Đăng xuất" class="text-gray-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                                                <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
                         </nav>
                     </div>
                 </div>
@@ -194,12 +224,22 @@
                         </div>
                     </a>
 
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" title="Đăng xuất" class="text-gray-400 hover:text-red-600 p-2 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <div class="flex items-center gap-1">
+                        <button 
+                            type="button" 
+                            onclick="openChangePasswordModal()" 
+                            title="Đổi mật khẩu" 
+                            class="text-gray-400 hover:text-blue-600 p-2 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                        >
+                            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
                         </button>
-                    </form>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" title="Đăng xuất" class="text-gray-400 hover:text-red-600 p-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                                <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -286,6 +326,9 @@
 
     <!-- Telegram Help Modal -->
     @include('partials.telegram-help-modal')
+
+    <!-- Change Password Modal -->
+    @include('partials.change-password-modal')
 
     @livewireScripts
 </body>

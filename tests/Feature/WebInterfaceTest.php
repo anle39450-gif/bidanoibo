@@ -419,3 +419,99 @@ test('telegram bot help modal is included and accessible from top bar', function
     $response->assertSee('openTelegramHelpModal()');
     $response->assertSee('Hướng Dẫn Kết Nối và Sử Dụng Telegram Bot');
 });
+
+test('user can change password with correct current password', function () {
+    $user = User::factory()->create([
+        'password' => Hash::make('oldpassword123'),
+    ]);
+
+    $response = $this->actingAs($user)
+        ->post(route('password.change'), [
+            'current_password' => 'oldpassword123',
+            'new_password' => 'newpassword456',
+            'new_password_confirmation' => 'newpassword456',
+        ]);
+
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
+
+    $user->refresh();
+    expect(Hash::check('newpassword456', $user->password))->toBeTrue();
+});
+
+test('user cannot change password with incorrect current password', function () {
+    $user = User::factory()->create([
+        'password' => Hash::make('oldpassword123'),
+    ]);
+
+    $response = $this->actingAs($user)
+        ->from(route('calendar'))
+        ->post(route('password.change'), [
+            'current_password' => 'wrongpassword',
+            'new_password' => 'newpassword456',
+            'new_password_confirmation' => 'newpassword456',
+        ]);
+
+    $response->assertRedirect(route('calendar'));
+    $response->assertSessionHasErrors('current_password');
+
+    $user->refresh();
+    expect(Hash::check('oldpassword123', $user->password))->toBeTrue();
+});
+
+test('user cannot change password when confirmation does not match', function () {
+    $user = User::factory()->create([
+        'password' => Hash::make('oldpassword123'),
+    ]);
+
+    $response = $this->actingAs($user)
+        ->post(route('password.change'), [
+            'current_password' => 'oldpassword123',
+            'new_password' => 'newpassword456',
+            'new_password_confirmation' => 'mismatch789',
+        ]);
+
+    $response->assertSessionHasErrors('new_password');
+});
+
+test('admin can reset any member password', function () {
+    $admin = User::factory()->admin()->create();
+    $member = User::factory()->create([
+        'password' => Hash::make('initial123'),
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->post(route('admin.users.password', $member->id), [
+            'password' => 'adminreset456',
+        ]);
+
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
+
+    $member->refresh();
+    expect(Hash::check('adminreset456', $member->password))->toBeTrue();
+});
+
+test('regular member cannot reset another member password via admin route', function () {
+    $member1 = User::factory()->create(['role' => 'member']);
+    $member2 = User::factory()->create(['role' => 'member', 'password' => Hash::make('secret123')]);
+
+    $response = $this->actingAs($member1)
+        ->post(route('admin.users.password', $member2->id), [
+            'password' => 'hackedpassword',
+        ]);
+
+    $response->assertStatus(403);
+    $member2->refresh();
+    expect(Hash::check('secret123', $member2->password))->toBeTrue();
+});
+
+test('change password modal is rendered on layout and profile page', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get(route('members.show', $user->username));
+    $response->assertStatus(200);
+    $response->assertSee('changePasswordModal');
+    $response->assertSee('openChangePasswordModal()');
+    $response->assertSee('Đổi Mật Khẩu');
+});

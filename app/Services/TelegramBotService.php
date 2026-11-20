@@ -22,7 +22,7 @@ class TelegramBotService
 
     public function isConfigured(): bool
     {
-        return ! empty($this->token);
+        return !empty($this->token);
     }
 
     protected function client(): PendingRequest
@@ -32,7 +32,7 @@ class TelegramBotService
 
     public function sendMessage(int|string $chatId, string $text, ?array $replyMarkup = null): bool
     {
-        if (! $this->isConfigured()) {
+        if (!$this->isConfigured()) {
             Log::info("Telegram bot not configured. Message would be: {$text}");
 
             return false;
@@ -53,7 +53,7 @@ class TelegramBotService
 
             return $response->successful();
         } catch (\Throwable $e) {
-            Log::error('Telegram sendMessage error: '.$e->getMessage());
+            Log::error('Telegram sendMessage error: ' . $e->getMessage());
 
             return false;
         }
@@ -61,7 +61,7 @@ class TelegramBotService
 
     public function sendMatchConfirmationRequest(BilliardMatch $match, User $recipient): bool
     {
-        if (! $recipient->telegram_id) {
+        if (!$recipient->telegram_id) {
             return false;
         }
 
@@ -153,7 +153,7 @@ class TelegramBotService
 
         $user = User::where('telegram_id', (string) $fromId)->first();
 
-        if (! $user) {
+        if (!$user) {
             $this->answerCallbackQuery($callbackId, '⚠️ Bạn chưa liên kết tài khoản website!');
 
             return;
@@ -163,7 +163,7 @@ class TelegramBotService
             $matchId = (int) substr($data, 8);
             $match = BilliardMatch::find($matchId);
 
-            if (! $match) {
+            if (!$match) {
                 $this->answerCallbackQuery($callbackId, '❌ Trận đấu không tồn tại!');
 
                 return;
@@ -175,7 +175,7 @@ class TelegramBotService
                 return;
             }
 
-            if (! $match->isWaitingForUser($user) && ! $user->isAdmin()) {
+            if (!$match->isWaitingForUser($user) && !$user->isAdmin()) {
                 $this->answerCallbackQuery($callbackId, '⚠️ Chỉ đối thủ mới có quyền xác nhận kết quả này!');
 
                 return;
@@ -192,7 +192,7 @@ class TelegramBotService
             $matchId = (int) substr($data, 9);
             $match = BilliardMatch::find($matchId);
 
-            if (! $match) {
+            if (!$match) {
                 $this->answerCallbackQuery($callbackId, '❌ Trận đấu không tồn tại!');
 
                 return;
@@ -336,10 +336,10 @@ class TelegramBotService
                 $this->sendMessage(
                     $chatId,
                     "🔑 <b>ĐĂNG NHẬP TÀI KHOẢN TRÊN TELEGRAM</b>\n\n"
-                    ."Vui lòng gửi tin nhắn theo cú pháp:\n"
-                    ."<code>/login [username] [mật_khẩu]</code>\n\n"
-                    ."<i>Ví dụ:</i> <code>/login admin password</code> hoặc <code>/login an password</code>\n\n"
-                    .'<i>(Sau khi đăng nhập thành công, bạn có thể xóa tin nhắn chứa mật khẩu để bảo mật)</i>'
+                    . "Vui lòng gửi tin nhắn theo cú pháp:\n"
+                    . "<code>/login [username] [mật_khẩu]</code>\n\n"
+                    . "<i>Ví dụ:</i> <code>/login admin password</code> hoặc <code>/login an password</code>\n\n"
+                    . '<i>(Sau khi đăng nhập thành công, bạn có thể xóa tin nhắn chứa mật khẩu để bảo mật)</i>'
                 );
 
                 return;
@@ -351,13 +351,13 @@ class TelegramBotService
             $field = filter_var($inputLogin, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
             $targetUser = User::where($field, strtolower($inputLogin))->first();
 
-            if (! $targetUser || ! Hash::check($inputPassword, $targetUser->password)) {
+            if (!$targetUser || !Hash::check($inputPassword, $targetUser->password)) {
                 $this->sendMessage($chatId, '❌ <b>Đăng nhập thất bại:</b> Tên đăng nhập hoặc mật khẩu không chính xác!');
 
                 return;
             }
 
-            if (! $targetUser->is_active) {
+            if (!$targetUser->is_active) {
                 $this->sendMessage($chatId, '⛔ <b>Tài khoản đã bị khóa:</b> Vui lòng liên hệ Quản trị viên để mở lại!');
 
                 return;
@@ -378,15 +378,15 @@ class TelegramBotService
             $this->sendMessage(
                 $chatId,
                 "🎉 <b>ĐĂNG NHẬP THÀNH CÔNG!</b>\n\n"
-                ."Xin chào <b>{$targetUser->name}</b> (@{$targetUser->username})!\n"
-                ."Tài khoản Telegram của bạn đã được kết nối với hệ thống Bida Nội Bộ.\n\n"
-                ."⚡ <i>Mẹo:</i> Bạn có thể xóa tin nhắn vừa gửi để bảo mật mật khẩu của bạn.\n\n"
-                ."Bây giờ bạn có thể dùng các lệnh:\n"
-                ."• <code>/stats</code> : Xem thành tích của bạn\n"
-                ."• <code>/an binh</code> : Tạo trận đơn\n"
-                ."• <code>/an binh vs cuong dung</code> : Tạo trận đôi\n"
-                ."• <code>/logout</code> : Đăng xuất tài khoản\n"
-                .'• <code>/help</code> : Xem hướng dẫn đầy đủ'
+                . "Xin chào <b>{$targetUser->name}</b> (@{$targetUser->username})!\n"
+                . "Tài khoản Telegram của bạn đã được kết nối với hệ thống Bida Nội Bộ.\n\n"
+                . "⚡ <i>Mẹo:</i> Bạn có thể xóa tin nhắn vừa gửi để bảo mật mật khẩu của bạn.\n\n"
+                . "Bây giờ bạn có thể dùng các lệnh:\n"
+                . "• <code>/stats</code> : Xem thành tích của bạn\n"
+                . "• <code>/an binh</code> : Tạo trận đơn\n"
+                . "• <code>/an binh vs cuong dung</code> : Tạo trận đôi\n"
+                . "• <code>/logout</code> : Đăng xuất tài khoản\n"
+                . '• <code>/help</code> : Xem hướng dẫn đầy đủ'
             );
 
             return;
@@ -411,12 +411,56 @@ class TelegramBotService
         // Find user linked with this Telegram account
         $user = User::where('telegram_id', $fromId)->first();
 
-        // 4. Command /help
+        // 4. Command /password [new_password]
+        if ($rawCommand === '/password') {
+            if (! $user) {
+                $this->sendMessage($chatId, '⚠️ Bạn cần đăng nhập tài khoản trước bằng lệnh: <code>/login username password</code>');
+
+                return;
+            }
+
+            $parts = preg_split('/\s+/', $text);
+            if (count($parts) < 2) {
+                $this->sendMessage(
+                    $chatId,
+                    "🔐 <b>ĐỔI MẬT KHẨU TÀI KHOẢN</b>\n\n"
+                    ."Cú pháp:\n"
+                    ."<code>/password [mật_khẩu_mới]</code>\n\n"
+                    ."<i>Ví dụ:</i> <code>/password 123456</code>\n\n"
+                    .'<i>(Mật khẩu cần tối thiểu 6 ký tự. Hãy xóa tin nhắn sau khi gửi để bảo mật)</i>'
+                );
+
+                return;
+            }
+
+            $newPass = trim($parts[1]);
+            if (strlen($newPass) < 6) {
+                $this->sendMessage($chatId, '❌ Mật khẩu mới phải có tối thiểu 6 ký tự!');
+
+                return;
+            }
+
+            $user->update([
+                'password' => Hash::make($newPass),
+            ]);
+
+            $this->sendMessage(
+                $chatId,
+                "✅ <b>ĐỔI MẬT KHẨU THÀNH CÔNG!</b>\n\n"
+                ."Mật khẩu mới cho tài khoản <b>{$user->name}</b> (@{$user->username}) đã được cập nhật.\n"
+                ."Bạn có thể dùng mật khẩu này để đăng nhập trên Website hoặc Telegram.\n\n"
+                .'⚡ <i>Khuyến nghị:</i> Hãy xóa tin nhắn vừa gửi để bảo mật tài khoản!'
+            );
+
+            return;
+        }
+
+        // 5. Command /help
         if ($rawCommand === '/help') {
             $helpText = "🎱 <b>HƯỚNG DẪN SỬ DỤNG BOT BIDA NỘI BỘ</b>\n\n";
-            $helpText .= "🔑 <b>Đăng nhập tài khoản:</b>\n<code>/login username password</code> (VD: <code>/login admin password</code>)\n\n";
+            $helpText .= "🔑 <b>Đăng nhập / Đổi mật khẩu:</b>\n• <code>/login username password</code>\n• <code>/password [mật_khẩu_mới]</code>\n• <code>/logout</code>\n\n";
             $helpText .= "1️⃣ <b>Tạo trận ĐƠN (1vs1):</b>\n<code>/an binh</code>\nBot sẽ hiển thị nút chọn ai thắng để bạn bấm chọn!\n\n";
-            $helpText .= "2️⃣ <b>Tạo trận ĐÔI (2vs2):</b>\n<code>/an binh vs cuong dung</code>\nBot hiển thị nút chọn Đội 1 Thắng hoặc Đội 2 Thắng!\n\n";
+            $helpText .= "2️⃣ <b>Tạo trận ĐỔI (2vs2):</b>\n<code>/an binh vs cuong dung</code>\nBot hiển thị nút chọn Đội 1 Thắng hoặc Đội 2 Thắng!\n\n";
             $helpText .= "3️⃣ <b>Xác nhận kết quả:</b>\nĐối thủ nhận thông báo kèm nút [✅ Chấp nhận] và [❌ Khiếu nại] (Hạn chốt 24h).\n\n";
             $helpText .= "4️⃣ <b>Các lệnh tra cứu:</b>\n";
             $helpText .= "• <code>/stats</code> : Thống kê cá nhân\n";
@@ -424,20 +468,19 @@ class TelegramBotService
             $helpText .= "• <code>/history</code> : 5 trận gần nhất\n";
             $helpText .= "• <code>/pending</code> : Trận đang chờ xác nhận\n";
             $helpText .= "• <code>/duel an</code> : Lịch sử đối đầu với An\n";
-            $helpText .= "• <code>/logout</code> : Đăng xuất tài khoản\n";
 
             $this->sendMessage($chatId, $helpText);
 
             return;
         }
 
-        if (! $user) {
+        if (!$user) {
             $this->sendMessage(
                 $chatId,
                 "⚠️ <b>Bạn chưa đăng nhập tài khoản website trên Telegram!</b>\n\n"
-                ."👉 <b>Cách 1:</b> Gõ lệnh đăng nhập trực tiếp:\n"
-                ."<code>/login username password</code> (VD: <code>/login admin password</code>)\n\n"
-                .'👉 <b>Cách 2:</b> Vào website lấy mã cá nhân và gửi: <code>/start [mã]</code>'
+                . "👉 <b>Cách 1:</b> Gõ lệnh đăng nhập trực tiếp:\n"
+                . "<code>/login username password</code> (VD: <code>/login admin password</code>)\n\n"
+                . '👉 <b>Cách 2:</b> Vào website lấy mã cá nhân và gửi: <code>/start [mã]</code>'
             );
 
             return;
@@ -458,9 +501,9 @@ class TelegramBotService
             $out .= "⚡ Phong độ hiện tại: {$streakText}\n";
             $out .= "⭐ Chuỗi thắng dài nhất: <b>{$stats['longest_win_streak']}</b>\n";
 
-            if (! empty($stats['badges'])) {
+            if (!empty($stats['badges'])) {
                 $badgeNames = array_column($stats['badges'], 'name');
-                $out .= "\n🎖️ <b>Danh hiệu vui:</b> ".implode(', ', $badgeNames);
+                $out .= "\n🎖️ <b>Danh hiệu vui:</b> " . implode(', ', $badgeNames);
             }
 
             $this->sendMessage($chatId, $out);
@@ -572,7 +615,7 @@ class TelegramBotService
             $targetUsername = ltrim(trim($parts[1]), '@');
             $target = User::where('username', $targetUsername)->first();
 
-            if (! $target) {
+            if (!$target) {
                 $this->sendMessage($chatId, "❌ Không tìm thấy thành viên có username '{$targetUsername}'!");
 
                 return;
@@ -601,7 +644,7 @@ class TelegramBotService
             }
 
             $rawParts = preg_split('/\s+/', $clean);
-            $parts = array_values(array_filter($rawParts, fn ($p) => strtolower($p) !== 'vs'));
+            $parts = array_values(array_filter($rawParts, fn($p) => strtolower($p) !== 'vs'));
 
             if (count($parts) === 2) {
                 $u1 = ltrim($parts[0], '@');
@@ -630,9 +673,9 @@ class TelegramBotService
                     $this->sendMessage(
                         $chatId,
                         "🎱 <b>TẠO TRẬN ĐẤU ĐƠN (1vs1)</b>\n\n"
-                        ."⚔️ <b>Cơ thủ:</b> {$user1->name} vs {$user2->name}\n"
-                        ."🎁 <b>Kèo mặc định:</b> Kèo cà phê muối\n\n"
-                        .'<b>Ai là người chiến thắng?</b> Chọn ngay bên dưới:',
+                        . "⚔️ <b>Cơ thủ:</b> {$user1->name} vs {$user2->name}\n"
+                        . "🎁 <b>Kèo mặc định:</b> Kèo cà phê muối\n\n"
+                        . '<b>Ai là người chiến thắng?</b> Chọn ngay bên dưới:',
                         $kb
                     );
 
@@ -672,29 +715,29 @@ class TelegramBotService
                     $this->sendMessage(
                         $chatId,
                         "🎱 <b>TẠO TRẬN ĐÁNH ĐÔI (2vs2)</b>\n\n"
-                        ."👥 <b>Đội 1:</b> {$user1->name} & {$user2->name}\n"
-                        ."👥 <b>Đội 2:</b> {$user3->name} & {$user4->name}\n"
-                        ."🎁 <b>Kèo mặc định:</b> Kèo 4 ly cà phê muối\n\n"
-                        .'<b>Đội nào chiến thắng?</b> Chọn ngay bên dưới:',
+                        . "👥 <b>Đội 1:</b> {$user1->name} & {$user2->name}\n"
+                        . "👥 <b>Đội 2:</b> {$user3->name} & {$user4->name}\n"
+                        . "🎁 <b>Kèo mặc định:</b> Kèo 4 ly cà phê muối\n\n"
+                        . '<b>Đội nào chiến thắng?</b> Chọn ngay bên dưới:',
                         $kb
                     );
 
                     return;
                 } else {
                     $notFound = [];
-                    if (! $user1) {
+                    if (!$user1) {
                         $notFound[] = $u1;
                     }
-                    if (! $user2) {
+                    if (!$user2) {
                         $notFound[] = $u2;
                     }
-                    if (! $user3) {
+                    if (!$user3) {
                         $notFound[] = $u3;
                     }
-                    if (! $user4) {
+                    if (!$user4) {
                         $notFound[] = $u4;
                     }
-                    $this->sendMessage($chatId, '❌ Không tìm thấy các username: '.implode(', ', $notFound).'. Vui lòng kiểm tra lại!');
+                    $this->sendMessage($chatId, '❌ Không tìm thấy các username: ' . implode(', ', $notFound) . '. Vui lòng kiểm tra lại!');
 
                     return;
                 }
@@ -704,7 +747,7 @@ class TelegramBotService
 
     protected function answerCallbackQuery(string $callbackQueryId, string $text): void
     {
-        if (! $this->isConfigured()) {
+        if (!$this->isConfigured()) {
             return;
         }
 
@@ -715,13 +758,13 @@ class TelegramBotService
                 'show_alert' => false,
             ]);
         } catch (\Throwable $e) {
-            Log::error('Telegram answerCallbackQuery error: '.$e->getMessage());
+            Log::error('Telegram answerCallbackQuery error: ' . $e->getMessage());
         }
     }
 
     public function setWebhook(string $url): array
     {
-        if (! $this->isConfigured()) {
+        if (!$this->isConfigured()) {
             return ['ok' => false, 'description' => 'Bot token chưa được cấu hình!'];
         }
 
@@ -734,7 +777,7 @@ class TelegramBotService
 
     public function deleteWebhook(): array
     {
-        if (! $this->isConfigured()) {
+        if (!$this->isConfigured()) {
             return ['ok' => false, 'description' => 'Bot token chưa được cấu hình!'];
         }
 
@@ -745,7 +788,7 @@ class TelegramBotService
 
     public function getWebhookInfo(): array
     {
-        if (! $this->isConfigured()) {
+        if (!$this->isConfigured()) {
             return ['ok' => false, 'description' => 'Bot token chưa được cấu hình!'];
         }
 
@@ -756,7 +799,7 @@ class TelegramBotService
 
     public function getUpdates(int $offset = 0, int $timeout = 20): array
     {
-        if (! $this->isConfigured()) {
+        if (!$this->isConfigured()) {
             return [];
         }
 
@@ -768,7 +811,7 @@ class TelegramBotService
 
             return $res->json()['result'] ?? [];
         } catch (\Throwable $e) {
-            Log::error('Telegram getUpdates error: '.$e->getMessage());
+            Log::error('Telegram getUpdates error: ' . $e->getMessage());
 
             return [];
         }
