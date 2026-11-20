@@ -1,0 +1,136 @@
+<?php
+
+namespace App\Models;
+
+use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
+
+class User extends Authenticatable
+{
+    /** @use HasFactory<UserFactory> */
+    use HasFactory, Notifiable;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'name',
+        'username',
+        'email',
+        'password',
+        'avatar',
+        'role',
+        'is_active',
+        'telegram_id',
+        'telegram_username',
+        'telegram_link_code',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'is_active' => 'boolean',
+        ];
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function getTelegramLinkCode(): string
+    {
+        if (empty($this->telegram_link_code)) {
+            $this->telegram_link_code = Str::random(10);
+            $this->save();
+        }
+
+        return $this->telegram_link_code;
+    }
+
+    public function getAvatarUrlAttribute(): string
+    {
+        if ($this->avatar) {
+            return str_starts_with($this->avatar, 'http')
+                ? $this->avatar
+                : asset('storage/'.$this->avatar);
+        }
+
+        $encodedName = urlencode($this->name ?: 'User');
+
+        return "https://ui-avatars.com/api/?name={$encodedName}&background=0284c7&color=ffffff&bold=true";
+    }
+
+    public function matchesAsPlayer1(): HasMany
+    {
+        return $this->hasMany(BilliardMatch::class, 'player1_id');
+    }
+
+    public function matchesAsPlayer2(): HasMany
+    {
+        return $this->hasMany(BilliardMatch::class, 'player2_id');
+    }
+
+    public function matchesWon(): HasMany
+    {
+        return $this->hasMany(BilliardMatch::class, 'winner_id');
+    }
+
+    public function matchesLost(): HasMany
+    {
+        return $this->hasMany(BilliardMatch::class, 'loser_id');
+    }
+
+    public function matchesCreated(): HasMany
+    {
+        return $this->hasMany(BilliardMatch::class, 'creator_id');
+    }
+
+    public function userNotifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class, 'user_id');
+    }
+
+    /**
+     * Query for all matches this user participated in.
+     */
+    public function allMatches(): Builder
+    {
+        return BilliardMatch::where(function (Builder $query) {
+            $query->where('player1_id', $this->id)
+                ->orWhere('player2_id', $this->id);
+        });
+    }
+
+    /**
+     * Query for all officially counted matches (confirmed or resolved).
+     */
+    public function confirmedMatches(): Builder
+    {
+        return $this->allMatches()->whereIn('status', ['confirmed', 'resolved']);
+    }
+}
