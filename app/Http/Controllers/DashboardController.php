@@ -39,6 +39,7 @@ class DashboardController extends Controller
         $myPaidDebtsCount = 0;
         $myUnpaidReceivablesCount = 0;
         $myUnpaidMatches = collect();
+        $myUnpaidReceivables = collect();
 
         if ($currentUser) {
             $unpaidQuery = BilliardMatch::confirmed()
@@ -63,13 +64,19 @@ class DashboardController extends Controller
                 })
                 ->count();
 
-            $myUnpaidReceivablesCount = BilliardMatch::confirmed()
+            $receivablesQuery = BilliardMatch::confirmed()
                 ->where('prize_status', '!=', 'paid')
                 ->where(function ($q) use ($currentUser) {
                     $q->where('winner_id', $currentUser->id)
                         ->orWhere('winner_partner_id', $currentUser->id);
-                })
-                ->count();
+                });
+
+            $myUnpaidReceivablesCount = (clone $receivablesQuery)->count();
+            $myUnpaidReceivables = (clone $receivablesQuery)
+                ->with(['winner', 'winnerPartner', 'loser', 'loserPartner'])
+                ->orderBy('played_at', 'desc')
+                ->take(6)
+                ->get();
         }
 
         // 4. Pending matches specifically waiting for Current User
@@ -105,6 +112,7 @@ class DashboardController extends Controller
             'myPaidDebtsCount',
             'myUnpaidReceivablesCount',
             'myUnpaidMatches',
+            'myUnpaidReceivables',
             'myPendingMatches',
             'recentMatches',
             'miniLeaderboard'

@@ -130,6 +130,36 @@
                         </div>
                     </div>
                 @endif
+
+                <!-- If there are unpaid receivables (kèo người khác chưa trả cho bạn), show list! -->
+                @if($myUnpaidReceivables->isNotEmpty())
+                    <div class="bg-blue-50/60 border border-blue-200 rounded-lg p-4 mt-2">
+                        <div class="text-sm font-bold text-blue-900 flex items-center justify-between mb-2.5">
+                            <span>Kèo đối thủ chưa trả cho bạn (Chờ nhận: {{ $myUnpaidReceivablesCount }} trận)</span>
+                            <span class="text-xs text-blue-700 font-normal">Trận bạn thắng đối thủ chưa trả kèo</span>
+                        </div>
+                        <div class="divide-y divide-blue-200/60 space-y-2">
+                            @foreach($myUnpaidReceivables as $recMatch)
+                                <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+                                    <div>
+                                        <div class="font-bold text-gray-900 flex items-center gap-2">
+                                            <span>Thắng trước: <span class="text-red-600">{{ $recMatch->loser_names }}</span></span>
+                                            <span class="text-xs text-gray-400 font-normal font-mono">({{ $recMatch->played_at->format('d/m/Y') }})</span>
+                                        </div>
+                                        <div class="text-xs text-gray-600 mt-0.5">
+                                            Kèo chờ nhận: <b class="text-blue-900 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded">{{ $recMatch->prize }}</b>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        <a href="{{ route('matches.show', $recMatch->id) }}" class="text-xs text-blue-600 hover:underline font-medium">
+                                            Xem chi tiết →
+                                        </a>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             </div>
         @endauth
 

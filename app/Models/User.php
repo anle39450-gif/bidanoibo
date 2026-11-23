@@ -206,4 +206,21 @@ class User extends Authenticatable
             })
             ->count();
     }
+
+    protected ?int $memoizedUnpaidReceivablesCount = null;
+
+    public function getUnpaidReceivablesCountAttribute(): int
+    {
+        if ($this->memoizedUnpaidReceivablesCount !== null) {
+            return $this->memoizedUnpaidReceivablesCount;
+        }
+
+        return $this->memoizedUnpaidReceivablesCount = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
+            ->where('prize_status', '!=', 'paid')
+            ->where(function ($q) {
+                $q->where('winner_id', $this->id)
+                    ->orWhere('winner_partner_id', $this->id);
+            })
+            ->count();
+    }
 }

@@ -129,10 +129,10 @@
                                                 <span class="text-red-600 font-bold">{{ auth()->user()->losses_count }}L</span>
                                                 <span class="text-gray-300">•</span>
                                                 @if(auth()->user()->unpaid_debts_count > 0)
-                                                    <span class="text-amber-700 font-bold">Nợ: {{ auth()->user()->unpaid_debts_count }}</span>
-                                                @else
-                                                    <span class="text-gray-400">Trả: {{ auth()->user()->paid_debts_count }}</span>
+                                                    <span class="text-amber-700 font-bold" title="Kèo bạn nợ">Nợ {{ auth()->user()->unpaid_debts_count }}</span>
+                                                    <span class="text-gray-300">•</span>
                                                 @endif
+                                                <span class="text-blue-700 font-medium" title="Kèo đối thủ chưa trả bạn">Nhận {{ auth()->user()->unpaid_receivables_count }}</span>
                                             </div>
                                         </div>
                                     </a>
@@ -236,10 +236,10 @@
                                 <span class="text-red-600 font-bold">{{ auth()->user()->losses_count }}L</span>
                                 <span class="text-gray-300">•</span>
                                 @if(auth()->user()->unpaid_debts_count > 0)
-                                    <span class="text-amber-700 font-bold">Nợ: {{ auth()->user()->unpaid_debts_count }}</span>
-                                @else
-                                    <span class="text-gray-400">Trả: {{ auth()->user()->paid_debts_count }}</span>
+                                    <span class="text-amber-700 font-bold" title="Kèo bạn nợ">Nợ {{ auth()->user()->unpaid_debts_count }}</span>
+                                    <span class="text-gray-300">•</span>
                                 @endif
+                                <span class="text-blue-700 font-medium" title="Kèo đối thủ chưa trả bạn">Nhận {{ auth()->user()->unpaid_receivables_count }}</span>
                             </div>
                         </div>
                     </a>
@@ -281,7 +281,7 @@
                 </div>
 
                 <div class="hidden md:flex items-center text-sm font-medium text-gray-500 gap-3">
-                    <span class="hidden 2xl:inline text-xs text-gray-400">Hệ thống quản lý bida nội bộ</span>
+                    <span class="hidden 2xl:inline text-xs text-gray-400">Quản lý bida nội bộ</span>
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-semibold transition shadow-2xs" title="Xem chi tiết tại Dashboard">
                         <div class="flex items-center gap-1.5">
                             <span class="text-green-700 font-bold">{{ auth()->user()->wins_count }} Thắng</span>
@@ -291,12 +291,26 @@
                         </div>
                         <span class="text-gray-300">|</span>
                         <div class="flex items-center gap-2">
-                            <span class="text-gray-600 font-medium">Đã trả: <b class="text-blue-700 font-bold">{{ auth()->user()->paid_debts_count }}</b></span>
                             @if(auth()->user()->unpaid_debts_count > 0)
-                                <span class="bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded font-bold">Nợ: {{ auth()->user()->unpaid_debts_count }} kèo</span>
+                                <span class="bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded font-bold" title="Kèo bạn cần trả cho đối thủ">
+                                    Nợ: {{ auth()->user()->unpaid_debts_count }}
+                                </span>
                             @else
-                                <span class="text-gray-400 font-normal">(0 nợ)</span>
+                                <span class="text-gray-400 font-normal" title="Bạn không nợ kèo nào">0 nợ</span>
                             @endif
+
+                            <span class="text-gray-300">•</span>
+
+                            @if(auth()->user()->unpaid_receivables_count > 0)
+                                <span class="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded font-bold" title="Kèo đối thủ chưa trả cho bạn">
+                                    Chờ nhận: {{ auth()->user()->unpaid_receivables_count }}
+                                </span>
+                            @else
+                                <span class="text-gray-400 font-normal" title="Không có kèo chờ nhận">0 chờ nhận</span>
+                            @endif
+
+                            <span class="text-gray-300">•</span>
+                            <span class="text-gray-500 font-medium" title="Kèo bạn đã thanh toán xong">Đã trả: <b class="text-gray-800">{{ auth()->user()->paid_debts_count }}</b></span>
                         </div>
                     </a>
                 </div>
