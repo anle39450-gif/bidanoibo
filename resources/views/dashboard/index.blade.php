@@ -36,23 +36,23 @@
         </div>
 
         @auth
-            <!-- Personal Stats & Settlement Summary -->
-            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white rounded-xl p-5 sm:p-6 shadow-md space-y-5 border border-indigo-900/50">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-800/60 pb-4">
+            <!-- Personal Stats & Settlement Summary (Light Theme matching app) -->
+            <div class="bg-white border border-gray-200 rounded-xl p-5 sm:p-6 shadow-sm space-y-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
                     <div class="flex items-center gap-3.5">
-                        <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-12 h-12 rounded-full border-2 border-indigo-400 object-cover shadow">
+                        <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-12 h-12 rounded-full border border-gray-200 object-cover shadow-xs">
                         <div>
-                            <div class="text-xs uppercase tracking-wider text-indigo-300 font-bold">Thành tích & Kèo của bạn</div>
-                            <div class="text-lg sm:text-xl font-black text-white">{{ auth()->user()->name }} (@<span>{{ auth()->user()->username }}</span>)</div>
+                            <div class="text-xs uppercase tracking-wider text-blue-600 font-bold">Thành tích & Kèo của bạn</div>
+                            <div class="text-lg sm:text-xl font-bold text-gray-900">{{ auth()->user()->name }} <span class="text-xs text-gray-400 font-normal font-mono">@<span>{{ auth()->user()->username }}</span></span></div>
                         </div>
                     </div>
                     <div class="flex items-center gap-2 text-xs sm:text-sm">
                         @if($myStats && $myStats['current_streak_count'] > 0)
-                            <span class="px-3 py-1 rounded-full font-bold {{ $myStats['current_streak_type'] === 'win' ? 'bg-green-500/20 text-green-300 border border-green-500/40' : 'bg-red-500/20 text-red-300 border border-red-500/40' }}">
+                            <span class="px-3 py-1 rounded-full font-bold {{ $myStats['current_streak_type'] === 'win' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200' }}">
                                 Chuỗi: {{ $myStats['current_streak_count'] }} trận {{ $myStats['current_streak_type'] === 'win' ? 'Thắng' : 'Thua' }}
                             </span>
                         @endif
-                        <a href="{{ route('members.show', auth()->user()->username) }}" class="text-indigo-200 hover:text-white font-semibold underline text-xs sm:text-sm">
+                        <a href="{{ route('members.show', auth()->user()->username) }}" class="text-blue-600 hover:text-blue-700 font-semibold underline text-xs sm:text-sm">
                             Xem chi tiết hồ sơ →
                         </a>
                     </div>
@@ -61,68 +61,68 @@
                 <!-- 4 Personal Metric Boxes -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     <!-- Wins -->
-                    <div class="bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg p-4">
-                        <div class="text-xs font-semibold text-indigo-200 uppercase tracking-wider">Trận Thắng</div>
-                        <div class="text-3xl sm:text-4xl font-extrabold text-green-400 mt-1">{{ $myStats['wins'] ?? 0 }}</div>
-                        <div class="text-xs text-indigo-200/80 mt-1">Tỷ lệ thắng: <b class="text-white">{{ $myStats['win_rate'] ?? 0 }}%</b></div>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Trận Thắng</div>
+                        <div class="text-3xl sm:text-4xl font-extrabold text-green-600 mt-1">{{ $myStats['wins'] ?? 0 }}</div>
+                        <div class="text-xs text-gray-500 mt-1">Tỷ lệ thắng: <b class="text-gray-900">{{ $myStats['win_rate'] ?? 0 }}%</b></div>
                     </div>
 
                     <!-- Losses -->
-                    <div class="bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg p-4">
-                        <div class="text-xs font-semibold text-indigo-200 uppercase tracking-wider">Trận Thua</div>
-                        <div class="text-3xl sm:text-4xl font-extrabold text-red-400 mt-1">{{ $myStats['losses'] ?? 0 }}</div>
-                        <div class="text-xs text-indigo-200/80 mt-1">Tổng đấu: <b class="text-white">{{ $myStats['total_matches'] ?? 0 }} trận</b></div>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Trận Thua</div>
+                        <div class="text-3xl sm:text-4xl font-extrabold text-red-600 mt-1">{{ $myStats['losses'] ?? 0 }}</div>
+                        <div class="text-xs text-gray-500 mt-1">Tổng đấu: <b class="text-gray-900">{{ $myStats['total_matches'] ?? 0 }} trận</b></div>
                     </div>
 
                     <!-- Unpaid Debts (Kèo cần trả) -->
-                    <div class="bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg p-4 {{ $myUnpaidDebtsCount > 0 ? 'ring-2 ring-amber-400/80' : '' }}">
-                        <div class="text-xs font-semibold text-indigo-200 uppercase tracking-wider">Kèo Cần Trả (Nợ)</div>
-                        <div class="text-3xl sm:text-4xl font-extrabold {{ $myUnpaidDebtsCount > 0 ? 'text-amber-400' : 'text-slate-300' }} mt-1">
+                    <div class="rounded-lg p-4 {{ $myUnpaidDebtsCount > 0 ? 'bg-amber-50 border-2 border-amber-300' : 'bg-gray-50 border border-gray-200' }}">
+                        <div class="text-xs font-semibold {{ $myUnpaidDebtsCount > 0 ? 'text-amber-800' : 'text-gray-500' }} uppercase tracking-wider">Kèo Cần Trả (Nợ)</div>
+                        <div class="text-3xl sm:text-4xl font-extrabold {{ $myUnpaidDebtsCount > 0 ? 'text-amber-600' : 'text-gray-900' }} mt-1">
                             {{ $myUnpaidDebtsCount }}
                         </div>
-                        <div class="text-xs text-indigo-200/80 mt-1">
-                            {{ $myUnpaidDebtsCount > 0 ? 'Bạn có trận thua chưa trả kèo' : 'Đã thanh toán đủ các kèo' }}
+                        <div class="text-xs {{ $myUnpaidDebtsCount > 0 ? 'text-amber-700 font-medium' : 'text-gray-500' }} mt-1">
+                            {{ $myUnpaidDebtsCount > 0 ? 'Bạn có trận thua chưa trả kèo' : 'Đã trả đủ tất cả các kèo' }}
                         </div>
                     </div>
 
                     <!-- Settled Prizes -->
-                    <div class="bg-white/10 backdrop-blur-sm border border-white/10 rounded-lg p-4">
-                        <div class="text-xs font-semibold text-indigo-200 uppercase tracking-wider">Kèo Đã Trả / Đang Chờ</div>
-                        <div class="text-3xl sm:text-4xl font-extrabold text-blue-300 mt-1">{{ $myPaidDebtsCount }}</div>
-                        <div class="text-xs text-indigo-200/80 mt-1">
-                            Đã trả: <b class="text-white">{{ $myPaidDebtsCount }}</b> | Chờ nhận: <b class="text-white">{{ $myUnpaidReceivablesCount }}</b>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Kèo Đã Trả / Đang Chờ</div>
+                        <div class="text-3xl sm:text-4xl font-extrabold text-blue-600 mt-1">{{ $myPaidDebtsCount }}</div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            Đã trả: <b class="text-gray-800">{{ $myPaidDebtsCount }}</b> | Chờ nhận: <b class="text-gray-800">{{ $myUnpaidReceivablesCount }}</b>
                         </div>
                     </div>
                 </div>
 
                 <!-- If there are unpaid debts, show list with Quick Pay button! -->
                 @if($myUnpaidMatches->isNotEmpty())
-                    <div class="bg-amber-500/15 border border-amber-400/30 rounded-lg p-4 mt-2">
-                        <div class="text-sm font-bold text-amber-300 flex items-center justify-between mb-2.5">
+                    <div class="bg-amber-50/60 border border-amber-200 rounded-lg p-4 mt-2">
+                        <div class="text-sm font-bold text-amber-900 flex items-center justify-between mb-2.5">
                             <span>Danh sách trận bạn thua chưa trả kèo ({{ $myUnpaidDebtsCount }} trận)</span>
-                            <span class="text-xs text-amber-200/70 font-normal">Bấm "Trả kèo ngay" để cập nhật</span>
+                            <span class="text-xs text-amber-700 font-normal">Bấm "Trả kèo ngay" để cập nhật</span>
                         </div>
-                        <div class="divide-y divide-white/10 space-y-2">
+                        <div class="divide-y divide-amber-200/60 space-y-2">
                             @foreach($myUnpaidMatches as $debtMatch)
                                 <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
                                     <div>
-                                        <div class="font-bold text-white flex items-center gap-2">
-                                            <span>Thua trước: <span class="text-amber-300">{{ $debtMatch->winner_names }}</span></span>
-                                            <span class="text-xs text-gray-300 font-normal">({{ $debtMatch->played_at->format('d/m/Y') }})</span>
+                                        <div class="font-bold text-gray-900 flex items-center gap-2">
+                                            <span>Thua trước: <span class="text-blue-700">{{ $debtMatch->winner_names }}</span></span>
+                                            <span class="text-xs text-gray-400 font-normal font-mono">({{ $debtMatch->played_at->format('d/m/Y') }})</span>
                                         </div>
-                                        <div class="text-xs text-indigo-200 mt-0.5">
-                                            Kèo phải trả: <b class="text-white bg-white/20 px-2 py-0.5 rounded">{{ $debtMatch->prize }}</b>
+                                        <div class="text-xs text-gray-600 mt-0.5">
+                                            Kèo phải trả: <b class="text-amber-900 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded">{{ $debtMatch->prize }}</b>
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-2 shrink-0">
                                         <form method="POST" action="{{ route('matches.pay-prize', $debtMatch->id) }}" onsubmit="return confirm('Xác nhận bạn đã trả kèo \'{{ $debtMatch->prize }}\' cho trận đấu này?')">
                                             @csrf
-                                            <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-gray-950 font-bold text-xs px-3.5 py-1.5 rounded-md shadow transition cursor-pointer">
+                                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-3.5 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
                                                 Trả kèo ngay
                                             </button>
                                         </form>
-                                        <a href="{{ route('matches.show', $debtMatch->id) }}" class="text-xs text-white/80 hover:text-white underline">
-                                            Chi tiết
+                                        <a href="{{ route('matches.show', $debtMatch->id) }}" class="text-xs text-blue-600 hover:underline font-medium">
+                                            Chi tiết →
                                         </a>
                                     </div>
                                 </div>
