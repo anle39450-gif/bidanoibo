@@ -123,10 +123,16 @@
                                         <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-8 h-8 rounded-full border border-gray-200 object-cover shrink-0">
                                         <div class="overflow-hidden">
                                             <div class="text-xs font-bold text-gray-900 group-hover:text-blue-600 truncate leading-tight">{{ auth()->user()->name }}</div>
-                                            <div class="flex items-center gap-1.5 mt-0.5 text-[11px]">
-                                                <span class="text-green-700 font-bold">{{ auth()->user()->wins_count }} Thắng</span>
+                                            <div class="flex items-center gap-1 mt-0.5 text-[11px]">
+                                                <span class="text-green-700 font-bold">{{ auth()->user()->wins_count }}W</span>
                                                 <span class="text-gray-300">•</span>
-                                                <span class="text-red-600 font-bold">{{ auth()->user()->losses_count }} Thua</span>
+                                                <span class="text-red-600 font-bold">{{ auth()->user()->losses_count }}L</span>
+                                                <span class="text-gray-300">•</span>
+                                                @if(auth()->user()->unpaid_debts_count > 0)
+                                                    <span class="text-amber-700 font-bold">Nợ: {{ auth()->user()->unpaid_debts_count }}</span>
+                                                @else
+                                                    <span class="text-gray-400">Trả: {{ auth()->user()->paid_debts_count }}</span>
+                                                @endif
                                             </div>
                                         </div>
                                     </a>
@@ -224,10 +230,16 @@
                         <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-9 h-9 rounded-full border border-gray-200 object-cover shrink-0">
                         <div class="overflow-hidden">
                             <div class="text-sm font-bold text-gray-900 group-hover:text-blue-600 truncate leading-tight">{{ auth()->user()->name }}</div>
-                            <div class="flex items-center gap-1.5 mt-0.5 text-xs">
-                                <span class="text-green-700 font-bold">{{ auth()->user()->wins_count }} Thắng</span>
+                            <div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5 text-xs">
+                                <span class="text-green-700 font-bold">{{ auth()->user()->wins_count }}W</span>
                                 <span class="text-gray-300">•</span>
-                                <span class="text-red-600 font-bold">{{ auth()->user()->losses_count }} Thua</span>
+                                <span class="text-red-600 font-bold">{{ auth()->user()->losses_count }}L</span>
+                                <span class="text-gray-300">•</span>
+                                @if(auth()->user()->unpaid_debts_count > 0)
+                                    <span class="text-amber-700 font-bold">Nợ: {{ auth()->user()->unpaid_debts_count }}</span>
+                                @else
+                                    <span class="text-gray-400">Trả: {{ auth()->user()->paid_debts_count }}</span>
+                                @endif
                             </div>
                         </div>
                     </a>
@@ -269,13 +281,23 @@
                 </div>
 
                 <div class="hidden md:flex items-center text-sm font-medium text-gray-500 gap-3">
-                    <span class="hidden xl:inline">Hệ thống quản lý lịch sử thi đấu bida nội bộ</span>
-                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-semibold transition" title="Xem chi tiết tại Dashboard">
-                        <span class="text-gray-500 font-medium">Thành tích của bạn:</span>
-                        <span class="text-green-700 font-bold">{{ auth()->user()->wins_count }} Thắng</span>
-                        <span class="text-gray-300">/</span>
-                        <span class="text-red-600 font-bold">{{ auth()->user()->losses_count }} Thua</span>
-                        <span class="text-gray-400 font-normal">({{ auth()->user()->win_rate }}%)</span>
+                    <span class="hidden 2xl:inline text-xs text-gray-400">Hệ thống quản lý bida nội bộ</span>
+                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-semibold transition shadow-2xs" title="Xem chi tiết tại Dashboard">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-green-700 font-bold">{{ auth()->user()->wins_count }} Thắng</span>
+                            <span class="text-gray-300">/</span>
+                            <span class="text-red-600 font-bold">{{ auth()->user()->losses_count }} Thua</span>
+                            <span class="text-gray-400 font-normal">({{ auth()->user()->win_rate }}%)</span>
+                        </div>
+                        <span class="text-gray-300">|</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-600 font-medium">Đã trả: <b class="text-blue-700 font-bold">{{ auth()->user()->paid_debts_count }}</b></span>
+                            @if(auth()->user()->unpaid_debts_count > 0)
+                                <span class="bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded font-bold">Nợ: {{ auth()->user()->unpaid_debts_count }} kèo</span>
+                            @else
+                                <span class="text-gray-400 font-normal">(0 nợ)</span>
+                            @endif
+                        </div>
                     </a>
                 </div>
 

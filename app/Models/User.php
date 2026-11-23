@@ -172,4 +172,38 @@ class User extends Authenticatable
 
         return $total > 0 ? round(($this->wins_count / $total) * 100, 1) : 0.0;
     }
+
+    protected ?int $memoizedUnpaidDebtsCount = null;
+
+    protected ?int $memoizedPaidDebtsCount = null;
+
+    public function getUnpaidDebtsCountAttribute(): int
+    {
+        if ($this->memoizedUnpaidDebtsCount !== null) {
+            return $this->memoizedUnpaidDebtsCount;
+        }
+
+        return $this->memoizedUnpaidDebtsCount = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
+            ->where('prize_status', '!=', 'paid')
+            ->where(function ($q) {
+                $q->where('loser_id', $this->id)
+                    ->orWhere('loser_partner_id', $this->id);
+            })
+            ->count();
+    }
+
+    public function getPaidDebtsCountAttribute(): int
+    {
+        if ($this->memoizedPaidDebtsCount !== null) {
+            return $this->memoizedPaidDebtsCount;
+        }
+
+        return $this->memoizedPaidDebtsCount = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
+            ->where('prize_status', 'paid')
+            ->where(function ($q) {
+                $q->where('loser_id', $this->id)
+                    ->orWhere('loser_partner_id', $this->id);
+            })
+            ->count();
+    }
 }
