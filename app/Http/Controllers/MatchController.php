@@ -275,9 +275,14 @@ class MatchController extends Controller
         $match->load([
             'creator',
             'player1',
+            'player1Partner',
             'player2',
+            'player2Partner',
             'winner',
+            'winnerPartner',
             'loser',
+            'loserPartner',
+            'prizePaidBy',
             'histories.user',
         ]);
 
@@ -286,6 +291,24 @@ class MatchController extends Controller
         $canDispute = $currentUser && $match->status === 'pending' && ($match->isParticipating($currentUser) || $currentUser->isAdmin());
 
         return view('matches.show', compact('match', 'isWaitingForUser', 'canDispute'));
+    }
+
+    public function payPrize(Request $request, BilliardMatch $match): RedirectResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = Auth::user();
+
+        $request->validate([
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $this->matchService->settlePrize($match, $currentUser, $request->input('note'));
+
+            return back()->with('success', 'Đã cập nhật trạng thái trả kèo thành công!');
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
     }
 
     public function confirm(BilliardMatch $match): RedirectResponse

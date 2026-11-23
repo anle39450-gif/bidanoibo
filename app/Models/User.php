@@ -133,4 +133,43 @@ class User extends Authenticatable
     {
         return $this->allMatches()->whereIn('status', ['confirmed', 'resolved']);
     }
+
+    protected ?int $memoizedWinsCount = null;
+
+    protected ?int $memoizedLossesCount = null;
+
+    public function getWinsCountAttribute(): int
+    {
+        if ($this->memoizedWinsCount !== null) {
+            return $this->memoizedWinsCount;
+        }
+
+        return $this->memoizedWinsCount = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
+            ->where(function ($q) {
+                $q->where('winner_id', $this->id)
+                    ->orWhere('winner_partner_id', $this->id);
+            })
+            ->count();
+    }
+
+    public function getLossesCountAttribute(): int
+    {
+        if ($this->memoizedLossesCount !== null) {
+            return $this->memoizedLossesCount;
+        }
+
+        return $this->memoizedLossesCount = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
+            ->where(function ($q) {
+                $q->where('loser_id', $this->id)
+                    ->orWhere('loser_partner_id', $this->id);
+            })
+            ->count();
+    }
+
+    public function getWinRateAttribute(): float
+    {
+        $total = $this->wins_count + $this->losses_count;
+
+        return $total > 0 ? round(($this->wins_count / $total) * 100, 1) : 0.0;
+    }
 }

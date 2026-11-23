@@ -86,9 +86,22 @@
                         <span class="text-gray-500">Tạo bởi: <b class="text-gray-800">{{ $m->creator->name }}</b></span>
                     </div>
 
-                    <span class="text-xs sm:text-sm font-medium text-gray-800 bg-gray-100 px-3 py-1 rounded-md self-start sm:self-auto">
-                        Kèo: <b>{{ $m->prize }}</b>
-                    </span>
+                    <div class="flex items-center gap-2 self-start sm:self-auto">
+                        <span class="text-xs sm:text-sm font-medium text-gray-800 bg-gray-100 px-3 py-1 rounded-md">
+                            Kèo: <b>{{ $m->prize }}</b>
+                        </span>
+                        @if($isConfirmed)
+                            @if($m->isPrizePaid())
+                                <span class="text-xs font-semibold px-2.5 py-1 rounded bg-green-100 text-green-800 border border-green-200">
+                                    Đã trả kèo
+                                </span>
+                            @else
+                                <span class="text-xs font-semibold px-2.5 py-1 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                                    Chưa trả
+                                </span>
+                            @endif
+                        @endif
+                    </div>
                 </div>
 
                 <!-- Matchup row -->

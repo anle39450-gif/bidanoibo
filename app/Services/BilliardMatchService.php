@@ -424,4 +424,76 @@ class BilliardMatchService
 
         return $count;
     }
+
+    /**
+     * Settle / Pay the prize for a confirmed match.
+     *
+     * @throws ValidationException
+     */
+    public function settlePrize(BilliardMatch $match, User $user, ?string $note = null): BilliardMatch
+    {
+        if (! in_array($match->status, ['confirmed', 'resolved'])) {
+            throw ValidationException::withMessages([
+                'prize' => 'Chỉ có thể trả kèo cho trận đấu đã được xác nhận kết quả!',
+            ]);
+        }
+
+        if ($match->isPrizePaid()) {
+            throw ValidationException::withMessages([
+                'prize' => 'Kèo của trận đấu này đã được trả trước đó!',
+            ]);
+        }
+
+        if (! $match->canUserPayPrize($user)) {
+            throw ValidationException::withMessages([
+                'prize' => 'Bạn không có quyền thực hiện trả kèo cho trận đấu này!',
+            ]);
+        }
+
+        return DB::transaction(function () use ($match, $user, $note) {
+            $match->update([
+                'prize_status' => 'paid',
+                'prize_paid_at' => Carbon::now(),
+                'prize_paid_by' => $user->id,
+                'prize_notes' => $note,
+            ]);
+
+            $actionNote = $match->isUserDebtor($user)
+                ? "{$user->name} đã trả kèo ({$match->prize})"
+                : "{$user->name} đã xác nhận hoàn thành trả kèo ({$match->prize})";
+
+            if (! empty($note)) {
+                $actionNote .= ": {$note}";
+            }
+
+            MatchHistory::create([
+                'billiard_match_id' => $match->id,
+                'user_id' => $user->id,
+                'action' => 'prize_settled',
+                'note' => $actionNote,
+                'created_at' => Carbon::now(),
+            ]);
+
+            // Notify winner(s) if paid by loser, or notify loser if marked paid by winner
+            $isDebtor = $match->isUserDebtor($user);
+            $recipients = $isDebtor
+                ? array_filter([$match->winner, $match->winnerPartner])
+                : array_filter([$match->loser, $match->loserPartner]);
+
+            foreach ($recipients as $recipient) {
+                if ($recipient && $recipient->id !== $user->id) {
+                    UserNotification::create([
+                        'user_id' => $recipient->id,
+                        'billiard_match_id' => $match->id,
+                        'type' => 'prize_settled',
+                        'title' => 'Kèo trận đấu đã được trả',
+                        'message' => "{$user->name} đã trả kèo '{$match->prize}' cho trận đấu #{$match->id}.",
+                        'link' => "/matches/{$match->id}",
+                    ]);
+                }
+            }
+
+            return $match;
+        });
+    }
 }

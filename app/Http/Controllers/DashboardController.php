@@ -33,8 +33,44 @@ class DashboardController extends Controller
         $topPlayer = $this->statsService->getTopPlayer('month');
         $loserOfMonth = $this->statsService->getLoserOfTheMonth();
 
-        // 3. Current User Personal Stats
+        // 3. Current User Personal Stats & Debts
         $myStats = $currentUser ? $this->statsService->getPlayerStats($currentUser) : null;
+        $myUnpaidDebtsCount = 0;
+        $myPaidDebtsCount = 0;
+        $myUnpaidReceivablesCount = 0;
+        $myUnpaidMatches = collect();
+
+        if ($currentUser) {
+            $unpaidQuery = BilliardMatch::confirmed()
+                ->where('prize_status', '!=', 'paid')
+                ->where(function ($q) use ($currentUser) {
+                    $q->where('loser_id', $currentUser->id)
+                        ->orWhere('loser_partner_id', $currentUser->id);
+                });
+
+            $myUnpaidDebtsCount = (clone $unpaidQuery)->count();
+            $myUnpaidMatches = (clone $unpaidQuery)
+                ->with(['winner', 'winnerPartner', 'loser', 'loserPartner'])
+                ->orderBy('played_at', 'desc')
+                ->take(6)
+                ->get();
+
+            $myPaidDebtsCount = BilliardMatch::confirmed()
+                ->where('prize_status', 'paid')
+                ->where(function ($q) use ($currentUser) {
+                    $q->where('loser_id', $currentUser->id)
+                        ->orWhere('loser_partner_id', $currentUser->id);
+                })
+                ->count();
+
+            $myUnpaidReceivablesCount = BilliardMatch::confirmed()
+                ->where('prize_status', '!=', 'paid')
+                ->where(function ($q) use ($currentUser) {
+                    $q->where('winner_id', $currentUser->id)
+                        ->orWhere('winner_partner_id', $currentUser->id);
+                })
+                ->count();
+        }
 
         // 4. Pending matches specifically waiting for Current User
         $myPendingMatches = $currentUser ? BilliardMatch::where('status', 'pending')
@@ -65,6 +101,10 @@ class DashboardController extends Controller
             'topPlayer',
             'loserOfMonth',
             'myStats',
+            'myUnpaidDebtsCount',
+            'myPaidDebtsCount',
+            'myUnpaidReceivablesCount',
+            'myUnpaidMatches',
             'myPendingMatches',
             'recentMatches',
             'miniLeaderboard'

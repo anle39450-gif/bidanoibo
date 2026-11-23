@@ -33,6 +33,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/matches', [MatchController::class, 'store'])->name('matches.store');
     Route::post('/matches/{match}/confirm', [MatchController::class, 'confirm'])->name('matches.confirm');
     Route::post('/matches/{match}/dispute', [MatchController::class, 'dispute'])->name('matches.dispute');
+    Route::post('/matches/{match}/pay-prize', [MatchController::class, 'payPrize'])->name('matches.pay-prize');
 
     // Leaderboard & Members
     Route::get('/leaderboard', [LeaderboardController::class, 'index'])->name('leaderboard');

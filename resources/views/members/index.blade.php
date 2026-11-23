@@ -53,18 +53,22 @@
 
                     <!-- Stats summary -->
                     <div
-                        class="grid grid-cols-3 gap-2 bg-gray-50 border border-gray-100 rounded-lg p-3 text-center text-xs sm:text-sm">
+                        class="grid grid-cols-4 gap-1.5 bg-gray-50 border border-gray-100 rounded-lg p-2.5 text-center text-xs">
                         <div>
-                            <div class="text-gray-500">Trận</div>
-                            <div class="font-extrabold text-base text-gray-900 mt-0.5">{{ $st['total_matches'] }}</div>
+                            <div class="text-gray-500 text-[11px]">Trận</div>
+                            <div class="font-extrabold text-sm sm:text-base text-gray-900 mt-0.5">{{ $st['total_matches'] }}</div>
                         </div>
                         <div>
-                            <div class="text-gray-500">Thắng</div>
-                            <div class="font-extrabold text-base text-green-700 mt-0.5">{{ $st['wins'] }}</div>
+                            <div class="text-gray-500 text-[11px]">Thắng</div>
+                            <div class="font-extrabold text-sm sm:text-base text-green-700 mt-0.5">{{ $st['wins'] }}</div>
                         </div>
                         <div>
-                            <div class="text-gray-500">Tỷ lệ</div>
-                            <div class="font-extrabold text-base text-gray-900 mt-0.5">{{ $st['win_rate'] }}%</div>
+                            <div class="text-gray-500 text-[11px]">Thua</div>
+                            <div class="font-extrabold text-sm sm:text-base text-red-600 mt-0.5">{{ $st['losses'] }}</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-500 text-[11px]">Tỷ lệ</div>
+                            <div class="font-extrabold text-sm sm:text-base text-gray-900 mt-0.5">{{ $st['win_rate'] }}%</div>
                         </div>
                     </div>
 

@@ -186,3 +186,106 @@ test('a member can create a doubles match and team 2 receives notifications', fu
     expect(UserNotification::where('user_id', $player2->id)->exists())->toBeTrue();
     expect(UserNotification::where('user_id', $player2Partner->id)->exists())->toBeTrue();
 });
+
+test('loser can pay prize for confirmed match', function () {
+    $player1 = User::factory()->create();
+    $player2 = User::factory()->create();
+
+    $match = BilliardMatch::create([
+        'creator_id' => $player1->id,
+        'player1_id' => $player1->id,
+        'player2_id' => $player2->id,
+        'winner_id' => $player1->id,
+        'loser_id' => $player2->id,
+        'played_at' => Carbon::now(),
+        'prize' => 'Kèo cà phê muối',
+        'status' => 'confirmed',
+        'prize_status' => 'unpaid',
+    ]);
+
+    $matchService = app(BilliardMatchService::class);
+    $matchService->settlePrize($match, $player2, 'Đã bao cà phê');
+
+    $match->refresh();
+    expect($match->isPrizePaid())->toBeTrue();
+    expect($match->prize_status)->toBe('paid');
+    expect($match->prize_paid_by)->toBe($player2->id);
+    expect($match->prize_notes)->toBe('Đã bao cà phê');
+    expect($match->prize_paid_at)->not->toBeNull();
+
+    // Check winner received notification
+    $notification = UserNotification::where('user_id', $player1->id)->where('type', 'prize_settled')->first();
+    expect($notification)->not->toBeNull();
+});
+
+test('unrelated user cannot pay prize', function () {
+    $player1 = User::factory()->create();
+    $player2 = User::factory()->create();
+    $stranger = User::factory()->create();
+
+    $match = BilliardMatch::create([
+        'creator_id' => $player1->id,
+        'player1_id' => $player1->id,
+        'player2_id' => $player2->id,
+        'winner_id' => $player1->id,
+        'loser_id' => $player2->id,
+        'played_at' => Carbon::now(),
+        'prize' => 'Kèo cà phê',
+        'status' => 'confirmed',
+        'prize_status' => 'unpaid',
+    ]);
+
+    $matchService = app(BilliardMatchService::class);
+
+    $this->expectException(ValidationException::class);
+    $matchService->settlePrize($match, $stranger);
+});
+
+test('cannot pay prize if match is still pending', function () {
+    $player1 = User::factory()->create();
+    $player2 = User::factory()->create();
+
+    $match = BilliardMatch::create([
+        'creator_id' => $player1->id,
+        'player1_id' => $player1->id,
+        'player2_id' => $player2->id,
+        'winner_id' => $player1->id,
+        'loser_id' => $player2->id,
+        'played_at' => Carbon::now(),
+        'prize' => 'Kèo cà phê',
+        'status' => 'pending',
+        'prize_status' => 'unpaid',
+    ]);
+
+    $matchService = app(BilliardMatchService::class);
+
+    $this->expectException(ValidationException::class);
+    $matchService->settlePrize($match, $player2);
+});
+
+test('user can pay prize via web route', function () {
+    $winner = User::factory()->create();
+    $loser = User::factory()->create();
+
+    $match = BilliardMatch::create([
+        'creator_id' => $winner->id,
+        'player1_id' => $winner->id,
+        'player2_id' => $loser->id,
+        'winner_id' => $winner->id,
+        'loser_id' => $loser->id,
+        'played_at' => Carbon::now(),
+        'prize' => 'Bữa trưa',
+        'status' => 'confirmed',
+        'prize_status' => 'unpaid',
+    ]);
+
+    $response = $this->actingAs($loser)->post(route('matches.pay-prize', $match->id), [
+        'note' => 'Đã bao ăn trưa',
+    ]);
+
+    $response->assertSessionHas('success');
+    $match->refresh();
+    expect($match->isPrizePaid())->toBeTrue();
+    expect($match->prize_paid_by)->toBe($loser->id);
+    expect($match->prize_notes)->toBe('Đã bao ăn trưa');
+});

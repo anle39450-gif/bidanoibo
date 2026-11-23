@@ -123,7 +123,11 @@
                                         <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-8 h-8 rounded-full border border-gray-200 object-cover shrink-0">
                                         <div class="overflow-hidden">
                                             <div class="text-xs font-bold text-gray-900 group-hover:text-blue-600 truncate leading-tight">{{ auth()->user()->name }}</div>
-                                            <div class="text-[11px] text-gray-400 truncate mt-0.5">@<span>{{ auth()->user()->username }}</span></div>
+                                            <div class="flex items-center gap-1.5 mt-0.5 text-[11px]">
+                                                <span class="text-green-700 font-bold">{{ auth()->user()->wins_count }} Thắng</span>
+                                                <span class="text-gray-300">•</span>
+                                                <span class="text-red-600 font-bold">{{ auth()->user()->losses_count }} Thua</span>
+                                            </div>
                                         </div>
                                     </a>
 
@@ -220,7 +224,11 @@
                         <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-9 h-9 rounded-full border border-gray-200 object-cover shrink-0">
                         <div class="overflow-hidden">
                             <div class="text-sm font-bold text-gray-900 group-hover:text-blue-600 truncate leading-tight">{{ auth()->user()->name }}</div>
-                            <div class="text-xs text-gray-400 truncate mt-0.5">@<span>{{ auth()->user()->username }}</span></div>
+                            <div class="flex items-center gap-1.5 mt-0.5 text-xs">
+                                <span class="text-green-700 font-bold">{{ auth()->user()->wins_count }} Thắng</span>
+                                <span class="text-gray-300">•</span>
+                                <span class="text-red-600 font-bold">{{ auth()->user()->losses_count }} Thua</span>
+                            </div>
                         </div>
                     </a>
 
@@ -260,8 +268,15 @@
                     </div>
                 </div>
 
-                <div class="hidden md:flex items-center text-sm font-medium text-gray-500">
-                    <span>Hệ thống quản lý lịch sử thi đấu bida nội bộ</span>
+                <div class="hidden md:flex items-center text-sm font-medium text-gray-500 gap-3">
+                    <span class="hidden xl:inline">Hệ thống quản lý lịch sử thi đấu bida nội bộ</span>
+                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-semibold transition" title="Xem chi tiết tại Dashboard">
+                        <span class="text-gray-500 font-medium">Thành tích của bạn:</span>
+                        <span class="text-green-700 font-bold">{{ auth()->user()->wins_count }} Thắng</span>
+                        <span class="text-gray-300">/</span>
+                        <span class="text-red-600 font-bold">{{ auth()->user()->losses_count }} Thua</span>
+                        <span class="text-gray-400 font-normal">({{ auth()->user()->win_rate }}%)</span>
+                    </a>
                 </div>
 
                 <!-- Right items: Realtime Notification Bell & Quick links -->

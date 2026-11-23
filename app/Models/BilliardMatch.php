@@ -26,6 +26,10 @@ class BilliardMatch extends Model
         'loser_partner_id',
         'played_at',
         'prize',
+        'prize_status',
+        'prize_paid_at',
+        'prize_paid_by',
+        'prize_notes',
         'notes',
         'evidence_path',
         'status',
@@ -44,6 +48,7 @@ class BilliardMatch extends Model
     {
         return [
             'played_at' => 'datetime',
+            'prize_paid_at' => 'datetime',
             'notified_at' => 'datetime',
             'auto_confirm_at' => 'datetime',
             'confirmed_at' => 'datetime',
@@ -96,6 +101,11 @@ class BilliardMatch extends Model
         return $this->belongsTo(User::class, 'loser_partner_id');
     }
 
+    public function prizePaidBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'prize_paid_by');
+    }
+
     public function histories(): HasMany
     {
         return $this->hasMany(MatchHistory::class, 'billiard_match_id')->orderBy('created_at', 'desc');
@@ -120,6 +130,59 @@ class BilliardMatch extends Model
     public function scopeDisputed(Builder $query): Builder
     {
         return $query->where('status', 'disputed');
+    }
+
+    public function scopePrizePaid(Builder $query): Builder
+    {
+        return $query->where('prize_status', 'paid');
+    }
+
+    public function scopePrizeUnpaid(Builder $query): Builder
+    {
+        return $query->where('prize_status', '!=', 'paid');
+    }
+
+    public function isPrizePaid(): bool
+    {
+        return $this->prize_status === 'paid';
+    }
+
+    public function isUserDebtor(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return in_array($user->id, array_filter([
+            $this->loser_id,
+            $this->loser_partner_id,
+        ]));
+    }
+
+    public function canUserPayPrize(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if (! in_array($this->status, ['confirmed', 'resolved'])) {
+            return false;
+        }
+
+        if ($this->isPrizePaid()) {
+            return false;
+        }
+
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return in_array($user->id, array_filter([
+            $this->loser_id,
+            $this->loser_partner_id,
+            $this->winner_id,
+            $this->winner_partner_id,
+        ]));
     }
 
     public function isDoubles(): bool

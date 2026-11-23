@@ -515,3 +515,42 @@ test('change password modal is rendered on layout and profile page', function ()
     $response->assertSee('openChangePasswordModal()');
     $response->assertSee('Đổi Mật Khẩu');
 });
+
+test('dashboard displays personal win and loss stats and unpaid debts for logged in user', function () {
+    $user = User::factory()->create(['name' => 'Nguyễn Văn A', 'username' => 'nva']);
+    $opponent = User::factory()->create(['name' => 'Trần Văn B', 'username' => 'tvb']);
+
+    // Match 1: User won
+    BilliardMatch::create([
+        'creator_id' => $user->id,
+        'player1_id' => $user->id,
+        'player2_id' => $opponent->id,
+        'winner_id' => $user->id,
+        'loser_id' => $opponent->id,
+        'played_at' => now()->subDay(),
+        'prize' => 'Trà chanh',
+        'status' => 'confirmed',
+        'prize_status' => 'unpaid',
+    ]);
+
+    // Match 2: User lost and has not paid prize yet
+    BilliardMatch::create([
+        'creator_id' => $opponent->id,
+        'player1_id' => $opponent->id,
+        'player2_id' => $user->id,
+        'winner_id' => $opponent->id,
+        'loser_id' => $user->id,
+        'played_at' => now(),
+        'prize' => 'Kèo cà phê muối',
+        'status' => 'confirmed',
+        'prize_status' => 'unpaid',
+    ]);
+
+    $response = $this->actingAs($user)->get(route('dashboard'));
+    $response->assertStatus(200);
+    $response->assertSee('Trận Thắng');
+    $response->assertSee('Trận Thua');
+    $response->assertSee('Kèo Cần Trả (Nợ)');
+    $response->assertSee('Kèo cà phê muối');
+    $response->assertSee('Trả kèo ngay');
+});

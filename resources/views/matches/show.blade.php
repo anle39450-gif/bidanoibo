@@ -114,11 +114,47 @@
                 </div>
             </div>
 
-            <!-- Prize -->
-            <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 flex items-center justify-between">
-                <div>
-                    <div class="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wider">Phần thưởng / Kèo giao lưu</div>
-                    <div class="text-lg sm:text-xl font-bold text-gray-900 mt-1">{{ $match->prize }}</div>
+            <!-- Prize & Settlement -->
+            <div class="border rounded-xl p-5 shadow-sm {{ $match->isPrizePaid() ? 'bg-green-50/50 border-green-200' : 'bg-gray-50 border-gray-200' }}">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wider">Phần thưởng / Kèo giao lưu</span>
+                            @if($match->isPrizePaid())
+                                <span class="bg-green-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                                    Đã trả kèo (Thành công)
+                                </span>
+                            @else
+                                <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                                    Chưa trả kèo
+                                </span>
+                            @endif
+                        </div>
+                        <div class="text-xl sm:text-2xl font-black text-gray-900 mt-1.5">{{ $match->prize }}</div>
+
+                        @if($match->isPrizePaid())
+                            <div class="text-xs sm:text-sm text-green-800 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <span>Thực hiện bởi: <b>{{ $match->prizePaidBy?->name ?? 'Người tham gia' }}</b></span>
+                                <span>•</span>
+                                <span>Lúc: {{ $match->prize_paid_at?->format('H:i d/m/Y') }}</span>
+                                @if($match->prize_notes)
+                                    <span>•</span>
+                                    <span class="italic font-medium">"{{ $match->prize_notes }}"</span>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+
+                    @auth
+                        @if($match->canUserPayPrize(auth()->user()))
+                            <div class="shrink-0">
+                                <button type="button" onclick="document.getElementById('payPrizeModal').classList.remove('hidden')"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-sm transition cursor-pointer flex items-center gap-1.5">
+                                    <span>{{ $match->isUserDebtor(auth()->user()) ? 'Trả kèo trận này' : 'Xác nhận đã trả kèo' }}</span>
+                                </button>
+                            </div>
+                        @endif
+                    @endauth
                 </div>
             </div>
 
@@ -253,6 +289,45 @@
                     <div class="flex justify-end gap-2.5 pt-3 border-t border-gray-200">
                         <button type="button" onclick="document.getElementById('disputeModal').classList.add('hidden')" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 font-medium hover:bg-gray-50 cursor-pointer">Hủy</button>
                         <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold cursor-pointer shadow-sm">Gửi khiếu nại</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pay Prize Settlement Modal -->
+    <div id="payPrizeModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="fixed inset-0 bg-gray-900/60" onclick="document.getElementById('payPrizeModal').classList.add('hidden')"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-xl p-6 max-w-md w-full shadow-2xl border border-gray-200 space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-900">
+                        @auth
+                            {{ $match->isUserDebtor(auth()->user()) ? 'Trả kèo trận đấu' : 'Xác nhận hoàn thành trả kèo' }}
+                        @else
+                            Xác nhận trả kèo
+                        @endauth
+                    </h3>
+                    <button type="button" onclick="document.getElementById('payPrizeModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
+                </div>
+
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
+                    <div class="text-xs text-gray-500 font-semibold uppercase">Phần thưởng / Kèo:</div>
+                    <div class="font-bold text-gray-900 mt-0.5 text-base">{{ $match->prize }}</div>
+                </div>
+
+                <form method="POST" action="{{ route('matches.pay-prize', $match->id) }}" class="space-y-4 text-sm">
+                    @csrf
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-1.5">Ghi chú xác nhận (tùy chọn)</label>
+                        <input type="text" name="note" placeholder="VD: Đã bao chầu nước, đã chuyển khoản..." class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <div class="flex justify-end gap-2.5 pt-3 border-t border-gray-200">
+                        <button type="button" onclick="document.getElementById('payPrizeModal').classList.add('hidden')" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 font-medium hover:bg-gray-50 cursor-pointer">Hủy</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold cursor-pointer shadow-sm">
+                            Xác nhận trả kèo
+                        </button>
                     </div>
                 </form>
             </div>
