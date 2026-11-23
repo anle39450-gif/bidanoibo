@@ -50,6 +50,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/users/{user}/role', [AdminController::class, 'toggleUserRole'])->name('users.role');
         Route::post('/users/{user}/password', [AdminController::class, 'resetUserPassword'])->name('users.password');
         Route::post('/bot/config', [AdminController::class, 'updateBotConfig'])->name('bot.config');
+        Route::post('/telegram/daily-report', [AdminController::class, 'sendDailyReport'])->name('telegram.daily-report');
         Route::post('/logo', [AdminController::class, 'updateLogo'])->name('logo.update');
         Route::post('/logo/remove', [AdminController::class, 'removeLogo'])->name('logo.remove');
     });

@@ -8,6 +8,7 @@ use App\Models\Setting;
 use App\Models\TelegramBotConfig;
 use App\Models\User;
 use App\Services\BilliardMatchService;
+use App\Services\BilliardStatsService;
 use App\Services\TelegramBotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -181,6 +182,7 @@ class AdminController extends Controller
         $validated = $request->validate([
             'bot_token' => ['nullable', 'string'],
             'bot_username' => ['nullable', 'string'],
+            'group_chat_id' => ['nullable', 'string'],
         ]);
 
         $config = TelegramBotConfig::current();
@@ -203,6 +205,17 @@ class AdminController extends Controller
         }
 
         return back()->with('success', 'Đã lưu cấu hình Telegram Bot.');
+    }
+
+    public function sendDailyReport(BilliardStatsService $statsService): RedirectResponse
+    {
+        $result = $this->telegramBot->sendDailyReport($statsService);
+
+        if ($result['success']) {
+            return back()->with('success', $result['message']);
+        }
+
+        return back()->with('error', $result['message']);
     }
 
     public function updateLogo(Request $request): RedirectResponse

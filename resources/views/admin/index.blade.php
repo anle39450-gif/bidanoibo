@@ -233,6 +233,14 @@
                     <input type="text" name="bot_username" value="{{ $botConfig->bot_username }}" placeholder="BidaNoiBoBot" class="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
 
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1.5">Group Chat ID (ID Nhóm nhận thông báo)</label>
+                    <input type="text" name="group_chat_id" value="{{ $botConfig->group_chat_id }}" placeholder="-1001234567890" class="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <p class="text-xs text-gray-500 mt-1">
+                        Mẹo: Thêm Bot vào nhóm bida, gõ lệnh <code class="bg-gray-100 px-1 py-0.5 rounded text-blue-600 font-mono">/id</code> để lấy mã Chat ID nhóm (thường bắt đầu bằng dấu trừ, ví dụ: <code class="text-gray-700">-10022334455</code>).
+                    </p>
+                </div>
+
                 <div class="flex items-center gap-2.5">
                     <input type="checkbox" name="set_webhook" value="1" id="set_webhook" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                     <label for="set_webhook" class="text-gray-700 font-medium">Đăng ký Webhook URL với Telegram API khi lưu</label>
@@ -242,6 +250,57 @@
                     Lưu cấu hình Bot
                 </button>
             </form>
+        </div>
+
+        <!-- Section: Daily Telegram Report -->
+        <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-gray-100 gap-3">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Báo Cáo Bida Hằng Ngày (Telegram Report)</h2>
+                    <p class="text-xs sm:text-sm text-gray-500 mt-0.5">
+                        Tự động tổng kết tình hình thi đấu, số trận chờ duyệt, top cơ thủ và đặc biệt là <b>danh sách các kèo nợ chưa trả</b>.
+                    </p>
+                </div>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Tự động: 08:30 sáng hàng ngày</span>
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1 text-sm">
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 space-y-2">
+                    <div class="font-semibold text-gray-800">Kênh nhận báo cáo hiện tại:</div>
+                    @if($botConfig->group_chat_id)
+                        <div class="flex items-center gap-2 text-emerald-700 font-medium">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>Nhóm Telegram: <code class="font-mono bg-white px-2 py-0.5 rounded border border-gray-200 text-gray-900">{{ $botConfig->group_chat_id }}</code></span>
+                        </div>
+                    @else
+                        <div class="text-amber-700 text-xs">
+                            Chưa cài đặt Group Chat ID. Báo cáo sẽ được gửi riêng cho các Quản trị viên đã liên kết Telegram.
+                        </div>
+                    @endif
+                    <div class="text-xs text-gray-500 pt-1">
+                        Nội dung báo cáo: Trận đấu 24h qua, danh sách cơ thủ còn nợ kèo, Top cơ thủ dẫn đầu tháng và Chiến thần bao kèo.
+                    </div>
+                </div>
+
+                <div class="flex flex-col justify-center items-start bg-blue-50/50 rounded-lg p-4 border border-blue-100 space-y-3">
+                    <div class="text-xs text-gray-700">
+                        Admin có thể kích hoạt gửi báo cáo ngay lập tức về nhóm chat bất cứ lúc nào bằng nút bên dưới:
+                    </div>
+                    <form method="POST" action="{{ route('admin.telegram.daily-report') }}">
+                        @csrf
+                        <button 
+                            type="submit" 
+                            class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-lg text-sm shadow-sm transition cursor-pointer"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                            <span>Gửi Báo Cáo Telegram Ngay</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
 
         <!-- Section 4: Audit Logs -->

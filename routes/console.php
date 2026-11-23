@@ -9,3 +9,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('matches:auto-confirm')->everyFiveMinutes();
+
+Schedule::command('billiard:daily-report')
+    ->dailyAt('08:30')
+    ->timezone('Asia/Ho_Chi_Minh');

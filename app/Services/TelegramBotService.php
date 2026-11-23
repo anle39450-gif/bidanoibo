@@ -126,6 +126,174 @@ class TelegramBotService
     }
 
     /**
+     * Build formatted daily report text.
+     */
+    public function buildDailyReportText(BilliardStatsService $statsService): string
+    {
+        $todayStr = now()->format('d/m/Y');
+        $siteUrl = url('/');
+
+        $text = "🎱 <b>BÁO CÁO BIDA NỘI BỘ HẰNG NGÀY</b>\n";
+        $text .= "📅 <i>Ngày {$todayStr}</i>\n\n";
+
+        // 1. Matches in last 24 hours
+        $matches24h = BilliardMatch::where('played_at', '>=', now()->subDay())->count();
+        $pendingMatches = BilliardMatch::where('status', 'pending')->count();
+        $disputedMatches = BilliardMatch::where('status', 'disputed')->count();
+
+        $text .= "📊 <b>TÌNH HÌNH THI ĐẤU (24H QUA):</b>\n";
+        $text .= "• Trận đấu mới: <b>{$matches24h}</b> trận\n";
+        if ($pendingMatches > 0) {
+            $text .= "• Đang chờ xác nhận: <b>{$pendingMatches}</b> trận (vui lòng vào duyệt sớm)\n";
+        }
+        if ($disputedMatches > 0) {
+            $text .= "• Khiếu nại đang chờ xử lý: <b>{$disputedMatches}</b> trận\n";
+        }
+        $text .= "\n";
+
+        // 2. Unpaid debts list
+        $unpaidMatches = BilliardMatch::confirmed()
+            ->where('prize_status', '!=', 'paid')
+            ->with(['winner', 'winnerPartner', 'loser', 'loserPartner'])
+            ->orderBy('played_at', 'asc')
+            ->get();
+
+        $text .= "💸 <b>DANH SÁCH NỢ KÈO CHƯA TRẢ:</b>\n";
+        if ($unpaidMatches->isEmpty()) {
+            $text .= "🎉 <i>Tất cả các cơ thủ đã trả kèo sòng phẳng, hiện không ai nợ ai!</i>\n";
+        } else {
+            $count = 0;
+            foreach ($unpaidMatches as $m) {
+                $count++;
+                if ($count > 10) {
+                    $remaining = $unpaidMatches->count() - 10;
+                    $text .= "<i>... và còn {$remaining} kèo nợ khác.</i>\n";
+                    break;
+                }
+
+                $winnerName = $m->winner?->name ?? 'Người thắng';
+                if ($m->winnerPartner) {
+                    $winnerName .= ' & '.$m->winnerPartner->name;
+                }
+
+                $loserName = $m->loser?->name ?? 'Người thua';
+                if ($m->loserPartner) {
+                    $loserName .= ' & '.$m->loserPartner->name;
+                }
+
+                $playedDate = $m->played_at ? $m->played_at->format('d/m') : '';
+                $text .= "{$count}. 🔴 <b>{$loserName}</b> nợ <b>{$winnerName}</b>: <i>{$m->prize}</i>".($playedDate ? " ({$playedDate})" : '')."\n";
+            }
+        }
+        $text .= "\n";
+
+        // 3. Top players of current month
+        $leaderboard = $statsService->getLeaderboard('month')->take(3);
+        if ($leaderboard->isNotEmpty() && $leaderboard->first()['wins'] > 0) {
+            $text .= "🏆 <b>TOP CƠ THỦ DẪN ĐẦU THÁNG:</b>\n";
+            $medals = ['🥇', '🥈', '🥉'];
+            foreach ($leaderboard as $idx => $item) {
+                if ($item['wins'] <= 0) {
+                    continue;
+                }
+                $medal = $medals[$idx] ?? '▫️';
+                $text .= "{$medal} <b>{$item['user']->name}</b>: {$item['wins']}W / {$item['total_matches']} trận ({$item['win_rate']}%)\n";
+            }
+            $text .= "\n";
+        }
+
+        // 4. Loser of the month
+        $loser = $statsService->getLoserOfTheMonth();
+        if ($loser && $loser['losses'] > 0) {
+            $text .= "🤡 <b>CHIẾN THẦN BAO KÈO THÁNG NÀY:</b>\n";
+            $text .= "• <b>{$loser['user']->name}</b> ({$loser['losses']} trận thua) - <i>\"{$loser['humorous_title']}\"</i>\n\n";
+        }
+
+        $text .= "👉 <a href=\"{$siteUrl}\">Truy cập Website Bida Nội Bộ</a>";
+
+        return $text;
+    }
+
+    /**
+     * Send daily summary report via Telegram.
+     *
+     * @return array{success: bool, sent_count: int, message: string}
+     */
+    public function sendDailyReport(BilliardStatsService $statsService, ?string $targetChatId = null): array
+    {
+        if (! $this->isConfigured()) {
+            return [
+                'success' => false,
+                'sent_count' => 0,
+                'message' => 'Telegram Bot Token chưa được cấu hình. Vui lòng cập nhật trong Quản trị hệ thống!',
+            ];
+        }
+
+        $chatIds = [];
+
+        if (! empty($targetChatId)) {
+            $chatIds = [$targetChatId];
+        } else {
+            $config = TelegramBotConfig::current();
+            $groupChatId = $config->group_chat_id ?: config('services.telegram.group_chat_id');
+
+            if (! empty($groupChatId)) {
+                $chatIds = [$groupChatId];
+            } else {
+                // Fallback: send to admins or users who linked telegram
+                $adminChatIds = User::where('role', 'admin')
+                    ->whereNotNull('telegram_id')
+                    ->pluck('telegram_id')
+                    ->toArray();
+
+                if (! empty($adminChatIds)) {
+                    $chatIds = $adminChatIds;
+                } else {
+                    $chatIds = User::where('is_active', true)
+                        ->whereNotNull('telegram_id')
+                        ->pluck('telegram_id')
+                        ->toArray();
+                }
+            }
+        }
+
+        $chatIds = array_values(array_unique(array_filter($chatIds)));
+
+        if (empty($chatIds)) {
+            return [
+                'success' => false,
+                'sent_count' => 0,
+                'message' => 'Chưa cấu hình Group Chat ID và chưa có tài khoản nào liên kết Telegram để nhận báo cáo!',
+            ];
+        }
+
+        $reportText = $this->buildDailyReportText($statsService);
+        $sentCount = 0;
+
+        foreach ($chatIds as $cid) {
+            if ($this->sendMessage($cid, $reportText)) {
+                $sentCount++;
+            }
+        }
+
+        if ($sentCount > 0) {
+            $targetDesc = (! empty($targetChatId) || ! empty($groupChatId)) ? 'Nhóm Telegram' : "{$sentCount} quản trị viên/cơ thủ";
+
+            return [
+                'success' => true,
+                'sent_count' => $sentCount,
+                'message' => "Đã gửi báo cáo hàng ngày thành công tới {$targetDesc}!",
+            ];
+        }
+
+        return [
+            'success' => false,
+            'sent_count' => 0,
+            'message' => 'Gửi báo cáo qua Telegram thất bại. Vui lòng kiểm tra lại Bot Token hoặc Chat ID!',
+        ];
+    }
+
+    /**
      * Handle Telegram incoming Webhook updates.
      */
     public function handleWebhook(array $update, BilliardMatchService $matchService, BilliardStatsService $statsService): void
@@ -455,14 +623,40 @@ class TelegramBotService
             return;
         }
 
-        // 5. Command /help
+        // 5. Command /id (Get current Chat ID for group or individual)
+        if ($rawCommand === '/id') {
+            $chatType = $msg['chat']['type'] ?? 'private';
+            $title = $msg['chat']['title'] ?? ($msg['chat']['first_name'] ?? 'Chat');
+            $this->sendMessage(
+                $chatId,
+                "🆔 <b>THÔNG TIN CHAT ID</b>\n\n"
+                ."• <b>Chat ID:</b> <code>{$chatId}</code>\n"
+                ."• <b>Loại chat:</b> <code>{$chatType}</code>\n"
+                ."• <b>Tên:</b> {$title}\n\n"
+                ."💡 <i>Mẹo:</i> Nếu đây là nhóm bida của bạn, hãy sao chép mã <code>{$chatId}</code> và dán vào ô <b>Group Chat ID</b> trong trang Quản trị website để bot tự động gửi báo cáo vào nhóm này!"
+            );
+
+            return;
+        }
+
+        // 6. Command /report (Send daily report on-demand)
+        if ($rawCommand === '/report') {
+            $report = $this->buildDailyReportText($statsService);
+            $this->sendMessage($chatId, $report);
+
+            return;
+        }
+
+        // 7. Command /help
         if ($rawCommand === '/help') {
             $helpText = "🎱 <b>HƯỚNG DẪN SỬ DỤNG BOT BIDA NỘI BỘ</b>\n\n";
             $helpText .= "🔑 <b>Đăng nhập / Đổi mật khẩu:</b>\n• <code>/login username password</code>\n• <code>/password [mật_khẩu_mới]</code>\n• <code>/logout</code>\n\n";
             $helpText .= "1️⃣ <b>Tạo trận ĐƠN (1vs1):</b>\n<code>/an binh</code>\nBot sẽ hiển thị nút chọn ai thắng để bạn bấm chọn!\n\n";
             $helpText .= "2️⃣ <b>Tạo trận ĐỔI (2vs2):</b>\n<code>/an binh vs cuong dung</code>\nBot hiển thị nút chọn Đội 1 Thắng hoặc Đội 2 Thắng!\n\n";
             $helpText .= "3️⃣ <b>Xác nhận kết quả:</b>\nĐối thủ nhận thông báo kèm nút [✅ Chấp nhận] và [❌ Khiếu nại] (Hạn chốt 24h).\n\n";
-            $helpText .= "4️⃣ <b>Các lệnh tra cứu:</b>\n";
+            $helpText .= "4️⃣ <b>Các lệnh tra cứu & báo cáo:</b>\n";
+            $helpText .= "• <code>/report</code> : Báo cáo tình hình & danh sách nợ kèo\n";
+            $helpText .= "• <code>/id</code> : Lấy Chat ID của nhóm hoặc cá nhân\n";
             $helpText .= "• <code>/stats</code> : Thống kê cá nhân\n";
             $helpText .= "• <code>/rank</code> : Bảng xếp hạng Top 5 và Loser tháng\n";
             $helpText .= "• <code>/history</code> : 5 trận gần nhất\n";
@@ -843,6 +1037,8 @@ class TelegramBotService
             ['command' => 'login', 'description' => 'Đăng nhập tài khoản cá nhân'],
             ['command' => 'password', 'description' => 'Đổi mật khẩu tài khoản cá nhân'],
             ['command' => 'logout', 'description' => 'Đăng xuất khỏi Telegram Bot'],
+            ['command' => 'report', 'description' => 'Xem báo cáo tình hình & nợ kèo hôm nay'],
+            ['command' => 'id', 'description' => 'Lấy Chat ID nhóm hoặc cá nhân'],
             ['command' => 'help', 'description' => 'Hướng dẫn sử dụng và cú pháp ghi trận'],
             ['command' => 'vs', 'description' => 'Tạo trận nhanh với bạn (VD: /vs binh)'],
             ['command' => 'stats', 'description' => 'Xem thống kê cá nhân và tỷ lệ thắng'],

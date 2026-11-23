@@ -13,6 +13,7 @@ class TelegramBotConfig extends Model
     protected $fillable = [
         'bot_token',
         'bot_username',
+        'group_chat_id',
         'webhook_url',
         'is_active',
         'last_webhook_ping_at',
@@ -33,6 +34,7 @@ class TelegramBotConfig extends Model
                 return static::firstOrCreate([], [
                     'bot_token' => config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN')),
                     'bot_username' => config('services.telegram.bot_username', env('TELEGRAM_BOT_USERNAME', 'BidaNoiBoBot')),
+                    'group_chat_id' => config('services.telegram.group_chat_id', env('TELEGRAM_GROUP_CHAT_ID')),
                     'is_active' => true,
                 ]);
             }
@@ -43,6 +45,7 @@ class TelegramBotConfig extends Model
         return new static([
             'bot_token' => config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN')),
             'bot_username' => config('services.telegram.bot_username', env('TELEGRAM_BOT_USERNAME', 'BidaNoiBoBot')),
+            'group_chat_id' => config('services.telegram.group_chat_id', env('TELEGRAM_GROUP_CHAT_ID')),
             'is_active' => true,
         ]);
     }
