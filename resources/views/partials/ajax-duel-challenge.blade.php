@@ -48,10 +48,108 @@
         .animate-ajax-sos-text {
             animation: ajax-sos-text-strobe 0.8s infinite alternate;
         }
+
+        /* Chaotic background taunting marquee text ("Bạn sợ à? Rén à?") */
+        @keyframes sos-marquee-left-fast {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        @keyframes sos-marquee-right-fast {
+            0% { transform: translateX(-50%); }
+            100% { transform: translateX(0); }
+        }
+
+        @keyframes sos-marquee-left-slow {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        @keyframes sos-text-flicker {
+            0%, 100% { opacity: 0.28; filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.8)); }
+            50% { opacity: 0.55; filter: drop-shadow(0 0 25px rgba(250, 204, 21, 1)); }
+        }
+
+        .sos-bg-stream-1 {
+            animation: sos-marquee-left-fast 10s linear infinite, sos-text-flicker 1.2s ease-in-out infinite alternate;
+        }
+
+        .sos-bg-stream-2 {
+            animation: sos-marquee-right-fast 8s linear infinite, sos-text-flicker 0.9s ease-in-out infinite alternate;
+        }
+
+        .sos-bg-stream-3 {
+            animation: sos-marquee-left-slow 14s linear infinite, sos-text-flicker 1.5s ease-in-out infinite alternate;
+        }
+
+        .sos-bg-stream-4 {
+            animation: sos-marquee-right-fast 9s linear infinite, sos-text-flicker 1.1s ease-in-out infinite alternate;
+        }
+
+        .sos-bg-stream-5 {
+            animation: sos-marquee-left-fast 7s linear infinite, sos-text-flicker 0.8s ease-in-out infinite alternate;
+        }
     </style>
 
+    <!-- ========================================================== -->
+    <!-- CHAOTIC BACKGROUND TAUNTING MARQUEE TEXT ("BẠN SỢ À? RÉN À?") -->
+    <!-- ========================================================== -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none select-none flex flex-col justify-between py-4 z-0">
+        
+        <!-- Stream 1: Top running left -->
+        <div class="w-[300vw] sos-bg-stream-1 flex items-center whitespace-nowrap transform -rotate-2">
+            <span class="text-3xl sm:text-5xl md:text-6xl font-black text-yellow-300 uppercase tracking-widest px-4">
+                BẠN SỢ À? 😱 • RÉN À? 🔥 • BẠN SỢ À? 😱 • RÉN À? 🔥 • CÓ DÁM RA BÀN CHIẾN KHÔNG? ⚔️ • BẠN SỢ À? 😱 • RÉN À? 🔥 • BẠN SỢ À? 😱 • RÉN À? 🔥
+            </span>
+            <span class="text-3xl sm:text-5xl md:text-6xl font-black text-yellow-300 uppercase tracking-widest px-4">
+                BẠN SỢ À? 😱 • RÉN À? 🔥 • BẠN SỢ À? 😱 • RÉN À? 🔥 • CÓ DÁM RA BÀN CHIẾN KHÔNG? ⚔️ • BẠN SỢ À? 😱 • RÉN À? 🔥 • BẠN SỢ À? 😱 • RÉN À? 🔥
+            </span>
+        </div>
+
+        <!-- Stream 2: Running right, tilted -->
+        <div class="w-[300vw] sos-bg-stream-2 flex items-center whitespace-nowrap transform rotate-3">
+            <span class="text-4xl sm:text-6xl md:text-7xl font-black text-red-400 uppercase tracking-widest px-4">
+                RÉN RỒI ĐÚNG KHÔNG? 😂 • BẠN SỢ À? 👻 • RÉN THÌ NÓI MỘT CÂU! 💥 • SỢ THÌ BẤM TỪ CHỐI ĐI! 🏳️ • RÉN RỒI! 💀 • BẠN SỢ À? 👻
+            </span>
+            <span class="text-4xl sm:text-6xl md:text-7xl font-black text-red-400 uppercase tracking-widest px-4">
+                RÉN RỒI ĐÚNG KHÔNG? 😂 • BẠN SỢ À? 👻 • RÉN THÌ NÓI MỘT CÂU! 💥 • SỢ THÌ BẤM TỪ CHỐI ĐI! 🏳️ • RÉN RỒI! 💀 • BẠN SỢ À? 👻
+            </span>
+        </div>
+
+        <!-- Stream 3: Middle giant text running left -->
+        <div class="w-[300vw] sos-bg-stream-3 flex items-center whitespace-nowrap transform -rotate-1">
+            <span class="text-5xl sm:text-7xl md:text-8xl font-black text-amber-300 uppercase tracking-widest px-4">
+                BẠN SỢ À? RÉN À? 😱 • BẠN SỢ À? RÉN À? 🔥 • DÁM SOLO KHÔNG NÀO? 🎱 • BẠN SỢ À? RÉN À? 😱 • BẠN SỢ À? RÉN À? 🔥
+            </span>
+            <span class="text-5xl sm:text-7xl md:text-8xl font-black text-amber-300 uppercase tracking-widest px-4">
+                BẠN SỢ À? RÉN À? 😱 • BẠN SỢ À? RÉN À? 🔥 • DÁM SOLO KHÔNG NÀO? 🎱 • BẠN SỢ À? RÉN À? 😱 • BẠN SỢ À? RÉN À? 🔥
+            </span>
+        </div>
+
+        <!-- Stream 4: Lower running right -->
+        <div class="w-[300vw] sos-bg-stream-4 flex items-center whitespace-nowrap transform rotate-2">
+            <span class="text-3xl sm:text-5xl md:text-6xl font-black text-yellow-200 uppercase tracking-widest px-4">
+                RÉN À? 🔥 • SỢ À? 💀 • ĐỪNG CÓ RÉN NHA! 🤣 • RUN TAY CHƯA? 🎱 • BẠN SỢ À? 😱 • RÉN À? 🔥 • ĐỪNG CÓ RÉN NHA! 🤣
+            </span>
+            <span class="text-3xl sm:text-5xl md:text-6xl font-black text-yellow-200 uppercase tracking-widest px-4">
+                RÉN À? 🔥 • SỢ À? 💀 • ĐỪNG CÓ RÉN NHA! 🤣 • RUN TAY CHƯA? 🎱 • BẠN SỢ À? 😱 • RÉN À? 🔥 • ĐỪNG CÓ RÉN NHA! 🤣
+            </span>
+        </div>
+
+        <!-- Stream 5: Bottom running left -->
+        <div class="w-[300vw] sos-bg-stream-5 flex items-center whitespace-nowrap transform -rotate-3">
+            <span class="text-4xl sm:text-6xl md:text-7xl font-black text-red-300 uppercase tracking-widest px-4">
+                BẠN SỢ À? 😱 • RÉN À? 🔥 • KHÔNG DÁM ĐẤU THÌ NGHỈ ĐI! 🏳️ • BẠN SỢ À? 😱 • RÉN THẬT RỒI! 💀 • BẠN SỢ À? • RÉN À?
+            </span>
+            <span class="text-4xl sm:text-6xl md:text-7xl font-black text-red-300 uppercase tracking-widest px-4">
+                BẠN SỢ À? 😱 • RÉN À? 🔥 • KHÔNG DÁM ĐẤU THÌ NGHỈ ĐI! 🏳️ • BẠN SỢ À? 😱 • RÉN THẬT RỒI! 💀 • BẠN SỢ À? • RÉN À?
+            </span>
+        </div>
+
+    </div>
+
     <!-- Card Box with flashing border -->
-    <div class="relative w-full max-w-lg bg-gray-950 text-white rounded-2xl border-4 animate-ajax-sos-border p-6 sm:p-8 shadow-2xl text-center space-y-5 overflow-hidden">
+    <div class="relative z-10 w-full max-w-lg bg-gray-950/95 backdrop-blur-md text-white rounded-2xl border-4 animate-ajax-sos-border p-6 sm:p-8 shadow-2xl text-center space-y-5 overflow-hidden">
         
         <!-- Red Alert Siren Header -->
         <div class="space-y-2">

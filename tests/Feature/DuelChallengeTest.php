@@ -51,11 +51,17 @@ test('user can send a duel challenge to an opponent via pure AJAX', function () 
     expect($challenge->message)->toBe('Ra bàn số 3 chiến ngay!');
     expect($challenge->status)->toBe('pending');
 
-    // Telegram notification sent to opponent
+    // Telegram notification sent to opponent and group
     Http::assertSent(function ($request) use ($opponent) {
         return str_contains($request->url(), 'sendMessage')
             && (string) $request['chat_id'] === $opponent->telegram_id
-            && str_contains($request['text'], 'BÁO ĐỘNG SOS: BẠN VỪA BỊ KHIÊU CHIẾN');
+            && str_contains($request['text'], 'BÁO ĐỘNG SOS: LỜI KHIÊU CHIẾN KHẨN CẤP');
+    });
+
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), 'sendMessage')
+            && (string) $request['chat_id'] === '-10099887766'
+            && str_contains($request['text'], 'BÁO ĐỘNG SOS: LỜI KHIÊU CHIẾN KHẨN CẤP');
     });
 });
 

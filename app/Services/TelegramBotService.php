@@ -64,20 +64,19 @@ class TelegramBotService
     public function sendDuelChallengeNotification(BilliardChallenge $challenge): bool
     {
         $opponent = $challenge->opponent;
-        if (! $opponent || ! $opponent->telegram_id) {
-            return false;
-        }
-
         $challenger = $challenge->challenger;
-        $text = "🚨 <b>BÁO ĐỘNG SOS: BẠN VỪA BỊ KHIÊU CHIẾN!</b>\n\n";
+        $config = TelegramBotConfig::first();
+
+        $text = "🚨 <b>BÁO ĐỘNG SOS: LỜI KHIÊU CHIẾN KHẨN CẤP!</b>\n\n";
         $text .= "👤 <b>Người thách đấu:</b> <b>{$challenger->name}</b> (@{$challenger->username})\n";
+        $text .= "🎯 <b>Mục tiêu thách đấu:</b> <b>{$opponent->name}</b> (@{$opponent->username})\n";
         $text .= "🎁 <b>Kèo thách thức:</b> <b>{$challenge->prize}</b>\n";
         if ($challenge->message) {
             $text .= "📝 <b>Lời khiêu chiến:</b> <i>\"{$challenge->message}\"</i>\n";
         }
-        $text .= "\n⚡ <i>Cảnh báo: Nếu bạn đang mở website, màn hình sẽ nhấp nháy đèn đỏ SOS cho đến khi bạn phản hồi!</i>";
+        $text .= "\n⚡ <i>Cảnh báo: Nếu {$opponent->name} đang mở website, màn hình sẽ lập tức nhấp nháy đèn đỏ SOS và dòng chữ 'Bạn sợ à? Rén à?' chạy loạn xạ!</i>";
 
-        $siteUrl = url('/');
+        $siteUrl = url('/calendar?tab=upcoming');
         $replyMarkup = [
             'inline_keyboard' => [
                 [
@@ -90,7 +89,24 @@ class TelegramBotService
             ],
         ];
 
-        return $this->sendMessage($opponent->telegram_id, $text, $replyMarkup);
+        // 1. Gửi tin nhắn riêng (DM) cho đối thủ kèm 2 nút bấm Tiếp Chiêu / Từ Chối
+        if ($opponent && $opponent->telegram_id) {
+            $this->sendMessage($opponent->telegram_id, $text, $replyMarkup);
+        }
+
+        // 2. Gửi thông báo công khai vào NHÓM CHUNG Telegram để cả nhóm cùng theo dõi
+        if ($config && $config->is_active && $config->group_chat_id) {
+            $groupMarkup = [
+                'inline_keyboard' => [
+                    [
+                        ['text' => '🌐 Xem Lịch Trận Đấu', 'url' => $siteUrl],
+                    ],
+                ],
+            ];
+            $this->sendMessage($config->group_chat_id, $text, $groupMarkup);
+        }
+
+        return true;
     }
 
     public function sendDuelCompletedNotification(BilliardChallenge $challenge, BilliardMatch $match, User $winner, User $loser): bool
