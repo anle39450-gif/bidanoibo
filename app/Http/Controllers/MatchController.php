@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BilliardChallenge;
 use App\Models\BilliardMatch;
 use App\Models\User;
 use App\Services\BilliardMatchService;
@@ -257,6 +258,12 @@ class MatchController extends Controller
 
         $totalMonthMatches = $matches->filter(fn ($m) => $m->played_at->gte($startOfMonth) && $m->played_at->lte($endOfMonth))->count();
 
+        $upcomingChallenges = BilliardChallenge::where('status', 'accepted')
+            ->with(['challenger', 'opponent'])
+            ->orderByDesc('accepted_at')
+            ->orderByDesc('created_at')
+            ->get();
+
         return [
             'year' => $year,
             'month' => $month,
@@ -265,6 +272,9 @@ class MatchController extends Controller
             'selectedDate' => $selectedDate,
             'days' => $days,
             'matchesByDate' => $matchesByDate,
+            'upcomingChallenges' => $upcomingChallenges,
+            'upcomingChallengesCount' => $upcomingChallenges->count(),
+            'activeTab' => request()->input('tab', 'calendar'),
         ];
     }
 
@@ -347,7 +357,7 @@ class MatchController extends Controller
         }
     }
 
-    public function confirm(BilliardMatch $match): RedirectResponse
+    public function confirm(Request $request, BilliardMatch $match): JsonResponse|RedirectResponse
     {
         /** @var User $currentUser */
         $currentUser = Auth::user();
@@ -355,8 +365,16 @@ class MatchController extends Controller
         try {
             $this->matchService->confirmMatch($match, $currentUser, 'opponent');
 
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true, 'message' => 'Bạn đã xác nhận kết quả trận đấu thành công!']);
+            }
+
             return back()->with('success', 'Bạn đã xác nhận kết quả trận đấu thành công!');
         } catch (\Throwable $e) {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            }
+
             return back()->with('error', $e->getMessage());
         }
     }

@@ -93,6 +93,42 @@ class TelegramBotService
         return $this->sendMessage($opponent->telegram_id, $text, $replyMarkup);
     }
 
+    public function sendDuelCompletedNotification(BilliardChallenge $challenge, BilliardMatch $match, User $winner, User $loser): bool
+    {
+        $config = TelegramBotConfig::first();
+        $text = "🏆 <b>KẾT QUẢ KHIÊU CHIẾN: {$winner->name} CHIẾN THẮNG!</b>\n\n";
+        $text .= "⚔️ <b>Trận đấu:</b> <b>{$winner->name}</b> vs <b>{$loser->name}</b>\n";
+        $text .= "🎁 <b>Kèo thách thức:</b> <b>{$challenge->prize}</b>\n";
+        $text .= "💀 <b>Nợ kèo:</b> <b>{$loser->name}</b> nợ <b>{$winner->name}</b> 1 {$challenge->prize}\n\n";
+        $text .= "🎉 Chúc mừng <b>{$winner->name}</b> đã xuất sắc giành chiến thắng!";
+
+        $siteUrl = url('/matches/'.$match->id);
+        $replyMarkup = [
+            'inline_keyboard' => [
+                [
+                    ['text' => '🔍 Xem Chi Tiết Trận Đấu', 'url' => $siteUrl],
+                ],
+            ],
+        ];
+
+        // Gửi vào nhóm chung nếu bot đã liên kết nhóm
+        if ($config && $config->is_active && $config->group_chat_id) {
+            $this->sendMessage($config->group_chat_id, $text, $replyMarkup);
+        }
+
+        // Gửi tin nhắn riêng cho người thắng
+        if ($winner->telegram_id) {
+            $this->sendMessage($winner->telegram_id, $text, $replyMarkup);
+        }
+
+        // Gửi tin nhắn riêng cho người thua
+        if ($loser->telegram_id && $loser->telegram_id !== $winner->telegram_id) {
+            $this->sendMessage($loser->telegram_id, $text, $replyMarkup);
+        }
+
+        return true;
+    }
+
     public function sendMatchConfirmationRequest(BilliardMatch $match, User $recipient): bool
     {
         if (! $recipient->telegram_id) {
@@ -677,28 +713,19 @@ class TelegramBotService
                 'accepted_at' => now(),
             ]);
 
-            try {
-                $match = $matchService->createMatch([
-                    'match_type' => 'singles',
-                    'player1_id' => $challenge->challenger_id,
-                    'player2_id' => $user->id,
-                    'winner_id' => $challenge->challenger_id,
-                    'loser_id' => $user->id,
-                    'played_at' => now(),
-                    'prize' => $challenge->prize,
-                    'notes' => 'Trận đấu từ Lời Khiêu Chiến: '.($challenge->message ?: 'Tiếp chiêu qua Telegram'),
-                    'created_from' => 'challenge',
-                ], $challenge->challenger ?: $user);
-
-                $challenge->update(['match_id' => $match->id]);
-            } catch (\Throwable $e) {
-            }
-
-            $this->answerCallbackQuery($callbackId, '⚔️ Bạn đã TIẾP CHIÊU thành công!');
-            $this->sendMessage($chatId, "⚔️ <b>BẠN ĐÃ TIẾP CHIÊU THÀNH CÔNG!</b>\nTrận đấu với <b>{$challenge->challenger->name}</b> kèo <b>{$challenge->prize}</b> đã được tạo trên hệ thống!");
+            $this->answerCallbackQuery($callbackId, '⚔️ Bạn đã TIẾP CHIÊU thành công! Kèo đấu đã được đưa vào lịch sắp diễn ra.');
+            $upcomingUrl = url('/calendar?tab=upcoming');
+            $replyMarkup = [
+                'inline_keyboard' => [
+                    [
+                        ['text' => '📅 Xem Trận Đấu Sắp Diễn Ra', 'url' => $upcomingUrl],
+                    ],
+                ],
+            ];
+            $this->sendMessage($chatId, "⚔️ <b>BẠN ĐÃ TIẾP CHIÊU THÀNH CÔNG!</b>\nTrận đấu với <b>{$challenge->challenger->name}</b> kèo <b>{$challenge->prize}</b> đã được đưa vào mục <b>Trận đấu sắp diễn ra</b> trên lịch thi đấu!", $replyMarkup);
 
             if ($challenge->challenger && $challenge->challenger->telegram_id) {
-                $this->sendMessage($challenge->challenger->telegram_id, "⚔️ <b>{$user->name} ĐÃ TIẾP CHIÊU!</b>\nĐối thủ đã chấp nhận lời thách đấu kèo <b>{$challenge->prize}</b>. Ra bàn chiến ngay thôi!");
+                $this->sendMessage($challenge->challenger->telegram_id, "⚔️ <b>{$user->name} ĐÃ TIẾP CHIÊU!</b>\nĐối thủ đã chấp nhận lời thách đấu kèo <b>{$challenge->prize}</b>. Ra bàn chiến ngay thôi! Sau khi thi đấu xong, 2 cơ thủ hoặc Admin có thể lên web chọn người thắng.", $replyMarkup);
             }
 
             return;

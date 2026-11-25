@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ChallengeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\MatchController;
@@ -42,6 +43,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/members', [MemberController::class, 'index'])->name('members.index');
     Route::get('/members/{username}', [MemberController::class, 'show'])->name('members.show');
     Route::post('/members/{user}/telegram-code', [MemberController::class, 'generateTelegramCode'])->name('members.telegram-code');
+
+    // Duel Challenges (Pure AJAX)
+    Route::post('/challenges', [ChallengeController::class, 'store'])->name('challenges.store');
+    Route::get('/challenges/check', [ChallengeController::class, 'checkPending'])->name('challenges.check');
+    Route::post('/challenges/{challenge}/accept', [ChallengeController::class, 'accept'])->name('challenges.accept');
+    Route::post('/challenges/{challenge}/decline', [ChallengeController::class, 'decline'])->name('challenges.decline');
+    Route::post('/challenges/{challenge}/resolve', [ChallengeController::class, 'resolve'])->name('challenges.resolve');
+
+    // Realtime Notifications (Pure AJAX)
+    Route::get('/notifications', [ChallengeController::class, 'notifications'])->name('notifications.index');
+    Route::post('/notifications/mark-read', [ChallengeController::class, 'markNotificationsRead'])->name('notifications.mark-read');
 
     // Admin Routes (Admin role only)
     Route::middleware(EnsureUserIsAdmin::class)->prefix('admin')->name('admin.')->group(function () {

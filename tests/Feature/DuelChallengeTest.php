@@ -1,6 +1,5 @@
 <?php
 
-use App\Livewire\DuelChallengeAlert;
 use App\Models\BilliardChallenge;
 use App\Models\BilliardMatch;
 use App\Models\TelegramBotConfig;
@@ -9,7 +8,6 @@ use App\Services\BilliardMatchService;
 use App\Services\BilliardStatsService;
 use App\Services\TelegramBotService;
 use Illuminate\Support\Facades\Http;
-use Livewire\Livewire;
 
 beforeEach(function () {
     TelegramBotConfig::truncate();
@@ -21,7 +19,7 @@ beforeEach(function () {
     ]);
 });
 
-test('user can send a duel challenge to an opponent', function () {
+test('user can send a duel challenge to an opponent via pure AJAX', function () {
     Http::fake([
         'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
     ]);
@@ -33,13 +31,16 @@ test('user can send a duel challenge to an opponent', function () {
         'telegram_id' => '99887766',
     ]);
 
-    Livewire::actingAs($challenger)
-        ->test(DuelChallengeAlert::class)
-        ->set('selectedOpponentId', $opponent->id)
-        ->set('challengePrize', '1 ly cà phê muối')
-        ->set('challengeMessage', 'Ra bàn số 3 chiến ngay!')
-        ->call('sendChallenge')
-        ->assertHasNoErrors();
+    $response = $this->actingAs($challenger)->postJson('/challenges', [
+        'opponent_id' => $opponent->id,
+        'prize' => '1 ly cà phê muối',
+        'message' => 'Ra bàn số 3 chiến ngay!',
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'success' => true,
+        ]);
 
     $challenge = BilliardChallenge::where('challenger_id', $challenger->id)
         ->where('opponent_id', $opponent->id)
@@ -58,20 +59,46 @@ test('user can send a duel challenge to an opponent', function () {
     });
 });
 
-test('user cannot challenge themselves', function () {
+test('user cannot challenge themselves via AJAX', function () {
     $user = User::factory()->create(['name' => 'An', 'username' => 'an']);
 
-    Livewire::actingAs($user)
-        ->test(DuelChallengeAlert::class)
-        ->set('selectedOpponentId', $user->id)
-        ->set('challengePrize', 'Kèo nước ngọt')
-        ->call('sendChallenge')
-        ->assertHasErrors(['selectedOpponentId']);
+    $response = $this->actingAs($user)->postJson('/challenges', [
+        'opponent_id' => $user->id,
+        'prize' => 'Kèo nước ngọt',
+    ]);
 
+    $response->assertStatus(422);
     expect(BilliardChallenge::count())->toBe(0);
 });
 
-test('opponent sees SOS emergency challenge alert and can accept it', function () {
+test('opponent checks pending challenges via AJAX and sees SOS info', function () {
+    $challenger = User::factory()->create(['name' => 'An', 'username' => 'an']);
+    $opponent = User::factory()->create(['name' => 'Bình', 'username' => 'binh']);
+
+    $challenge = BilliardChallenge::create([
+        'challenger_id' => $challenger->id,
+        'opponent_id' => $opponent->id,
+        'prize' => '1 ly trà sữa trân châu',
+        'message' => 'Dám solo không?',
+        'status' => 'pending',
+        'expires_at' => now()->addMinutes(30),
+    ]);
+
+    $response = $this->actingAs($opponent)->getJson('/challenges/check');
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'has_challenge' => true,
+            'challenge' => [
+                'id' => $challenge->id,
+                'challenger_name' => 'An',
+                'prize' => '1 ly trà sữa trân châu',
+                'message' => 'Dám solo không?',
+            ],
+        ]);
+});
+
+test('opponent can accept challenge via pure AJAX and it becomes an upcoming match', function () {
     Http::fake([
         'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
     ]);
@@ -88,21 +115,19 @@ test('opponent sees SOS emergency challenge alert and can accept it', function (
         'expires_at' => now()->addMinutes(30),
     ]);
 
-    Livewire::actingAs($opponent)
-        ->test(DuelChallengeAlert::class)
-        ->assertSee('BÁO ĐỘNG SOS: LỜI KHIÊU CHIẾN KHẨN CẤP!')
-        ->assertSee('1 ly trà sữa trân châu')
-        ->assertSee('Dám solo không?')
-        ->call('acceptChallenge', $challenge->id);
+    $response = $this->actingAs($opponent)->postJson("/challenges/{$challenge->id}/accept");
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'success' => true,
+            'redirect_url' => route('calendar', ['tab' => 'upcoming']),
+        ]);
 
     $challenge->refresh();
     expect($challenge->status)->toBe('accepted');
     expect($challenge->accepted_at)->not->toBeNull();
-    expect($challenge->match_id)->not->toBeNull();
-
-    $match = BilliardMatch::find($challenge->match_id);
-    expect($match)->not->toBeNull();
-    expect($match->prize)->toBe('1 ly trà sữa trân châu');
+    // Match is NOT completed yet; it is waiting to be played
+    expect($challenge->match_id)->toBeNull();
 
     // Challenger was notified
     Http::assertSent(function ($request) use ($challenger) {
@@ -112,7 +137,113 @@ test('opponent sees SOS emergency challenge alert and can accept it', function (
     });
 });
 
-test('opponent can decline challenge', function () {
+test('accepted challenge appears in calendar upcoming matches and allows participants to pick winner', function () {
+    Http::fake([
+        'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $challenger = User::factory()->create(['name' => 'An', 'username' => 'an', 'telegram_id' => '112233']);
+    $opponent = User::factory()->create(['name' => 'Bình', 'username' => 'binh', 'telegram_id' => '445566']);
+
+    $challenge = BilliardChallenge::create([
+        'challenger_id' => $challenger->id,
+        'opponent_id' => $opponent->id,
+        'prize' => 'Kèo cà phê muối',
+        'message' => 'Solo ra đòn đi!',
+        'status' => 'accepted',
+        'accepted_at' => now(),
+    ]);
+
+    // View calendar with upcoming tab
+    $calResponse = $this->actingAs($opponent)->get('/calendar?tab=upcoming');
+    $calResponse->assertStatus(200);
+    $calResponse->assertSee('Trận đấu sắp diễn ra');
+    $calResponse->assertSee('Kèo cà phê muối');
+    $calResponse->assertSee('An thắng');
+    $calResponse->assertSee('Bình thắng');
+
+    // Challenger resolves match: Opponent won!
+    $resolveResponse = $this->actingAs($challenger)->postJson("/challenges/{$challenge->id}/resolve", [
+        'winner_id' => $opponent->id,
+    ]);
+
+    $resolveResponse->assertStatus(200)
+        ->assertJson([
+            'success' => true,
+        ]);
+
+    $challenge->refresh();
+    expect($challenge->status)->toBe('completed');
+    expect($challenge->match_id)->not->toBeNull();
+
+    $match = BilliardMatch::find($challenge->match_id);
+    expect($match)->not->toBeNull();
+    expect($match->winner_id)->toBe($opponent->id);
+    expect($match->loser_id)->toBe($challenger->id);
+    expect($match->status)->toBe('confirmed');
+    expect($match->prize)->toBe('Kèo cà phê muối');
+
+    // Stats updated: opponent has 1 win, challenger has 1 loss and 1 debt
+    expect($opponent->refresh()->wins_count)->toBe(1);
+    expect($challenger->refresh()->losses_count)->toBe(1);
+    expect($challenger->unpaid_debts_count)->toBe(1);
+
+    // Group notified of result
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), 'sendMessage')
+            && str_contains($request['text'], 'KẾT QUẢ KHIÊU CHIẾN: Bình CHIẾN THẮNG');
+    });
+});
+
+test('admin can resolve challenge outcome and pick winner', function () {
+    Http::fake([
+        'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $admin = User::factory()->admin()->create(['name' => 'Admin Boss']);
+    $player1 = User::factory()->create(['name' => 'Player 1']);
+    $player2 = User::factory()->create(['name' => 'Player 2']);
+
+    $challenge = BilliardChallenge::create([
+        'challenger_id' => $player1->id,
+        'opponent_id' => $player2->id,
+        'prize' => '1 bát bún bò',
+        'status' => 'accepted',
+        'accepted_at' => now(),
+    ]);
+
+    $response = $this->actingAs($admin)->postJson("/challenges/{$challenge->id}/resolve", [
+        'winner_id' => $player1->id,
+    ]);
+
+    $response->assertStatus(200)->assertJson(['success' => true]);
+
+    $challenge->refresh();
+    expect($challenge->status)->toBe('completed');
+    expect($challenge->match->winner_id)->toBe($player1->id);
+});
+
+test('outsider cannot resolve challenge and gets 403', function () {
+    $player1 = User::factory()->create(['name' => 'Player 1']);
+    $player2 = User::factory()->create(['name' => 'Player 2']);
+    $outsider = User::factory()->create(['name' => 'Outsider']);
+
+    $challenge = BilliardChallenge::create([
+        'challenger_id' => $player1->id,
+        'opponent_id' => $player2->id,
+        'prize' => 'Kèo cà phê',
+        'status' => 'accepted',
+        'accepted_at' => now(),
+    ]);
+
+    $response = $this->actingAs($outsider)->postJson("/challenges/{$challenge->id}/resolve", [
+        'winner_id' => $player1->id,
+    ]);
+
+    $response->assertStatus(403);
+});
+
+test('opponent can decline challenge via pure AJAX', function () {
     Http::fake([
         'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
     ]);
@@ -129,9 +260,8 @@ test('opponent can decline challenge', function () {
         'expires_at' => now()->addMinutes(30),
     ]);
 
-    Livewire::actingAs($opponent)
-        ->test(DuelChallengeAlert::class)
-        ->call('declineChallenge', $challenge->id);
+    $response = $this->actingAs($opponent)->postJson("/challenges/{$challenge->id}/decline");
+    $response->assertStatus(200)->assertJson(['success' => true]);
 
     $challenge->refresh();
     expect($challenge->status)->toBe('declined');
@@ -145,7 +275,7 @@ test('opponent can decline challenge', function () {
     });
 });
 
-test('telegram bot callback can accept a duel challenge', function () {
+test('telegram bot callback can accept a duel challenge into upcoming matches', function () {
     Http::fake([
         'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
     ]);
@@ -176,5 +306,5 @@ test('telegram bot callback can accept a duel challenge', function () {
 
     $challenge->refresh();
     expect($challenge->status)->toBe('accepted');
-    expect($challenge->match_id)->not->toBeNull();
+    expect($challenge->accepted_at)->not->toBeNull();
 });

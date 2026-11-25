@@ -39,8 +39,43 @@
         </div>
     </div>
 
-    <!-- AJAX Responsive Calendar -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <!-- Sub-tabs: Lịch đấu theo ngày & Trận đấu sắp diễn ra -->
+    <div class="border-b border-gray-200">
+        <nav class="flex space-x-6" aria-label="Tabs">
+            <button 
+                type="button" 
+                onclick="switchCalendarTab('calendar')" 
+                id="tab_btn_calendar"
+                class="pb-3.5 px-1 border-b-2 font-bold text-sm sm:text-base flex items-center gap-2 transition cursor-pointer {{ $activeTab !== 'upcoming' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}"
+            >
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <span>Lịch đấu theo ngày</span>
+            </button>
+
+            <button 
+                type="button" 
+                onclick="switchCalendarTab('upcoming')" 
+                id="tab_btn_upcoming"
+                class="pb-3.5 px-1 border-b-2 font-bold text-sm sm:text-base flex items-center gap-2 transition cursor-pointer {{ $activeTab === 'upcoming' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}"
+            >
+                <span class="animate-pulse">⚔️</span>
+                <span>Trận đấu sắp diễn ra</span>
+                <span 
+                    id="upcoming_tab_badge" 
+                    class="text-xs px-2 py-0.5 rounded-full font-black {{ $upcomingChallengesCount > 0 ? 'bg-red-600 text-white animate-pulse' : 'bg-gray-100 text-gray-600' }}"
+                >
+                    {{ $upcomingChallengesCount }}
+                </span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Section 1: Lịch thi đấu theo ngày (Calendar View) -->
+    <div id="section_calendar" class="{{ $activeTab === 'upcoming' ? 'hidden' : '' }}">
+        <!-- AJAX Responsive Calendar -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
         <!-- Left: Calendar Grid (7 cols on lg) -->
         <div class="lg:col-span-7 bg-white border border-gray-200 rounded-lg shadow-sm p-4 sm:p-6 space-y-4">
@@ -219,6 +254,146 @@
             </div>
         </div>
 
+    </div>
+    </div>
+
+    <!-- Section 2: Trận đấu sắp diễn ra (Upcoming Duel Matches) -->
+    <div id="section_upcoming" class="{{ $activeTab === 'upcoming' ? '' : 'hidden' }} space-y-6">
+        <div class="bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2 text-sm sm:text-base font-extrabold text-red-900">
+                    <span>⚔️ Kèo thách đấu đã tiếp chiêu - Chờ thi đấu</span>
+                </div>
+                <p class="text-xs sm:text-sm text-red-700 leading-relaxed">
+                    Sau khi 2 cơ thủ hoàn tất trận đấu trên bàn bida, <b>1 trong 2 cơ thủ</b> hoặc <b>Quản trị viên (Admin)</b> bấm chọn người thắng bên dưới để hệ thống lập tức chốt kết quả và tính nợ kèo!
+                </p>
+            </div>
+            @auth
+                <button type="button" onclick="openSendChallengeModal()"
+                    class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 text-white font-extrabold text-xs sm:text-sm px-4 py-2.5 rounded-lg shadow-xs transition shrink-0 cursor-pointer flex items-center justify-center gap-1.5">
+                    <span>+ Khiêu chiến người khác</span>
+                </button>
+            @endauth
+        </div>
+
+        <!-- Upcoming Cards Container -->
+        <div id="upcoming_cards_grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            @forelse($upcomingChallenges as $c)
+                @php
+                    $canInteract = auth()->check() && (auth()->id() === $c->challenger_id || auth()->id() === $c->opponent_id || auth()->user()->isAdmin());
+                @endphp
+                <div id="upcoming_challenge_card_{{ $c->id }}"
+                    class="bg-white border border-gray-200 rounded-xl shadow-xs p-5 hover:border-red-300 hover:shadow-md transition space-y-4">
+                    
+                    <!-- Card Top Header -->
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3 text-xs">
+                        <span class="inline-flex items-center gap-1.5 font-extrabold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-full">
+                            <span class="w-1.5 h-1.5 rounded-full bg-rose-600 animate-ping"></span>
+                            <span>Chờ thi đấu</span>
+                        </span>
+                        <span class="text-gray-400">
+                            Tiếp chiêu {{ $c->accepted_at?->diffForHumans() ?? $c->created_at->diffForHumans() }}
+                        </span>
+                    </div>
+
+                    <!-- Duel Matchup Players -->
+                    <div class="flex items-center justify-between gap-3 py-1">
+                        <!-- Player 1: Challenger -->
+                        <div class="flex items-center gap-2.5 flex-1 min-w-0">
+                            <img src="{{ $c->challenger->avatar_url }}" alt="{{ $c->challenger->name }}"
+                                class="w-11 h-11 rounded-full border border-gray-200 object-cover shrink-0">
+                            <div class="min-w-0">
+                                <div class="text-sm font-bold text-gray-900 truncate leading-tight">{{ $c->challenger->name }}</div>
+                                <div class="text-xs text-gray-400 truncate">@<span>{{ $c->challenger->username }}</span></div>
+                                <span class="inline-block mt-0.5 text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.2 rounded">Thách đấu</span>
+                            </div>
+                        </div>
+
+                        <!-- VS Badge -->
+                        <div class="flex flex-col items-center justify-center shrink-0 px-2">
+                            <span class="text-base font-black text-rose-600">VS</span>
+                            <span class="text-[10px] font-bold text-gray-400">SOLO</span>
+                        </div>
+
+                        <!-- Player 2: Opponent -->
+                        <div class="flex items-center justify-end gap-2.5 flex-1 min-w-0 text-right">
+                            <div class="min-w-0">
+                                <div class="text-sm font-bold text-gray-900 truncate leading-tight">{{ $c->opponent->name }}</div>
+                                <div class="text-xs text-gray-400 truncate">@<span>{{ $c->opponent->username }}</span></div>
+                                <span class="inline-block mt-0.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded">Tiếp chiêu</span>
+                            </div>
+                            <img src="{{ $c->opponent->avatar_url }}" alt="{{ $c->opponent->name }}"
+                                class="w-11 h-11 rounded-full border border-gray-200 object-cover shrink-0">
+                        </div>
+                    </div>
+
+                    <!-- Challenge Prize & Taunt -->
+                    <div class="bg-gray-50 rounded-lg p-3 text-xs space-y-1.5 border border-gray-100">
+                        <div class="flex items-center gap-1.5 text-gray-700">
+                            <span class="font-bold uppercase tracking-wider text-[11px] text-gray-500">Món kèo:</span>
+                            <span class="font-black text-amber-800 text-sm">{{ $c->prize }}</span>
+                        </div>
+                        @if($c->message)
+                            <div class="text-gray-600 italic">
+                                "{{ $c->message }}"
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Interactive Action Area (Winner selection by 2 players or Admin) -->
+                    @if($canInteract)
+                        <div class="pt-2 border-t border-gray-100 space-y-2">
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="font-bold text-gray-700 uppercase tracking-wider">Cập nhật kết quả:</span>
+                                @if(auth()->user()->isAdmin() && auth()->id() !== $c->challenger_id && auth()->id() !== $c->opponent_id)
+                                    <span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">Quyền Admin</span>
+                                @else
+                                    <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">Cơ thủ trong trận</span>
+                                @endif
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button"
+                                    onclick="handleResolveChallenge({{ $c->id }}, {{ $c->challenger_id }}, '{{ addslashes($c->challenger->name) }}')"
+                                    class="w-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 hover:text-emerald-900 font-bold py-2 px-2.5 rounded-lg text-xs transition cursor-pointer flex items-center justify-center gap-1 truncate shadow-2xs">
+                                    <span>🏆</span>
+                                    <span class="truncate">{{ $c->challenger->name }} thắng</span>
+                                </button>
+                                <button type="button"
+                                    onclick="handleResolveChallenge({{ $c->id }}, {{ $c->opponent_id }}, '{{ addslashes($c->opponent->name) }}')"
+                                    class="w-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 hover:text-emerald-900 font-bold py-2 px-2.5 rounded-lg text-xs transition cursor-pointer flex items-center justify-center gap-1 truncate shadow-2xs">
+                                    <span>🏆</span>
+                                    <span class="truncate">{{ $c->opponent->name }} thắng</span>
+                                </button>
+                            </div>
+                        </div>
+                    @else
+                        <div class="pt-2 border-t border-gray-100 text-center text-xs text-gray-400 italic">
+                            Chờ 2 cơ thủ hoặc Quản trị viên cập nhật kết quả sau trận đấu.
+                        </div>
+                    @endif
+
+                </div>
+            @empty
+                <div id="upcoming_empty_state" class="col-span-full bg-white border border-gray-200 rounded-xl p-10 text-center space-y-3 shadow-xs">
+                    <div class="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto text-2xl font-bold">
+                        ⚔️
+                    </div>
+                    <div class="text-base font-bold text-gray-900">Hiện không có trận khiêu chiến nào đang chờ đấu</div>
+                    <p class="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
+                        Khi ai đó gửi lời thách đấu và đối phương bấm "Tiếp Chiêu", trận đấu sẽ xuất hiện ở đây để 2 người thi đấu và chọn người thắng!
+                    </p>
+                    @auth
+                        <div class="pt-2">
+                            <button type="button" onclick="openSendChallengeModal()"
+                                class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 text-white font-extrabold text-xs sm:text-sm px-5 py-2.5 rounded-lg shadow-sm transition cursor-pointer">
+                                ⚔️ Phát Lệnh Khiêu Chiến Ngay
+                            </button>
+                        </div>
+                    @endauth
+                </div>
+            @endforelse
+        </div>
     </div>
 </div>
 
@@ -433,5 +608,107 @@
         const now = new Date();
         loadCalendarMonth(now.getFullYear(), now.getMonth() + 1);
     }
+
+    function switchCalendarTab(tab) {
+        const btnCal = document.getElementById('tab_btn_calendar');
+        const btnUp = document.getElementById('tab_btn_upcoming');
+        const secCal = document.getElementById('section_calendar');
+        const secUp = document.getElementById('section_upcoming');
+
+        if (!btnCal || !btnUp || !secCal || !secUp) return;
+
+        if (tab === 'upcoming') {
+            btnUp.className = 'pb-3.5 px-1 border-b-2 font-bold text-sm sm:text-base flex items-center gap-2 transition cursor-pointer border-red-600 text-red-600';
+            btnCal.className = 'pb-3.5 px-1 border-b-2 font-bold text-sm sm:text-base flex items-center gap-2 transition cursor-pointer border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
+            secCal.classList.add('hidden');
+            secUp.classList.remove('hidden');
+            history.replaceState(null, '', '?tab=upcoming');
+        } else {
+            btnCal.className = 'pb-3.5 px-1 border-b-2 font-bold text-sm sm:text-base flex items-center gap-2 transition cursor-pointer border-blue-600 text-blue-600';
+            btnUp.className = 'pb-3.5 px-1 border-b-2 font-bold text-sm sm:text-base flex items-center gap-2 transition cursor-pointer border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
+            secUp.classList.add('hidden');
+            secCal.classList.remove('hidden');
+            history.replaceState(null, '', window.location.pathname);
+        }
+    }
+
+    async function handleResolveChallenge(challengeId, winnerId, winnerName) {
+        if (!confirm(`Xác nhận cơ thủ "${winnerName}" đã giành CHIẾN THẮNG trận khiêu chiến này?`)) {
+            return;
+        }
+
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        try {
+            const res = await fetch(`/challenges/${challengeId}/resolve`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': token
+                },
+                body: JSON.stringify({ winner_id: winnerId })
+            });
+
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                alert(data.message || 'Có lỗi xảy ra khi cập nhật kết quả!');
+                return;
+            }
+
+            alert(data.message || 'Đã ghi nhận kết quả thành công!');
+
+            // Remove card with smooth transition
+            const card = document.getElementById(`upcoming_challenge_card_${challengeId}`);
+            if (card) {
+                card.style.transition = 'all 0.3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    card.remove();
+                    // Update badge count
+                    const badge = document.getElementById('upcoming_tab_badge');
+                    if (badge) {
+                        let count = parseInt(badge.innerText.trim()) || 0;
+                        count = Math.max(0, count - 1);
+                        badge.innerText = count;
+                        if (count === 0) {
+                            badge.className = 'text-xs px-2 py-0.5 rounded-full font-black bg-gray-100 text-gray-600';
+                            const grid = document.getElementById('upcoming_cards_grid');
+                            if (grid && !grid.querySelector('[id^="upcoming_challenge_card_"]')) {
+                                grid.innerHTML = `
+                                    <div id="upcoming_empty_state" class="col-span-full bg-white border border-gray-200 rounded-xl p-10 text-center space-y-3 shadow-xs">
+                                        <div class="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto text-2xl font-bold">
+                                            ⚔️
+                                        </div>
+                                        <div class="text-base font-bold text-gray-900">Hiện không có trận khiêu chiến nào đang chờ đấu</div>
+                                        <p class="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
+                                            Khi ai đó gửi lời thách đấu và đối phương bấm "Tiếp Chiêu", trận đấu sẽ xuất hiện ở đây để 2 người thi đấu và chọn người thắng!
+                                        </p>
+                                        @auth
+                                            <div class="pt-2">
+                                                <button type="button" onclick="openSendChallengeModal()"
+                                                    class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 text-white font-extrabold text-xs sm:text-sm px-5 py-2.5 rounded-lg shadow-sm transition cursor-pointer">
+                                                    ⚔️ Phát Lệnh Khiêu Chiến Ngay
+                                                </button>
+                                            </div>
+                                        @endauth
+                                    </div>
+                                `;
+                            }
+                        }
+                    }
+                }, 300);
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tab') === 'upcoming') {
+            switchCalendarTab('upcoming');
+        }
+    });
 </script>
 @endsection

@@ -57,7 +57,7 @@
 
                         <div class="flex items-center gap-2">
                             @auth
-                                <button type="button" @click="$dispatch('openSendChallengeModal'); mobileMenuOpen = false;"
+                                <button type="button" onclick="openSendChallengeModal(); mobileMenuOpen = false;"
                                     class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 text-white font-extrabold py-2.5 px-3 rounded-lg text-xs shadow-sm transition text-center cursor-pointer shrink-0">
                                     ⚔️ Khiêu chiến
                                 </button>
@@ -377,7 +377,7 @@
                 <!-- Right items: Realtime Notification Bell & Quick links -->
                 <div class="flex items-center gap-2.5 ml-auto">
                     @auth
-                        <button type="button" @click="$dispatch('openSendChallengeModal')"
+                        <button type="button" onclick="openSendChallengeModal()"
                             class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-extrabold py-2 px-3.5 rounded-lg text-sm shadow-xs transition flex items-center gap-1.5 cursor-pointer transform hover:scale-[1.03] active:scale-[0.98]">
                             <span class="animate-pulse">⚔️</span>
                             <span>Khiêu chiến</span>
@@ -397,7 +397,7 @@
                             </path>
                         </svg>
                     </button>
-                    <livewire:realtime-notification-bell />
+                    @include('partials.ajax-notification-bell')
                 </div>
             </header>
 
@@ -448,7 +448,7 @@
     @include('partials.change-password-modal')
 
     @auth
-        <livewire:duel-challenge-alert />
+        @include('partials.ajax-duel-challenge')
     @endauth
 
     @livewireScripts

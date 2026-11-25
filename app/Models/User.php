@@ -233,4 +233,15 @@ class User extends Authenticatable
             })
             ->count();
     }
+
+    public function refresh()
+    {
+        $this->memoizedWinsCount = null;
+        $this->memoizedLossesCount = null;
+        $this->memoizedUnpaidDebtsCount = null;
+        $this->memoizedPaidDebtsCount = null;
+        $this->memoizedUnpaidReceivablesCount = null;
+
+        return parent::refresh();
+    }
 }
