@@ -360,3 +360,78 @@ test('invite all connected users uses manually saved group_invite_link when bot 
             && str_contains($request['reply_markup'], 'https://t.me/+manualInviteLinkABC');
     });
 });
+
+test('invite all connected users skips members who are already in the group', function () {
+    $admin = User::factory()->create([
+        'role' => 'admin',
+        'is_active' => true,
+    ]);
+
+    $existingMember = User::factory()->create([
+        'telegram_id' => '1234567',
+        'is_active' => true,
+    ]);
+
+    $newMember = User::factory()->create([
+        'telegram_id' => '7654321',
+        'is_active' => true,
+    ]);
+
+    TelegramBotConfig::current()->update([
+        'group_chat_id' => '-10099887766',
+        'group_invite_link' => 'https://t.me/+joinGroup123',
+    ]);
+
+    Http::fake([
+        'https://api.telegram.org/*/getChatMember' => function ($request) {
+            if ($request['user_id'] == '1234567') {
+                return Http::response(['ok' => true, 'result' => ['status' => 'member']], 200);
+            }
+
+            return Http::response(['ok' => true, 'result' => ['status' => 'left']], 200);
+        },
+        'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $response = $this->actingAs($admin)->post('/admin/telegram/invite-all');
+
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
+
+    // Existing member was already in group -> must NOT be sent
+    Http::assertNotSent(function ($request) use ($existingMember) {
+        return str_contains($request->url(), 'sendMessage')
+            && (string) $request['chat_id'] === $existingMember->telegram_id;
+    });
+
+    // New member was not in group -> MUST be sent
+    Http::assertSent(function ($request) use ($newMember) {
+        return str_contains($request->url(), 'sendMessage')
+            && (string) $request['chat_id'] === $newMember->telegram_id;
+    });
+});
+
+test('new_chat_members does not trigger group bind if bot itself was not added', function () {
+    $botService = app(TelegramBotService::class);
+    $matchService = app(BilliardMatchService::class);
+    $statsService = app(BilliardStatsService::class);
+
+    TelegramBotConfig::current()->update([
+        'bot_username' => 'MyBilliardBot',
+        'group_chat_id' => null,
+    ]);
+
+    Http::fake();
+
+    $botService->handleWebhook([
+        'message' => [
+            'chat' => ['id' => -10099887766, 'type' => 'supergroup', 'title' => 'Nhóm Test'],
+            'new_chat_members' => [
+                ['id' => 9999, 'is_bot' => false, 'first_name' => 'Human Member'],
+            ],
+        ],
+    ], $matchService, $statsService);
+
+    expect(TelegramBotConfig::current()->group_chat_id)->toBeNull();
+    Http::assertNothingSent();
+});

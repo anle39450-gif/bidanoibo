@@ -24,8 +24,7 @@ class AdminController extends Controller
     public function __construct(
         protected BilliardMatchService $matchService,
         protected TelegramBotService $telegramBot
-    ) {
-    }
+    ) {}
 
     public function index(): View
     {
@@ -51,7 +50,7 @@ class AdminController extends Controller
 
         // 5. Logo Settings
         $currentLogoUrl = Setting::getLogoUrl();
-        $hasCustomLogo = !empty(Setting::get('app_logo'));
+        $hasCustomLogo = ! empty(Setting::get('app_logo'));
 
         return view('admin.index', compact('disputedMatches', 'members', 'recentHistories', 'botConfig', 'currentLogoUrl', 'hasCustomLogo'));
     }
@@ -107,7 +106,7 @@ class AdminController extends Controller
             $avatarPath = $request->file('avatar')->store('avatars', 'public');
         }
 
-        $password = !empty($validated['password']) ? Hash::make($validated['password']) : Hash::make('password');
+        $password = ! empty($validated['password']) ? Hash::make($validated['password']) : Hash::make('password');
 
         $user = User::create([
             'name' => $validated['name'],
@@ -128,7 +127,7 @@ class AdminController extends Controller
             ]);
         }
 
-        return back()->with('success', "Đã tạo mới cơ thủ {$user->name} (@{$user->username}) thành công! Mật khẩu khởi tạo: " . (!empty($validated['password']) ? '(đã nhập)' : 'password'));
+        return back()->with('success', "Đã tạo mới cơ thủ {$user->name} (@{$user->username}) thành công! Mật khẩu khởi tạo: ".(! empty($validated['password']) ? '(đã nhập)' : 'password'));
     }
 
     public function toggleUserStatus(User $user): RedirectResponse
@@ -137,7 +136,7 @@ class AdminController extends Controller
             return back()->with('error', 'Bạn không thể tự vô hiệu hóa tài khoản của chính mình!');
         }
 
-        $user->update(['is_active' => !$user->is_active]);
+        $user->update(['is_active' => ! $user->is_active]);
         $statusStr = $user->is_active ? 'kích hoạt' : 'vô hiệu hóa';
 
         return back()->with('success', "Đã {$statusStr} tài khoản {$user->name}.");
@@ -194,7 +193,7 @@ class AdminController extends Controller
             $webhookUrl = route('telegram.webhook');
             $result = $this->telegramBot->setWebhook($webhookUrl);
 
-            if (!empty($result['ok'])) {
+            if (! empty($result['ok'])) {
                 $config->update([
                     'webhook_url' => $webhookUrl,
                     'last_webhook_ping_at' => now(),
@@ -203,7 +202,7 @@ class AdminController extends Controller
                 return back()->with('success', 'Cập nhật cấu hình và đăng ký Webhook Telegram thành công!');
             }
 
-            return back()->with('warning', 'Đã lưu cấu hình nhưng Telegram báo lỗi: ' . ($result['description'] ?? 'Không rõ nguyên nhân'));
+            return back()->with('warning', 'Đã lưu cấu hình nhưng Telegram báo lỗi: '.($result['description'] ?? 'Không rõ nguyên nhân'));
         }
 
         return back()->with('success', 'Đã lưu cấu hình Telegram Bot.');
@@ -222,7 +221,7 @@ class AdminController extends Controller
 
     public function inviteGroupMembers(): RedirectResponse
     {
-        $result = $this->telegramBot->inviteAllConnectedUsers();
+        $result = $this->telegramBot->inviteAllConnectedUsers(null, true);
 
         if ($result['success']) {
             return back()->with('success', $result['message']);

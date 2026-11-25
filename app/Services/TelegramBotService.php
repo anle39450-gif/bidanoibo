@@ -6,6 +6,7 @@ use App\Models\BilliardMatch;
 use App\Models\TelegramBotConfig;
 use App\Models\User;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -417,11 +418,38 @@ class TelegramBotService
     }
 
     /**
+     * Check if a Telegram user is already a member, admin, or creator in a Telegram group.
+     */
+    public function isUserInGroup(string|int $groupId, string|int $telegramUserId): bool
+    {
+        if (! $this->isConfigured()) {
+            return false;
+        }
+
+        try {
+            $response = $this->client()->post("https://api.telegram.org/bot{$this->token}/getChatMember", [
+                'chat_id' => $groupId,
+                'user_id' => $telegramUserId,
+            ]);
+
+            if ($response->successful()) {
+                $status = $response->json('result.status');
+
+                return in_array($status, ['creator', 'administrator', 'member', 'restricted']);
+            }
+        } catch (\Throwable $e) {
+            Log::warning("Telegram isUserInGroup check failed for user {$telegramUserId}: ".$e->getMessage());
+        }
+
+        return false;
+    }
+
+    /**
      * Broadcast an invitation message with the group link to all connected users.
      *
      * @return array{success: bool, sent_count: int, invite_link: ?string, message: string}
      */
-    public function inviteAllConnectedUsers(?string $chatId = null): array
+    public function inviteAllConnectedUsers(?string $chatId = null, bool $force = false): array
     {
         if (! $this->isConfigured()) {
             return [
@@ -455,9 +483,11 @@ class TelegramBotService
             ];
         }
 
+        // Deduplicate users by telegram_id to prevent sending multiple times if accounts share an ID
         $connectedUsers = User::where('is_active', true)
             ->whereNotNull('telegram_id')
-            ->get();
+            ->get()
+            ->unique('telegram_id');
 
         if ($connectedUsers->isEmpty()) {
             return [
@@ -484,16 +514,34 @@ class TelegramBotService
 
         $sentCount = 0;
         foreach ($connectedUsers as $user) {
-            if ($this->sendMessage($user->telegram_id, $text, $replyMarkup)) {
+            $telegramId = (string) $user->telegram_id;
+
+            // 1. Skip if user is already in the group
+            if ($this->isUserInGroup($targetChatId, $telegramId)) {
+                continue;
+            }
+
+            // 2. Prevent duplicate message to the same user within 15 minutes unless forced
+            $cacheKey = "tg_invite_{$targetChatId}_{$telegramId}";
+            if (! $force && Cache::has($cacheKey)) {
+                continue;
+            }
+
+            if ($this->sendMessage($telegramId, $text, $replyMarkup)) {
                 $sentCount++;
+                Cache::put($cacheKey, true, now()->addMinutes(15));
             }
         }
 
+        $message = $sentCount > 0
+            ? "Đã gửi lời mời tham gia nhóm kèm link tới {$sentCount} cơ thủ chưa tham gia nhóm!"
+            : 'Tất cả các cơ thủ đã ở trong nhóm Telegram hoặc vừa nhận được lời mời!';
+
         return [
-            'success' => $sentCount > 0,
+            'success' => true,
             'sent_count' => $sentCount,
             'invite_link' => $inviteLink,
-            'message' => "Đã gửi lời mời tham gia nhóm kèm link tới {$sentCount} cơ thủ đã liên kết Telegram!",
+            'message' => $message,
         ];
     }
 
@@ -707,6 +755,23 @@ class TelegramBotService
         // Auto-bind group if bot was added to a group via new_chat_members
         if (! empty($msg['new_chat_members']) && $chatId < 0) {
             $config = TelegramBotConfig::current();
+            $botUsername = strtolower($config->bot_username ?? '');
+
+            $botWasAdded = false;
+            foreach ($msg['new_chat_members'] as $nm) {
+                if (! empty($nm['is_bot'])) {
+                    if (empty($botUsername) || strtolower($nm['username'] ?? '') === $botUsername) {
+                        $botWasAdded = true;
+                        break;
+                    }
+                }
+            }
+
+            // Only trigger greeting and invite if the bot itself was added to the group
+            if (! $botWasAdded) {
+                return;
+            }
+
             $config->update(['group_chat_id' => (string) $chatId]);
             $title = $msg['chat']['title'] ?? 'Nhóm Bida';
             $this->sendMessage($chatId, "🎉 <b>KẾT NỐI NHÓM THÀNH CÔNG!</b>\n\nNhóm <b>{$title}</b> đã được tự động gán làm nhóm thông báo chính thức của Bida Nội Bộ! (Chat ID: <code>{$chatId}</code>)");
