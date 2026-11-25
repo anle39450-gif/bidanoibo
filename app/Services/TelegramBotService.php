@@ -66,15 +66,24 @@ class TelegramBotService
         $opponent = $challenge->opponent;
         $challenger = $challenge->challenger;
         $config = TelegramBotConfig::first();
+        $isDoubles = $challenge->isDoubles();
 
-        $text = "🚨 <b>BÁO ĐỘNG SOS: LỜI KHIÊU CHIẾN KHẨN CẤP!</b>\n\n";
-        $text .= "👤 <b>Người thách đấu:</b> <b>{$challenger->name}</b> (@{$challenger->username})\n";
-        $text .= "🎯 <b>Mục tiêu thách đấu:</b> <b>{$opponent->name}</b> (@{$opponent->username})\n";
+        if ($isDoubles) {
+            $text = "🚨 <b>BÁO ĐỘNG SOS: LỜI KHIÊU CHIẾN ĐÔI 2VS2 KHẨN CẤP!</b>\n\n";
+            $text .= "👥 <b>Đội thách đấu:</b> <b>{$challenge->challenger_team_names}</b>\n";
+            $text .= "🎯 <b>Đội mục tiêu:</b> <b>{$challenge->opponent_team_names}</b>\n";
+        } else {
+            $text = "🚨 <b>BÁO ĐỘNG SOS: LỜI KHIÊU CHIẾN KHẨN CẤP!</b>\n\n";
+            $text .= "👤 <b>Người thách đấu:</b> <b>{$challenger->name}</b> (@{$challenger->username})\n";
+            $text .= "🎯 <b>Mục tiêu thách đấu:</b> <b>{$opponent->name}</b> (@{$opponent->username})\n";
+        }
+
         $text .= "🎁 <b>Kèo thách thức:</b> <b>{$challenge->prize}</b>\n";
         if ($challenge->message) {
             $text .= "📝 <b>Lời khiêu chiến:</b> <i>\"{$challenge->message}\"</i>\n";
         }
-        $text .= "\n⚡ <i>Cảnh báo: Nếu {$opponent->name} đang mở website, màn hình sẽ lập tức nhấp nháy đèn đỏ SOS và dòng chữ 'Bạn sợ à? Rén à?' chạy loạn xạ!</i>";
+        $targetDesc = $isDoubles ? $challenge->opponent_team_names : $opponent->name;
+        $text .= "\n⚡ <i>Cảnh báo: Nếu {$targetDesc} đang mở website, màn hình sẽ lập tức nhấp nháy đèn đỏ SOS và dòng chữ 'Bạn sợ à? Rén à?' chạy loạn xạ!</i>";
 
         $siteUrl = url('/calendar?tab=upcoming');
         $replyMarkup = [
@@ -92,6 +101,10 @@ class TelegramBotService
         // 1. Gửi tin nhắn riêng (DM) cho đối thủ kèm 2 nút bấm Tiếp Chiêu / Từ Chối
         if ($opponent && $opponent->telegram_id) {
             $this->sendMessage($opponent->telegram_id, $text, $replyMarkup);
+        }
+
+        if ($isDoubles && $challenge->opponentPartner && $challenge->opponentPartner->telegram_id && $challenge->opponentPartner->telegram_id !== $opponent?->telegram_id) {
+            $this->sendMessage($challenge->opponentPartner->telegram_id, $text, $replyMarkup);
         }
 
         // 2. Gửi thông báo công khai vào NHÓM CHUNG Telegram để cả nhóm cùng theo dõi
@@ -112,11 +125,23 @@ class TelegramBotService
     public function sendDuelCompletedNotification(BilliardChallenge $challenge, BilliardMatch $match, User $winner, User $loser): bool
     {
         $config = TelegramBotConfig::first();
-        $text = "🏆 <b>KẾT QUẢ KHIÊU CHIẾN: {$winner->name} CHIẾN THẮNG!</b>\n\n";
-        $text .= "⚔️ <b>Trận đấu:</b> <b>{$winner->name}</b> vs <b>{$loser->name}</b>\n";
-        $text .= "🎁 <b>Kèo thách thức:</b> <b>{$challenge->prize}</b>\n";
-        $text .= "💀 <b>Nợ kèo:</b> <b>{$loser->name}</b> nợ <b>{$winner->name}</b> 1 {$challenge->prize}\n\n";
-        $text .= "🎉 Chúc mừng <b>{$winner->name}</b> đã xuất sắc giành chiến thắng!";
+        $isDoubles = $challenge->isDoubles();
+
+        if ($isDoubles) {
+            $winnerNames = $match->winner_names;
+            $loserNames = $match->loser_names;
+            $text = "🏆 <b>KẾT QUẢ KHIÊU CHIẾN ĐÔI 2VS2: ĐỘI {$winnerNames} THẮNG!</b>\n\n";
+            $text .= "⚔️ <b>Trận đấu:</b> <b>{$winnerNames}</b> vs <b>{$loserNames}</b>\n";
+            $text .= "🎁 <b>Kèo thách thức:</b> <b>{$challenge->prize}</b>\n";
+            $text .= "💀 <b>Nợ kèo:</b> Đội <b>{$loserNames}</b> nợ <b>{$winnerNames}</b> 1 {$challenge->prize}\n\n";
+            $text .= "🎉 Chúc mừng đội <b>{$winnerNames}</b> đã xuất sắc giành chiến thắng!";
+        } else {
+            $text = "🏆 <b>KẾT QUẢ KHIÊU CHIẾN: {$winner->name} CHIẾN THẮNG!</b>\n\n";
+            $text .= "⚔️ <b>Trận đấu:</b> <b>{$winner->name}</b> vs <b>{$loser->name}</b>\n";
+            $text .= "🎁 <b>Kèo thách thức:</b> <b>{$challenge->prize}</b>\n";
+            $text .= "💀 <b>Nợ kèo:</b> <b>{$loser->name}</b> nợ <b>{$winner->name}</b> 1 {$challenge->prize}\n\n";
+            $text .= "🎉 Chúc mừng <b>{$winner->name}</b> đã xuất sắc giành chiến thắng!";
+        }
 
         $siteUrl = url('/matches/'.$match->id);
         $replyMarkup = [
@@ -718,7 +743,7 @@ class TelegramBotService
                 return;
             }
 
-            if ($challenge->opponent_id !== $user->id) {
+            if (! $challenge->isOpponentTeam($user)) {
                 $this->answerCallbackQuery($callbackId, '⚠️ Lời khiêu chiến này không dành cho bạn!');
 
                 return;
@@ -738,10 +763,15 @@ class TelegramBotService
                     ],
                 ],
             ];
-            $this->sendMessage($chatId, "⚔️ <b>BẠN ĐÃ TIẾP CHIÊU THÀNH CÔNG!</b>\nTrận đấu với <b>{$challenge->challenger->name}</b> kèo <b>{$challenge->prize}</b> đã được đưa vào mục <b>Trận đấu sắp diễn ra</b> trên lịch thi đấu!", $replyMarkup);
+            $opponentDesc = $challenge->isDoubles() ? "đội <b>{$challenge->challenger_team_names}</b>" : "<b>{$challenge->challenger->name}</b>";
+            $this->sendMessage($chatId, "⚔️ <b>BẠN ĐÃ TIẾP CHIÊU THÀNH CÔNG!</b>\nTrận đấu với {$opponentDesc} kèo <b>{$challenge->prize}</b> đã được đưa vào mục <b>Trận đấu sắp diễn ra</b> trên lịch thi đấu!", $replyMarkup);
 
             if ($challenge->challenger && $challenge->challenger->telegram_id) {
-                $this->sendMessage($challenge->challenger->telegram_id, "⚔️ <b>{$user->name} ĐÃ TIẾP CHIÊU!</b>\nĐối thủ đã chấp nhận lời thách đấu kèo <b>{$challenge->prize}</b>. Ra bàn chiến ngay thôi! Sau khi thi đấu xong, 2 cơ thủ hoặc Admin có thể lên web chọn người thắng.", $replyMarkup);
+                $this->sendMessage($challenge->challenger->telegram_id, "⚔️ <b>{$user->name} ĐÃ TIẾP CHIÊU!</b>\nĐối thủ đã chấp nhận lời thách đấu kèo <b>{$challenge->prize}</b>. Ra bàn chiến ngay thôi! Sau khi thi đấu xong, 2 cơ thủ/đội hoặc Admin có thể lên web chọn người thắng.", $replyMarkup);
+            }
+
+            if ($challenge->isDoubles() && $challenge->challengerPartner && $challenge->challengerPartner->telegram_id && $challenge->challengerPartner->telegram_id !== $challenge->challenger?->telegram_id) {
+                $this->sendMessage($challenge->challengerPartner->telegram_id, "⚔️ <b>{$user->name} ĐÃ TIẾP CHIÊU TRẬN ĐÔI!</b>\nĐối thủ đã chấp nhận lời thách đấu kèo <b>{$challenge->prize}</b>. Ra bàn chiến ngay thôi!", $replyMarkup);
             }
 
             return;
@@ -763,7 +793,7 @@ class TelegramBotService
                 return;
             }
 
-            if ($challenge->opponent_id !== $user->id) {
+            if (! $challenge->isOpponentTeam($user)) {
                 $this->answerCallbackQuery($callbackId, '⚠️ Lời khiêu chiến này không dành cho bạn!');
 
                 return;

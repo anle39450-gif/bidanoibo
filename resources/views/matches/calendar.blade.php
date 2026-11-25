@@ -280,17 +280,29 @@
         <div id="upcoming_cards_grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             @forelse($upcomingChallenges as $c)
                 @php
-                    $canInteract = auth()->check() && (auth()->id() === $c->challenger_id || auth()->id() === $c->opponent_id || auth()->user()->isAdmin());
+                    $isDoubles = $c->isDoubles();
+                    $canInteract = auth()->check() && ($c->isParticipant(auth()->user()) || auth()->user()->isAdmin());
                 @endphp
                 <div id="upcoming_challenge_card_{{ $c->id }}"
                     class="bg-white border border-gray-200 rounded-xl shadow-xs p-5 hover:border-red-300 hover:shadow-md transition space-y-4">
                     
                     <!-- Card Top Header -->
                     <div class="flex items-center justify-between border-b border-gray-100 pb-3 text-xs">
-                        <span class="inline-flex items-center gap-1.5 font-extrabold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-full">
-                            <span class="w-1.5 h-1.5 rounded-full bg-rose-600 animate-ping"></span>
-                            <span>Chờ thi đấu</span>
-                        </span>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1.5 font-extrabold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-full">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-600 animate-ping"></span>
+                                <span>Chờ thi đấu</span>
+                            </span>
+                            @if($isDoubles)
+                                <span class="bg-indigo-100 text-indigo-800 font-extrabold px-2 py-0.5 rounded-full text-[10px]">
+                                    2VS2 ĐÁNH ĐÔI
+                                </span>
+                            @else
+                                <span class="bg-gray-100 text-gray-700 font-extrabold px-2 py-0.5 rounded-full text-[10px]">
+                                    SOLO 1VS1
+                                </span>
+                            @endif
+                        </div>
                         <span class="text-gray-400">
                             Tiếp chiêu {{ $c->accepted_at?->diffForHumans() ?? $c->created_at->diffForHumans() }}
                         </span>
@@ -298,32 +310,52 @@
 
                     <!-- Duel Matchup Players -->
                     <div class="flex items-center justify-between gap-3 py-1">
-                        <!-- Player 1: Challenger -->
-                        <div class="flex items-center gap-2.5 flex-1 min-w-0">
-                            <img src="{{ $c->challenger->avatar_url }}" alt="{{ $c->challenger->name }}"
-                                class="w-11 h-11 rounded-full border border-gray-200 object-cover shrink-0">
+                        <!-- Player 1: Challenger Team -->
+                        <div class="flex items-center gap-2 flex-1 min-w-0">
+                            <div class="flex -space-x-2 shrink-0">
+                                <img src="{{ $c->challenger->avatar_url }}" alt="{{ $c->challenger->name }}"
+                                    class="w-10 h-10 rounded-full border-2 border-white object-cover shadow-2xs">
+                                @if($isDoubles && $c->challengerPartner)
+                                    <img src="{{ $c->challengerPartner->avatar_url }}" alt="{{ $c->challengerPartner->name }}"
+                                        class="w-10 h-10 rounded-full border-2 border-white object-cover shadow-2xs">
+                                @endif
+                            </div>
                             <div class="min-w-0">
-                                <div class="text-sm font-bold text-gray-900 truncate leading-tight">{{ $c->challenger->name }}</div>
-                                <div class="text-xs text-gray-400 truncate">@<span>{{ $c->challenger->username }}</span></div>
+                                <div class="text-sm font-bold text-gray-900 truncate leading-tight">
+                                    {{ $c->challenger_team_names }}
+                                </div>
+                                <div class="text-xs text-gray-400 truncate">
+                                    @<span>{{ $c->challenger->username }}</span>{{ ($isDoubles && $c->challengerPartner) ? ', @'.$c->challengerPartner->username : '' }}
+                                </div>
                                 <span class="inline-block mt-0.5 text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.2 rounded">Thách đấu</span>
                             </div>
                         </div>
 
                         <!-- VS Badge -->
-                        <div class="flex flex-col items-center justify-center shrink-0 px-2">
+                        <div class="flex flex-col items-center justify-center shrink-0 px-1 text-center">
                             <span class="text-base font-black text-rose-600">VS</span>
-                            <span class="text-[10px] font-bold text-gray-400">SOLO</span>
+                            <span class="text-[9px] font-bold text-gray-400">{{ $isDoubles ? '2VS2' : 'SOLO' }}</span>
                         </div>
 
-                        <!-- Player 2: Opponent -->
-                        <div class="flex items-center justify-end gap-2.5 flex-1 min-w-0 text-right">
+                        <!-- Player 2: Opponent Team -->
+                        <div class="flex items-center justify-end gap-2 flex-1 min-w-0 text-right">
                             <div class="min-w-0">
-                                <div class="text-sm font-bold text-gray-900 truncate leading-tight">{{ $c->opponent->name }}</div>
-                                <div class="text-xs text-gray-400 truncate">@<span>{{ $c->opponent->username }}</span></div>
+                                <div class="text-sm font-bold text-gray-900 truncate leading-tight">
+                                    {{ $c->opponent_team_names }}
+                                </div>
+                                <div class="text-xs text-gray-400 truncate">
+                                    @<span>{{ $c->opponent->username }}</span>{{ ($isDoubles && $c->opponentPartner) ? ', @'.$c->opponentPartner->username : '' }}
+                                </div>
                                 <span class="inline-block mt-0.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded">Tiếp chiêu</span>
                             </div>
-                            <img src="{{ $c->opponent->avatar_url }}" alt="{{ $c->opponent->name }}"
-                                class="w-11 h-11 rounded-full border border-gray-200 object-cover shrink-0">
+                            <div class="flex -space-x-2 shrink-0">
+                                @if($isDoubles && $c->opponentPartner)
+                                    <img src="{{ $c->opponentPartner->avatar_url }}" alt="{{ $c->opponentPartner->name }}"
+                                        class="w-10 h-10 rounded-full border-2 border-white object-cover shadow-2xs">
+                                @endif
+                                <img src="{{ $c->opponent->avatar_url }}" alt="{{ $c->opponent->name }}"
+                                    class="w-10 h-10 rounded-full border-2 border-white object-cover shadow-2xs">
+                            </div>
                         </div>
                     </div>
 
@@ -340,12 +372,12 @@
                         @endif
                     </div>
 
-                    <!-- Interactive Action Area (Winner selection by 2 players or Admin) -->
+                    <!-- Interactive Action Area (Winner selection by participants or Admin) -->
                     @if($canInteract)
                         <div class="pt-2 border-t border-gray-100 space-y-2">
                             <div class="flex items-center justify-between text-xs">
                                 <span class="font-bold text-gray-700 uppercase tracking-wider">Cập nhật kết quả:</span>
-                                @if(auth()->user()->isAdmin() && auth()->id() !== $c->challenger_id && auth()->id() !== $c->opponent_id)
+                                @if(auth()->user()->isAdmin() && ! $c->isParticipant(auth()->user()))
                                     <span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">Quyền Admin</span>
                                 @else
                                     <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">Cơ thủ trong trận</span>
@@ -354,22 +386,22 @@
 
                             <div class="grid grid-cols-2 gap-2">
                                 <button type="button"
-                                    onclick="handleResolveChallenge({{ $c->id }}, {{ $c->challenger_id }}, '{{ addslashes($c->challenger->name) }}')"
+                                    onclick="handleResolveChallenge({{ $c->id }}, {{ $c->challenger_id }}, '{{ addslashes($c->challenger_team_names) }}')"
                                     class="w-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 hover:text-emerald-900 font-bold py-2 px-2.5 rounded-lg text-xs transition cursor-pointer flex items-center justify-center gap-1 truncate shadow-2xs">
                                     <span>🏆</span>
-                                    <span class="truncate">{{ $c->challenger->name }} thắng</span>
+                                    <span class="truncate">{{ $isDoubles ? 'Đội ' : '' }}{{ $c->challenger_team_names }} thắng</span>
                                 </button>
                                 <button type="button"
-                                    onclick="handleResolveChallenge({{ $c->id }}, {{ $c->opponent_id }}, '{{ addslashes($c->opponent->name) }}')"
+                                    onclick="handleResolveChallenge({{ $c->id }}, {{ $c->opponent_id }}, '{{ addslashes($c->opponent_team_names) }}')"
                                     class="w-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 hover:text-emerald-900 font-bold py-2 px-2.5 rounded-lg text-xs transition cursor-pointer flex items-center justify-center gap-1 truncate shadow-2xs">
                                     <span>🏆</span>
-                                    <span class="truncate">{{ $c->opponent->name }} thắng</span>
+                                    <span class="truncate">{{ $isDoubles ? 'Đội ' : '' }}{{ $c->opponent_team_names }} thắng</span>
                                 </button>
                             </div>
                         </div>
                     @else
                         <div class="pt-2 border-t border-gray-100 text-center text-xs text-gray-400 italic">
-                            Chờ 2 cơ thủ hoặc Quản trị viên cập nhật kết quả sau trận đấu.
+                            Chờ các cơ thủ trong trận hoặc Quản trị viên cập nhật kết quả sau trận đấu.
                         </div>
                     @endif
 

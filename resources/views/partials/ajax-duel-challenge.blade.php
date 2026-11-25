@@ -153,27 +153,32 @@
         
         <!-- Red Alert Siren Header -->
         <div class="space-y-2">
-            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-600/40 border border-red-500 text-xs sm:text-sm font-extrabold tracking-widest uppercase animate-ajax-sos-text">
+            <div id="sos_badge_type" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-600/40 border border-red-500 text-xs sm:text-sm font-extrabold tracking-widest uppercase animate-ajax-sos-text">
                 <span>🚨 BÁO ĐỘNG SOS: CÓ LỜI KHIÊU CHIẾN KHẨN CẤP! 🚨</span>
             </div>
-            <h2 class="text-xl sm:text-2xl font-black text-white tracking-wide uppercase">
+            <h2 id="sos_modal_title" class="text-xl sm:text-2xl font-black text-white tracking-wide uppercase">
                 BẠN ĐANG BỊ THÁCH ĐẤU!
             </h2>
         </div>
 
         <!-- Challenger Profile Highlight -->
         <div class="bg-red-950/70 border border-red-800/80 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4 text-left">
-            <div class="relative shrink-0">
+            <div class="relative shrink-0 flex -space-x-3">
                 <img id="sos_challenger_avatar" src="" alt="Challenger"
                     class="w-16 h-16 rounded-full border-2 border-yellow-400 object-cover shadow-lg">
+                <img id="sos_challenger_partner_avatar" src="" alt="Partner"
+                    class="w-16 h-16 rounded-full border-2 border-yellow-400 object-cover shadow-lg hidden">
                 <span class="absolute -bottom-1 -right-1 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full uppercase border border-white">
                     VS
                 </span>
             </div>
             <div class="flex-1 text-center sm:text-left">
-                <div class="text-xs uppercase text-red-300 font-bold tracking-wider">Kẻ thách đấu:</div>
+                <div id="sos_challenger_label" class="text-xs uppercase text-red-300 font-bold tracking-wider">Kẻ thách đấu:</div>
                 <div id="sos_challenger_name" class="text-lg font-black text-yellow-300"></div>
                 <div id="sos_challenger_username" class="text-xs text-gray-300 font-mono"></div>
+                <div id="sos_opponent_team_box" class="text-xs text-emerald-400 font-bold mt-1.5 hidden">
+                    Đội của bạn: <span id="sos_opponent_team_names" class="text-white"></span>
+                </div>
             </div>
         </div>
 
@@ -197,7 +202,7 @@
                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                 </svg>
-                <span>TIẾP CHIÊU (ĐỒNG Ý CHIẾN)</span>
+                <span id="sos_btn_accept_text">TIẾP CHIÊU (ĐỒNG Ý CHIẾN)</span>
             </button>
 
             <button type="button" id="sos_btn_decline" onclick="handleAjaxDeclineChallenge()"
@@ -233,8 +238,22 @@
             <!-- Alert Box -->
             <div id="challenge_form_alert" class="hidden p-3 rounded-lg text-xs font-semibold"></div>
 
-            <!-- Chọn đối thủ -->
-            <div>
+            <!-- Mode Switcher (1vs1 Solo or 2vs2 Doubles) -->
+            <div class="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
+                <button type="button" id="tab_challenge_singles" onclick="switchChallengeMode('singles')"
+                    class="py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition bg-white text-gray-900 shadow-xs cursor-pointer flex items-center justify-center gap-1.5">
+                    <span>🎯 Solo 1 vs 1</span>
+                </button>
+                <button type="button" id="tab_challenge_doubles" onclick="switchChallengeMode('doubles')"
+                    class="py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition text-gray-500 hover:text-gray-900 cursor-pointer flex items-center justify-center gap-1.5">
+                    <span>👥 Đánh Đôi 2 vs 2</span>
+                </button>
+            </div>
+
+            <input type="hidden" name="challenge_type" id="challenge_type" value="singles">
+
+            <!-- Singles: Chọn 1 đối thủ -->
+            <div id="challenge_singles_container">
                 <label class="block font-bold text-gray-800 mb-1.5 uppercase text-xs tracking-wider">
                     Chọn cơ thủ khiêu chiến <span class="text-red-500">*</span>
                 </label>
@@ -245,6 +264,51 @@
                         <option value="{{ $u->id }}">{{ $u->name }} (@<span>{{ $u->username }}</span>)</option>
                     @endforeach
                 </select>
+            </div>
+
+            <!-- Doubles: Chọn đồng đội + 2 đối thủ -->
+            <div id="challenge_doubles_container" class="hidden space-y-3.5">
+                <!-- Chọn đồng đội -->
+                <div>
+                    <label class="block font-bold text-indigo-900 mb-1.5 uppercase text-xs tracking-wider">
+                        1. Đồng đội của bạn (Cùng đội) <span class="text-red-500">*</span>
+                    </label>
+                    <select name="challenger_partner_id" id="challenge_challenger_partner_id"
+                        class="w-full border border-indigo-200 bg-indigo-50/30 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                        <option value="">-- Chọn cơ thủ bắt cặp cùng bạn --</option>
+                        @foreach($challengeOpponents as $u)
+                            <option value="{{ $u->id }}">{{ $u->name }} (@<span>{{ $u->username }}</span>)</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="border-t border-gray-200 pt-2.5">
+                    <label class="block font-bold text-rose-900 mb-1.5 uppercase text-xs tracking-wider">
+                        2. Đội đối thủ (2 cơ thủ đối phương) <span class="text-red-500">*</span>
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                            <span class="text-[11px] font-semibold text-gray-600 block mb-1">Đối thủ 1:</span>
+                            <select id="challenge_opponent_id_doubles"
+                                class="w-full border border-rose-200 bg-rose-50/30 rounded-lg px-2.5 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 font-medium">
+                                <option value="">-- Chọn đối thủ 1 --</option>
+                                @foreach($challengeOpponents as $u)
+                                    <option value="{{ $u->id }}">{{ $u->name }} (@<span>{{ $u->username }}</span>)</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <span class="text-[11px] font-semibold text-gray-600 block mb-1">Đối thủ 2:</span>
+                            <select name="opponent_partner_id" id="challenge_opponent_partner_id"
+                                class="w-full border border-rose-200 bg-rose-50/30 rounded-lg px-2.5 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 font-medium">
+                                <option value="">-- Chọn đối thủ 2 --</option>
+                                @foreach($challengeOpponents as $u)
+                                    <option value="{{ $u->id }}">{{ $u->name }} (@<span>{{ $u->username }}</span>)</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Món kèo cược -->
@@ -303,6 +367,47 @@
 <script>
     let activeIncomingChallengeId = null;
     let sirenAudioInterval = null;
+    let currentChallengeMode = 'singles';
+
+    // Switch Singles / Doubles challenge mode
+    function switchChallengeMode(mode) {
+        currentChallengeMode = mode;
+        const typeInput = document.getElementById('challenge_type');
+        if (typeInput) typeInput.value = mode;
+
+        const btnSingles = document.getElementById('tab_challenge_singles');
+        const btnDoubles = document.getElementById('tab_challenge_doubles');
+        const singlesContainer = document.getElementById('challenge_singles_container');
+        const doublesContainer = document.getElementById('challenge_doubles_container');
+        const oppSingles = document.getElementById('challenge_opponent_id');
+        const partnerId = document.getElementById('challenge_challenger_partner_id');
+        const opp2Id = document.getElementById('challenge_opponent_partner_id');
+        const msgInput = document.getElementById('challenge_message');
+
+        if (mode === 'doubles') {
+            if (btnDoubles) btnDoubles.className = 'py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition bg-white text-indigo-900 shadow-xs cursor-pointer flex items-center justify-center gap-1.5';
+            if (btnSingles) btnSingles.className = 'py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition text-gray-500 hover:text-gray-900 cursor-pointer flex items-center justify-center gap-1.5';
+            if (singlesContainer) singlesContainer.classList.add('hidden');
+            if (doublesContainer) doublesContainer.classList.remove('hidden');
+            if (oppSingles) oppSingles.removeAttribute('required');
+            if (partnerId) partnerId.setAttribute('required', 'required');
+            if (opp2Id) opp2Id.setAttribute('required', 'required');
+            if (msgInput && msgInput.value === 'Ra bàn solo ngay nếu không muốn bị coi là sợ!') {
+                msgInput.value = 'Lập team 2vs2 ra bàn song đấu ngay!';
+            }
+        } else {
+            if (btnSingles) btnSingles.className = 'py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition bg-white text-gray-900 shadow-xs cursor-pointer flex items-center justify-center gap-1.5';
+            if (btnDoubles) btnDoubles.className = 'py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition text-gray-500 hover:text-gray-900 cursor-pointer flex items-center justify-center gap-1.5';
+            if (doublesContainer) doublesContainer.classList.add('hidden');
+            if (singlesContainer) singlesContainer.classList.remove('hidden');
+            if (oppSingles) oppSingles.setAttribute('required', 'required');
+            if (partnerId) partnerId.removeAttribute('required');
+            if (opp2Id) opp2Id.removeAttribute('required');
+            if (msgInput && msgInput.value === 'Lập team 2vs2 ra bàn song đấu ngay!') {
+                msgInput.value = 'Ra bàn solo ngay nếu không muốn bị coi là sợ!';
+            }
+        }
+    }
 
     // Siren Sound synthesizer via Web Audio API (No external sound files required)
     function playEmergencySirenSound() {
@@ -329,6 +434,7 @@
         if (!modal) return;
         if (opponentId) {
             document.getElementById('challenge_opponent_id').value = opponentId;
+            switchChallengeMode('singles');
         }
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -351,6 +457,16 @@
         const btn = document.getElementById('btn_submit_challenge');
         const alertBox = document.getElementById('challenge_form_alert');
 
+        if (currentChallengeMode === 'doubles') {
+            const opp1 = document.getElementById('challenge_opponent_id_doubles').value;
+            if (!opp1) {
+                alertBox.className = 'p-3 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200 block';
+                alertBox.textContent = 'Vui lòng chọn đối thủ 1 cho đội bạn!';
+                return;
+            }
+            document.getElementById('challenge_opponent_id').value = opp1;
+        }
+
         btn.disabled = true;
         btn.innerHTML = '<span>Đang phát lệnh...</span>';
         alertBox.classList.add('hidden');
@@ -372,6 +488,9 @@
             if (res.ok && data.success) {
                 closeSendChallengeModal();
                 alert(data.message);
+                if (window.location.href.includes('tab=upcoming')) {
+                    window.location.reload();
+                }
             } else {
                 alertBox.className = 'p-3 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200 block';
                 alertBox.textContent = data.message || 'Có lỗi xảy ra, vui lòng thử lại!';
@@ -391,9 +510,42 @@
         const overlay = document.getElementById('ajaxSosEmergencyOverlay');
         if (!overlay) return;
 
-        document.getElementById('sos_challenger_avatar').src = challenge.challenger_avatar;
-        document.getElementById('sos_challenger_name').textContent = challenge.challenger_name;
-        document.getElementById('sos_challenger_username').textContent = '@' + challenge.challenger_username;
+        const isDoubles = challenge.is_doubles;
+        const badgeType = document.getElementById('sos_badge_type');
+        const modalTitle = document.getElementById('sos_modal_title');
+        const challengerLabel = document.getElementById('sos_challenger_label');
+        const partnerAvatar = document.getElementById('sos_challenger_partner_avatar');
+        const opponentTeamBox = document.getElementById('sos_opponent_team_box');
+        const btnAcceptText = document.getElementById('sos_btn_accept_text');
+
+        if (isDoubles) {
+            if (badgeType) badgeType.innerHTML = '<span>🚨 BÁO ĐỘNG SOS: LỜI KHIÊU CHIẾN ĐÔI 2VS2! 🚨</span>';
+            if (modalTitle) modalTitle.textContent = 'ĐỘI CỦA BẠN ĐANG BỊ THÁCH ĐẤU!';
+            if (challengerLabel) challengerLabel.textContent = 'Đội thách đấu:';
+            document.getElementById('sos_challenger_avatar').src = challenge.challenger_avatar;
+            document.getElementById('sos_challenger_name').textContent = challenge.challenger_team_names;
+            document.getElementById('sos_challenger_username').textContent = '@' + challenge.challenger_username + (challenge.challenger_partner_username ? ', @' + challenge.challenger_partner_username : '');
+            if (partnerAvatar && challenge.challenger_partner_avatar) {
+                partnerAvatar.src = challenge.challenger_partner_avatar;
+                partnerAvatar.classList.remove('hidden');
+            }
+            if (opponentTeamBox) {
+                opponentTeamBox.classList.remove('hidden');
+                document.getElementById('sos_opponent_team_names').textContent = challenge.opponent_team_names;
+            }
+            if (btnAcceptText) btnAcceptText.textContent = 'TIẾP CHIÊU (ĐẠI DIỆN ĐỘI ĐỒNG Ý CHIẾN)';
+        } else {
+            if (badgeType) badgeType.innerHTML = '<span>🚨 BÁO ĐỘNG SOS: CÓ LỜI KHIÊU CHIẾN KHẨN CẤP! 🚨</span>';
+            if (modalTitle) modalTitle.textContent = 'BẠN ĐANG BỊ THÁCH ĐẤU!';
+            if (challengerLabel) challengerLabel.textContent = 'Kẻ thách đấu:';
+            document.getElementById('sos_challenger_avatar').src = challenge.challenger_avatar;
+            document.getElementById('sos_challenger_name').textContent = challenge.challenger_name;
+            document.getElementById('sos_challenger_username').textContent = '@' + challenge.challenger_username;
+            if (partnerAvatar) partnerAvatar.classList.add('hidden');
+            if (opponentTeamBox) opponentTeamBox.classList.add('hidden');
+            if (btnAcceptText) btnAcceptText.textContent = 'TIẾP CHIÊU (ĐỒNG Ý CHIẾN)';
+        }
+
         document.getElementById('sos_challenge_prize').innerHTML = '<span>' + challenge.prize + '</span>';
         
         const msgBox = document.getElementById('sos_challenge_message_box');
