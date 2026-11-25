@@ -1,6 +1,6 @@
 @php
     $wifiRestrictionEnabled = config('app.wifi_restriction_enabled', true);
-    $allowedWifiIp = config('app.allowed_wifi_ip', '222.252.18.26');
+    $allowedWifiIpHash = hash('sha256', (string) config('app.allowed_wifi_ip', '222.252.18.26'));
 @endphp
 
 @if($wifiRestrictionEnabled)
@@ -19,8 +19,8 @@
                 </svg>
             </div>
             <div>
-                <h3 class="text-lg font-bold text-gray-900">Đang kiểm tra mạng WiFi...</h3>
-                <p class="text-xs text-gray-500 mt-1">Đang đối soát địa chỉ IP qua https://api.ipify.org</p>
+                <h3 class="text-lg font-bold text-gray-900">Đang kiểm tra mạng...</h3>
+                <p class="text-xs text-gray-500 mt-1">Đang đối soát kết nối mạng nội bộ</p>
             </div>
         </div>
 
@@ -46,22 +46,19 @@
                 </p>
             </div>
 
-            <!-- IP Comparison Box -->
-            <div class="bg-gray-50 border border-gray-200 rounded-xl p-3.5 space-y-2.5 text-xs text-left">
+            <!-- Friendly Status Box without showing any web IP -->
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-3.5 space-y-2 text-xs text-left">
                 <div class="flex items-center justify-between">
-                    <span class="text-gray-500 font-medium">IP WiFi yêu cầu:</span>
-                    <span class="font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                        {{ $allowedWifiIp }}
+                    <span class="text-gray-500 font-medium">Mạng yêu cầu:</span>
+                    <span class="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                        WiFi Văn Phòng
                     </span>
                 </div>
                 <div class="flex items-center justify-between border-t border-gray-200/60 pt-2">
-                    <span class="text-gray-500 font-medium">IP hiện tại của bạn:</span>
-                    <span id="wifiDetectedIp" class="font-mono font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
-                        Đang lấy...
+                    <span class="text-gray-500 font-medium">Trạng thái:</span>
+                    <span class="font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
+                        Chưa kết nối đúng WiFi
                     </span>
-                </div>
-                <div class="text-[11px] text-gray-400 italic text-center pt-1">
-                    (Kiểm tra tự động qua api.ipify.org)
                 </div>
             </div>
 
@@ -84,22 +81,21 @@
 
 <script>
 (function() {
-    const ALLOWED_IP = @json($allowedWifiIp);
+    const ALLOWED_HASH = @json($allowedWifiIpHash);
     const overlay = document.getElementById('wifiRestrictionOverlay');
     const checkingBox = document.getElementById('wifiCheckingBox');
     const blockedBox = document.getElementById('wifiBlockedBox');
-    const detectedIpSpan = document.getElementById('wifiDetectedIp');
     const btnRetry = document.getElementById('btnRetryWifi');
 
     let isChecking = false;
 
-    // Fast check cached IP in sessionStorage
-    const cachedIp = sessionStorage.getItem('bida_verified_wifi_ip');
+    // Fast check cached verification in sessionStorage
+    const isCachedVerified = sessionStorage.getItem('bida_verified_wifi_status') === 'verified';
     const cachedTime = parseInt(sessionStorage.getItem('bida_verified_wifi_time') || '0', 10);
     const now = Date.now();
 
     // If verified within last 60 seconds, don't show overlay immediately
-    if (cachedIp === ALLOWED_IP && (now - cachedTime) < 60000) {
+    if (isCachedVerified && (now - cachedTime) < 60000) {
         // Still verify silently in background
         performWifiCheck(false);
     } else {
@@ -115,21 +111,28 @@
         if (blockedBox) blockedBox.classList.add('hidden');
     }
 
-    function showBlockedOverlay(currentIp) {
+    function showBlockedOverlay() {
         if (!overlay) return;
         overlay.style.display = 'flex';
         if (checkingBox) checkingBox.classList.add('hidden');
         if (blockedBox) blockedBox.classList.remove('hidden');
-        if (detectedIpSpan) {
-            detectedIpSpan.textContent = currentIp || 'Không xác định';
-        }
-        sessionStorage.removeItem('bida_verified_wifi_ip');
+        sessionStorage.removeItem('bida_verified_wifi_status');
         sessionStorage.removeItem('bida_verified_wifi_time');
     }
 
     function hideOverlay() {
         if (!overlay) return;
         overlay.style.display = 'none';
+    }
+
+    async function computeSha256(str) {
+        if (window.crypto && crypto.subtle) {
+            const buffer = new TextEncoder().encode(str);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        return null;
     }
 
     async function performWifiCheck(isManualClick = false) {
@@ -159,19 +162,42 @@
             const data = await response.json();
             const userIp = (data.ip || '').trim();
 
-            if (userIp === ALLOWED_IP) {
+            let isAllowed = false;
+
+            // 1. Check via SHA-256 hash (instant, never exposes IP in plaintext)
+            const clientHash = await computeSha256(userIp);
+            if (clientHash && clientHash === ALLOWED_HASH) {
+                isAllowed = true;
+            } else {
+                // 2. Fallback check via server-side verification endpoint
+                try {
+                    const verifyRes = await fetch('/wifi/verify', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ ip: userIp })
+                    });
+                    if (verifyRes.ok) {
+                        const verifyData = await verifyRes.json();
+                        isAllowed = !!verifyData.allowed;
+                    }
+                } catch (e) {}
+            }
+
+            if (isAllowed) {
                 // SUCCESS: IP matches allowed office wifi
-                sessionStorage.setItem('bida_verified_wifi_ip', userIp);
+                sessionStorage.setItem('bida_verified_wifi_status', 'verified');
                 sessionStorage.setItem('bida_verified_wifi_time', Date.now().toString());
                 hideOverlay();
             } else {
                 // FAILED: Not on office wifi
-                showBlockedOverlay(userIp);
+                showBlockedOverlay();
             }
         } catch (err) {
             console.warn('Wifi check warning via ipify:', err);
-            // If offline or blocked
-            showBlockedOverlay('Không thể kết nối (Lỗi mạng)');
+            showBlockedOverlay();
         } finally {
             isChecking = false;
             if (btnRetry) {

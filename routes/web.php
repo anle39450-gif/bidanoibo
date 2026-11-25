@@ -9,6 +9,7 @@ use App\Http\Controllers\MatchController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\TelegramWebhookController;
 use App\Http\Middleware\EnsureUserIsAdmin;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // Authentication Routes (Guest Only)
@@ -82,3 +83,15 @@ Route::middleware('auth')->group(function () {
 
 // Telegram Bot Webhook endpoint (External bot access)
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle'])->name('telegram.webhook');
+
+// Secure WiFi verification endpoint
+Route::post('/wifi/verify', function (Request $request) {
+    $clientIp = trim((string) $request->input('ip', ''));
+    $allowedIp = trim((string) config('app.allowed_wifi_ip', '222.252.18.26'));
+
+    $isAllowed = ($clientIp !== '' && hash_equals($allowedIp, $clientIp));
+
+    return response()->json([
+        'allowed' => $isAllowed,
+    ]);
+})->name('wifi.verify');
