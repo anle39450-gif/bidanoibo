@@ -402,7 +402,7 @@
             </header>
 
             <!-- Flash alerts -->
-            <div class="px-4 sm:px-6 lg:px-8 pt-4 w-full max-w-7xl">
+            <div class="px-4 sm:px-6 lg:px-8 pt-4 w-full {{ ($fullWidth ?? false) || request()->routeIs('dashboard') ? '' : 'max-w-7xl' }}">
                 @if(session('success'))
                     <div
                         class="bg-green-50 border-l-4 border-green-500 p-3.5 mb-3 rounded-r-lg text-sm text-green-800 flex items-center justify-between shadow-sm">
@@ -419,7 +419,7 @@
             </div>
 
             <!-- Page Main Content Slot -->
-            <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full">
+            <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full {{ ($fullWidth ?? false) || request()->routeIs('dashboard') ? '' : 'max-w-7xl' }}">
                 {{ $slot ?? '' }}
                 @yield('content')
             </main>
@@ -450,6 +450,8 @@
     @auth
         @include('partials.ajax-duel-challenge')
     @endauth
+
+    @include('partials.wifi-restriction')
 
     @livewireScripts
 </body>

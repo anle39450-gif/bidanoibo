@@ -34,13 +34,15 @@
         </div>
 
         @if($match->trashed())
-            <div class="bg-red-50 border-2 border-red-300 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div
+                class="bg-red-50 border-2 border-red-300 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
                 <div class="flex items-start sm:items-center gap-3">
                     <span class="text-3xl">🗑️</span>
                     <div>
                         <h4 class="text-base font-bold text-red-900">Trận đấu này đang nằm trong Thùng rác</h4>
                         <p class="text-xs sm:text-sm text-red-700 mt-0.5">
-                            Đã xóa tạm thời lúc {{ $match->deleted_at->format('H:i d/m/Y') }}. Trận này bị ẩn hoàn toàn khỏi danh sách thi đấu và bảng xếp hạng.
+                            Đã xóa tạm thời lúc {{ $match->deleted_at->format('H:i d/m/Y') }}. Trận này bị ẩn hoàn toàn khỏi
+                            danh sách thi đấu và bảng xếp hạng.
                         </p>
                     </div>
                 </div>
@@ -76,11 +78,12 @@
                 <div class="flex flex-wrap items-center gap-3">
                     <span
                         class="px-3 py-1 rounded-md text-sm font-bold
-                            {{ $match->status === 'confirmed' ? 'bg-green-100 text-green-800' : ($match->status === 'pending' ? 'bg-amber-100 text-amber-800' : ($match->status === 'cancelled' ? 'bg-gray-100 text-gray-700' : 'bg-red-100 text-red-800')) }}">
+                                {{ $match->status === 'confirmed' ? 'bg-green-100 text-green-800' : ($match->status === 'pending' ? 'bg-amber-100 text-amber-800' : ($match->status === 'cancelled' ? 'bg-gray-100 text-gray-700' : 'bg-red-100 text-red-800')) }}">
                         {{ $statusLabel }}
                     </span>
                     @if($match->is_hidden)
-                        <span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-md font-bold flex items-center gap-1">
+                        <span
+                            class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-md font-bold flex items-center gap-1">
                             🙈 Đang ẩn
                         </span>
                     @endif
@@ -100,12 +103,17 @@
                 @if(auth()->user()->isAdmin())
                     <div class="bg-indigo-50/80 border border-indigo-200 rounded-xl p-4 sm:p-5 space-y-3">
                         <div class="flex items-center justify-between flex-wrap gap-2">
-                            <span class="text-xs sm:text-sm font-bold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
-                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            <span
+                                class="text-xs sm:text-sm font-bold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
                                 Toàn Quyền Quản Trị Viên (Admin Omnipotent Controls)
                             </span>
                             <span class="text-xs text-indigo-700 font-medium">
-                                Hiển thị: <b>{{ $match->is_hidden ? 'Đang ẩn' : 'Đang hiện' }}</b> • Thùng rác: <b>{{ $match->trashed() ? 'Đang trong thùng rác' : 'Bình thường' }}</b>
+                                Hiển thị: <b>{{ $match->is_hidden ? 'Đang ẩn' : 'Đang hiện' }}</b> • Thùng rác:
+                                <b>{{ $match->trashed() ? 'Đang trong thùng rác' : 'Bình thường' }}</b>
                             </span>
                         </div>
 
@@ -193,7 +201,8 @@
                                 class="w-12 h-12 rounded-full border-2 border-green-300 object-cover shadow-sm">
                             <div>
                                 <div class="text-lg sm:text-xl font-bold text-gray-900 leading-tight">
-                                    {{ $match->winner->name }}</div>
+                                    {{ $match->winner->name }}
+                                </div>
                                 <div class="text-xs sm:text-sm text-gray-500 mt-0.5">
                                     @<span>{{ $match->winner->username }}</span></div>
                             </div>
@@ -204,7 +213,8 @@
                                     class="w-12 h-12 rounded-full border-2 border-green-300 object-cover shadow-sm">
                                 <div>
                                     <div class="text-lg sm:text-xl font-bold text-gray-900 leading-tight">
-                                        {{ $match->winnerPartner->name }}</div>
+                                        {{ $match->winnerPartner->name }}
+                                    </div>
                                     <div class="text-xs sm:text-sm text-gray-500 mt-0.5">
                                         @<span>{{ $match->winnerPartner->username }}</span></div>
                                 </div>
@@ -224,7 +234,8 @@
                                 class="w-12 h-12 rounded-full border-2 border-red-300 object-cover shadow-sm">
                             <div>
                                 <div class="text-lg sm:text-xl font-bold text-gray-900 leading-tight">
-                                    {{ $match->loser->name }}</div>
+                                    {{ $match->loser->name }}
+                                </div>
                                 <div class="text-xs sm:text-sm text-gray-500 mt-0.5">
                                     @<span>{{ $match->loser->username }}</span></div>
                             </div>
@@ -235,7 +246,8 @@
                                     class="w-12 h-12 rounded-full border-2 border-red-300 object-cover shadow-sm">
                                 <div>
                                     <div class="text-lg sm:text-xl font-bold text-gray-900 leading-tight">
-                                        {{ $match->loserPartner->name }}</div>
+                                        {{ $match->loserPartner->name }}
+                                    </div>
                                     <div class="text-xs sm:text-sm text-gray-500 mt-0.5">
                                         @<span>{{ $match->loserPartner->username }}</span></div>
                                 </div>
@@ -249,10 +261,12 @@
             @if($match->isDoubles())
                 <!-- 2vs2 Doubles Cross Settlement (Tách Chéo Độc Lập) -->
                 <div class="border border-purple-200 bg-purple-50/40 rounded-xl p-5 shadow-sm space-y-4">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-200/60 pb-3">
+                    <div
+                        class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-200/60 pb-3">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="bg-purple-100 text-purple-800 text-xs font-black px-2.5 py-0.5 rounded-full border border-purple-300 uppercase tracking-wider inline-flex items-center gap-1">
+                                <span
+                                    class="bg-purple-100 text-purple-800 text-xs font-black px-2.5 py-0.5 rounded-full border border-purple-300 uppercase tracking-wider inline-flex items-center gap-1">
                                     <span>👥</span> Kèo đôi tách chéo độc lập
                                 </span>
                                 @if($match->isPrizeConfirmed())
@@ -273,10 +287,12 @@
                     <!-- 2 Side-by-side Cross Pairs -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Pair 1: Loser -> Winner -->
-                        <div class="bg-white border rounded-xl p-4 shadow-2xs flex flex-col justify-between space-y-3 {{ $match->prize_status === 'confirmed' ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-gray-200' }}">
+                        <div
+                            class="bg-white border rounded-xl p-4 shadow-2xs flex flex-col justify-between space-y-3 {{ $match->prize_status === 'confirmed' ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-gray-200' }}">
                             <div class="space-y-2">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-xs font-extrabold uppercase tracking-wider text-purple-900 bg-purple-100 px-2 py-0.5 rounded">
+                                    <span
+                                        class="text-xs font-extrabold uppercase tracking-wider text-purple-900 bg-purple-100 px-2 py-0.5 rounded">
                                         Cặp 1: {{ $match->loser?->name }} ➡️ {{ $match->winner?->name }}
                                     </span>
                                     @if($match->prize_status === 'confirmed')
@@ -291,7 +307,8 @@
                                 </div>
 
                                 <div class="text-sm text-gray-800">
-                                    <span class="text-red-700 font-bold">{{ $match->loser?->name }}</span> trả kèo cho <span class="text-emerald-700 font-bold">{{ $match->winner?->name }}</span>
+                                    <span class="text-red-700 font-bold">{{ $match->loser?->name }}</span> trả kèo cho <span
+                                        class="text-emerald-700 font-bold">{{ $match->winner?->name }}</span>
                                 </div>
 
                                 @if($match->prize_paid_at)
@@ -305,14 +322,16 @@
 
                                 @if($match->prize_status === 'confirmed')
                                     <div class="text-xs text-emerald-700 font-medium">
-                                        ✓ {{ $match->winner?->name }} đã xác nhận OK lúc {{ $match->prize_confirmed_at?->format('H:i d/m/Y') }}
+                                        ✓ {{ $match->winner?->name }} đã xác nhận OK lúc
+                                        {{ $match->prize_confirmed_at?->format('H:i d/m/Y') }}
                                         @if($match->prize_feedback)
                                             <div class="italic">"{{ $match->prize_feedback }}"</div>
                                         @endif
                                     </div>
                                 @elseif($match->prize_status === 'rejected')
                                     <div class="text-xs text-rose-700 font-medium">
-                                        ✕ {{ $match->winner?->name }} không đồng ý lúc {{ $match->prize_confirmed_at?->format('H:i d/m/Y') }}
+                                        ✕ {{ $match->winner?->name }} không đồng ý lúc
+                                        {{ $match->prize_confirmed_at?->format('H:i d/m/Y') }}
                                         @if($match->prize_feedback)
                                             <div class="italic">"{{ $match->prize_feedback }}"</div>
                                         @endif
@@ -327,7 +346,8 @@
                                             onsubmit="return confirm('Xác nhận bạn ĐÃ OK / đã nhận đủ kèo từ {{ $match->loser?->name }}?')">
                                             @csrf
                                             <input type="hidden" name="pair_slot" value="primary">
-                                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
+                                            <button type="submit"
+                                                class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
                                                 Đã OK
                                             </button>
                                         </form>
@@ -339,7 +359,8 @@
                                     @endif
 
                                     @if($match->canUserPayPrize(auth()->user(), 'primary'))
-                                        <button type="button" onclick="openPayPrizeModalExplicit('primary', 'Trả kèo Cặp 1 (cho {{ $match->winner?->name }})', '{{ addslashes($match->prize_notes ?? '') }}')"
+                                        <button type="button"
+                                            onclick="openPayPrizeModalExplicit('primary', 'Trả kèo Cặp 1 (cho {{ $match->winner?->name }})', '{{ addslashes($match->prize_notes ?? '') }}')"
                                             class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
                                             {{ $match->prize_status === 'rejected' ? 'Trả kèo lại cho ' . $match->winner?->name : ($match->prize_status === 'paid' ? 'Cập nhật trả kèo' : 'Trả kèo cho ' . $match->winner?->name) }}
                                         </button>
@@ -349,10 +370,12 @@
                         </div>
 
                         <!-- Pair 2: Loser Partner -> Winner Partner -->
-                        <div class="bg-white border rounded-xl p-4 shadow-2xs flex flex-col justify-between space-y-3 {{ $match->prize_partner_status === 'confirmed' ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-gray-200' }}">
+                        <div
+                            class="bg-white border rounded-xl p-4 shadow-2xs flex flex-col justify-between space-y-3 {{ $match->prize_partner_status === 'confirmed' ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-gray-200' }}">
                             <div class="space-y-2">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-xs font-extrabold uppercase tracking-wider text-purple-900 bg-purple-100 px-2 py-0.5 rounded">
+                                    <span
+                                        class="text-xs font-extrabold uppercase tracking-wider text-purple-900 bg-purple-100 px-2 py-0.5 rounded">
                                         Cặp 2: {{ $match->loserPartner?->name }} ➡️ {{ $match->winnerPartner?->name }}
                                     </span>
                                     @if($match->prize_partner_status === 'confirmed')
@@ -367,7 +390,8 @@
                                 </div>
 
                                 <div class="text-sm text-gray-800">
-                                    <span class="text-red-700 font-bold">{{ $match->loserPartner?->name }}</span> trả kèo cho <span class="text-emerald-700 font-bold">{{ $match->winnerPartner?->name }}</span>
+                                    <span class="text-red-700 font-bold">{{ $match->loserPartner?->name }}</span> trả kèo cho
+                                    <span class="text-emerald-700 font-bold">{{ $match->winnerPartner?->name }}</span>
                                 </div>
 
                                 @if($match->prize_partner_paid_at)
@@ -381,14 +405,16 @@
 
                                 @if($match->prize_partner_status === 'confirmed')
                                     <div class="text-xs text-emerald-700 font-medium">
-                                        ✓ {{ $match->winnerPartner?->name }} đã xác nhận OK lúc {{ $match->prize_partner_confirmed_at?->format('H:i d/m/Y') }}
+                                        ✓ {{ $match->winnerPartner?->name }} đã xác nhận OK lúc
+                                        {{ $match->prize_partner_confirmed_at?->format('H:i d/m/Y') }}
                                         @if($match->prize_partner_feedback)
                                             <div class="italic">"{{ $match->prize_partner_feedback }}"</div>
                                         @endif
                                     </div>
                                 @elseif($match->prize_partner_status === 'rejected')
                                     <div class="text-xs text-rose-700 font-medium">
-                                        ✕ {{ $match->winnerPartner?->name }} không đồng ý lúc {{ $match->prize_partner_confirmed_at?->format('H:i d/m/Y') }}
+                                        ✕ {{ $match->winnerPartner?->name }} không đồng ý lúc
+                                        {{ $match->prize_partner_confirmed_at?->format('H:i d/m/Y') }}
                                         @if($match->prize_partner_feedback)
                                             <div class="italic">"{{ $match->prize_partner_feedback }}"</div>
                                         @endif
@@ -403,7 +429,8 @@
                                             onsubmit="return confirm('Xác nhận bạn ĐÃ OK / đã nhận đủ kèo từ {{ $match->loserPartner?->name }}?')">
                                             @csrf
                                             <input type="hidden" name="pair_slot" value="partner">
-                                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
+                                            <button type="submit"
+                                                class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
                                                 Đã OK
                                             </button>
                                         </form>
@@ -415,7 +442,8 @@
                                     @endif
 
                                     @if($match->canUserPayPrize(auth()->user(), 'partner'))
-                                        <button type="button" onclick="openPayPrizeModalExplicit('partner', 'Trả kèo Cặp 2 (cho {{ $match->winnerPartner?->name }})', '{{ addslashes($match->prize_partner_notes ?? '') }}')"
+                                        <button type="button"
+                                            onclick="openPayPrizeModalExplicit('partner', 'Trả kèo Cặp 2 (cho {{ $match->winnerPartner?->name }})', '{{ addslashes($match->prize_partner_notes ?? '') }}')"
                                             class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
                                             {{ $match->prize_partner_status === 'rejected' ? 'Trả kèo lại cho ' . $match->winnerPartner?->name : ($match->prize_partner_status === 'paid' ? 'Cập nhật trả kèo' : 'Trả kèo cho ' . $match->winnerPartner?->name) }}
                                         </button>
@@ -508,7 +536,8 @@
                                 @endif
 
                                 @if($match->canUserPayPrize(auth()->user(), 'primary'))
-                                    <button type="button" onclick="openPayPrizeModalExplicit('primary', 'Xác nhận trả kèo', '{{ addslashes($match->prize_notes ?? '') }}')"
+                                    <button type="button"
+                                        onclick="openPayPrizeModalExplicit('primary', 'Xác nhận trả kèo', '{{ addslashes($match->prize_notes ?? '') }}')"
                                         class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-sm transition cursor-pointer flex items-center gap-1.5">
                                         <span>{{ $match->prize_status === 'rejected' ? 'Trả kèo lại' : ($match->prize_status === 'paid' ? 'Cập nhật trả kèo' : ($match->isUserDebtor(auth()->user()) ? 'Trả kèo trận này' : 'Xác nhận đã trả kèo')) }}</span>
                                     </button>
@@ -741,7 +770,8 @@
 
                 <div class="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-900">
                     <div><b>Kèo:</b> {{ $match->prize }}</div>
-                    <div class="mt-1"><b>Người trả:</b> <span id="rejectModalDebtorName">{{ $match->prizePaidBy?->name ?? 'Người thua' }}</span></div>
+                    <div class="mt-1"><b>Người trả:</b> <span
+                            id="rejectModalDebtorName">{{ $match->prizePaidBy?->name ?? 'Người thua' }}</span></div>
                     @if($match->prize_notes)
                         <div class="mt-1 text-xs"><b>Ghi chú đối thủ:</b> "{{ $match->prize_notes }}"</div>
                     @endif
@@ -786,7 +816,8 @@
                         </div>
 
                         <p class="text-sm text-gray-600">
-                            Khi hủy trận đấu, kết quả trận này sẽ không được tính vào bảng xếp hạng, chuỗi thắng/thua cũng như nợ kèo của các cơ thủ.
+                            Khi hủy trận đấu, kết quả trận này sẽ không được tính vào bảng xếp hạng, chuỗi thắng/thua cũng như nợ
+                            kèo của các cơ thủ.
                         </p>
 
                         <form method="POST" action="{{ route('admin.matches.cancel', $match->id) }}" class="space-y-4 text-sm">

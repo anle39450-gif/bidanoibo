@@ -123,4 +123,17 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | WiFi Restriction Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Only devices connected to the specified office WiFi public IP
+    | (checked via https://api.ipify.org) are permitted to access the application.
+    |
+    */
+
+    'allowed_wifi_ip' => env('ALLOWED_WIFI_IP', '222.252.18.26'),
+    'wifi_restriction_enabled' => env('WIFI_RESTRICTION_ENABLED', true),
+
 ];

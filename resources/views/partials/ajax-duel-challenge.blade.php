@@ -309,6 +309,13 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-2.5 text-xs text-purple-900 mt-2">
+                    <b>🎯 Chỉ định trả kèo (Viết trước trả trước, viết sau trả sau):</b><br>
+                    • Cặp 1: <b>Bạn</b> ⚡ <b>Đối thủ 1</b><br>
+                    • Cặp 2: <b>Đồng đội của bạn</b> ⚡ <b>Đối thủ 2</b><br>
+                    <span class="text-purple-700 italic">Đội thua sẽ tự động tách chéo: người ở Cặp nào trả riêng kèo cho người thắng ở Cặp đó.</span>
+                </div>
             </div>
 
             <!-- Món kèo cược -->

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\BilliardChallenge;
 use App\Models\BilliardMatch;
 use App\Models\User;
 use App\Services\BilliardMatchService;
@@ -210,4 +211,117 @@ test('authenticated user can change password on telegram using /password command
 
     $user->refresh();
     expect(Hash::check('newpass789', $user->password))->toBeTrue();
+});
+
+test('telegram bot designates doubles prize payers by typing order (viet truoc viet sau)', function () {
+    $an = User::factory()->create(['username' => 'an', 'name' => 'An', 'telegram_id' => '1001']);
+    $thanh = User::factory()->create(['username' => 'thanh', 'name' => 'Thanh', 'telegram_id' => '1002']);
+    $tho = User::factory()->create(['username' => 'tho', 'name' => 'Thọ', 'telegram_id' => '1003']);
+    $dat = User::factory()->create(['username' => 'dat', 'name' => 'Đạt', 'telegram_id' => '1004']);
+
+    Http::fake([
+        'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $botService = app(TelegramBotService::class);
+    $matchService = app(BilliardMatchService::class);
+    $statsService = app(BilliardStatsService::class);
+
+    // Case 1: Typing order An Thanh vs Thọ Đạt with custom prize
+    // Đội 1: An (viết trước), Thanh (viết sau)
+    // Đội 2: Thọ (viết trước), Đạt (viết sau)
+    $botService->handleWebhook([
+        'message' => [
+            'chat' => ['id' => 1001],
+            'from' => ['id' => 1001],
+            'text' => '/an thanh vs tho dat 2 ly cà phê muối',
+        ],
+    ], $matchService, $statsService);
+
+    // Đội 1 thắng
+    $botService->handleWebhook([
+        'callback_query' => [
+            'id' => 'cb_order_1',
+            'from' => ['id' => 1001],
+            'message' => ['chat' => ['id' => 1001]],
+            'data' => "quick_doubles_{$an->id}_{$thanh->id}_{$tho->id}_{$dat->id}_1",
+        ],
+    ], $matchService, $statsService);
+
+    $match1 = BilliardMatch::where('match_type', 'doubles')->latest('id')->first();
+    expect($match1)->not->toBeNull()
+        ->and($match1->prize)->toBe('2 ly cà phê muối')
+        ->and($match1->winner_id)->toBe($an->id) // Viết trước Đội 1
+        ->and($match1->winner_partner_id)->toBe($thanh->id) // Viết sau Đội 1
+        ->and($match1->loser_id)->toBe($tho->id) // Viết trước Đội 2
+        ->and($match1->loser_partner_id)->toBe($dat->id) // Viết sau Đội 2
+        ->and($match1->prize_status)->toBe('unpaid')
+        ->and($match1->prize_partner_status)->toBe('unpaid');
+
+    // Cross-split checks:
+    // Cặp 1: Thọ (viết trước thua) trả cho An (viết trước thắng)
+    expect($match1->getCounterpartForUser($tho)->id)->toBe($an->id);
+    // Cặp 2: Đạt (viết sau thua) trả cho Thanh (viết sau thắng)
+    expect($match1->getCounterpartForUser($dat)->id)->toBe($thanh->id);
+
+    // Case 2: User changes typing order in Telegram: Đạt Thọ (Đạt trước, Thọ sau)
+    // To designate that Đạt pays An, and Thọ pays Thanh!
+    $botService->handleWebhook([
+        'message' => [
+            'chat' => ['id' => 1001],
+            'from' => ['id' => 1001],
+            'text' => '/an thanh vs dat tho 1 nồi lẩu',
+        ],
+    ], $matchService, $statsService);
+
+    $botService->handleWebhook([
+        'callback_query' => [
+            'id' => 'cb_order_2',
+            'from' => ['id' => 1001],
+            'message' => ['chat' => ['id' => 1001]],
+            'data' => "quick_doubles_{$an->id}_{$thanh->id}_{$dat->id}_{$tho->id}_1",
+        ],
+    ], $matchService, $statsService);
+
+    $match2 = BilliardMatch::where('match_type', 'doubles')->latest('id')->first();
+    expect($match2)->not->toBeNull()
+        ->and($match2->prize)->toBe('1 nồi lẩu')
+        ->and($match2->loser_id)->toBe($dat->id) // Đạt viết trước
+        ->and($match2->loser_partner_id)->toBe($tho->id); // Thọ viết sau
+
+    // Now Đạt pays An, Thọ pays Thanh!
+    expect($match2->getCounterpartForUser($dat)->id)->toBe($an->id);
+    expect($match2->getCounterpartForUser($tho)->id)->toBe($thanh->id);
+});
+
+test('telegram bot allows issuing doubles duel challenge via /duel command', function () {
+    $an = User::factory()->create(['username' => 'an', 'name' => 'An', 'telegram_id' => '2001']);
+    $thanh = User::factory()->create(['username' => 'thanh', 'name' => 'Thanh', 'telegram_id' => '2002']);
+    $tho = User::factory()->create(['username' => 'tho', 'name' => 'Thọ', 'telegram_id' => '2003']);
+    $dat = User::factory()->create(['username' => 'dat', 'name' => 'Đạt', 'telegram_id' => '2004']);
+
+    Http::fake([
+        'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $botService = app(TelegramBotService::class);
+    $matchService = app(BilliardMatchService::class);
+    $statsService = app(BilliardStatsService::class);
+
+    // An issues doubles challenge: partner Thanh vs Tho Dat
+    $botService->handleWebhook([
+        'message' => [
+            'chat' => ['id' => 2001],
+            'from' => ['id' => 2001],
+            'text' => '/duel thanh vs tho dat 1 ly trà đào',
+        ],
+    ], $matchService, $statsService);
+
+    $challenge = BilliardChallenge::where('challenge_type', 'doubles')->latest('id')->first();
+    expect($challenge)->not->toBeNull()
+        ->and($challenge->challenger_id)->toBe($an->id)
+        ->and($challenge->challenger_partner_id)->toBe($thanh->id)
+        ->and($challenge->opponent_id)->toBe($tho->id)
+        ->and($challenge->opponent_partner_id)->toBe($dat->id)
+        ->and($challenge->prize)->toBe('1 ly trà đào');
 });

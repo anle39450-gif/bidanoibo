@@ -40,5 +40,7 @@
         @yield('content')
     </div>
 
+    @include('partials.wifi-restriction')
+
 </body>
 </html>

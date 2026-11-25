@@ -331,6 +331,7 @@ class ChallengeController extends Controller
                 'played_at' => $now,
                 'prize' => $challenge->prize,
                 'prize_status' => 'unpaid',
+                'prize_partner_status' => 'unpaid',
                 'notes' => 'Trận khiêu chiến đôi 2vs2: '.($challenge->message ?: 'Đã phân định thắng bại'),
                 'status' => 'confirmed',
                 'confirmed_at' => $now,

@@ -71,14 +71,17 @@ class TelegramBotService
         if ($isDoubles) {
             $text = "🚨 <b>BÁO ĐỘNG SOS: LỜI KHIÊU CHIẾN ĐÔI 2VS2 KHẨN CẤP!</b>\n\n";
             $text .= "👥 <b>Đội thách đấu:</b> <b>{$challenge->challenger_team_names}</b>\n";
-            $text .= "🎯 <b>Đội mục tiêu:</b> <b>{$challenge->opponent_team_names}</b>\n";
+            $text .= "🎯 <b>Đội mục tiêu:</b> <b>{$challenge->opponent_team_names}</b>\n\n";
+            $text .= "🎯 <b>Chỉ định trả kèo (Viết trước trả trước, viết sau trả sau):</b>\n";
+            $text .= "• <b>Cặp 1:</b> {$challenge->challenger?->name} ⚡ {$challenge->opponent?->name}\n";
+            $text .= "• <b>Cặp 2:</b> {$challenge->challengerPartner?->name} ⚡ {$challenge->opponentPartner?->name}\n";
         } else {
             $text = "🚨 <b>BÁO ĐỘNG SOS: LỜI KHIÊU CHIẾN KHẨN CẤP!</b>\n\n";
             $text .= "👤 <b>Người thách đấu:</b> <b>{$challenger->name}</b> (@{$challenger->username})\n";
             $text .= "🎯 <b>Mục tiêu thách đấu:</b> <b>{$opponent->name}</b> (@{$opponent->username})\n";
         }
 
-        $text .= "🎁 <b>Kèo thách thức:</b> <b>{$challenge->prize}</b>\n";
+        $text .= "\n🎁 <b>Kèo thách thức:</b> <b>{$challenge->prize}</b>\n";
         if ($challenge->message) {
             $text .= "📝 <b>Lời khiêu chiến:</b> <i>\"{$challenge->message}\"</i>\n";
         }
@@ -132,8 +135,10 @@ class TelegramBotService
             $loserNames = $match->loser_names;
             $text = "🏆 <b>KẾT QUẢ KHIÊU CHIẾN ĐÔI 2VS2: ĐỘI {$winnerNames} THẮNG!</b>\n\n";
             $text .= "⚔️ <b>Trận đấu:</b> <b>{$winnerNames}</b> vs <b>{$loserNames}</b>\n";
-            $text .= "🎁 <b>Kèo thách thức:</b> <b>{$challenge->prize}</b>\n";
-            $text .= "💀 <b>Nợ kèo:</b> Đội <b>{$loserNames}</b> nợ <b>{$winnerNames}</b> 1 {$challenge->prize}\n\n";
+            $text .= "🎁 <b>Kèo thách thức:</b> <b>{$challenge->prize}</b>\n\n";
+            $text .= "🎯 <b>Phân chia trả kèo chéo (Viết trước trả trước, viết sau trả sau):</b>\n";
+            $text .= "• <b>Cặp 1:</b> <b>{$match->loser?->name}</b> ➡️ nợ riêng <b>{$match->winner?->name}</b> ({$challenge->prize})\n";
+            $text .= "• <b>Cặp 2:</b> <b>{$match->loserPartner?->name}</b> ➡️ nợ riêng <b>{$match->winnerPartner?->name}</b> ({$challenge->prize})\n\n";
             $text .= "🎉 Chúc mừng đội <b>{$winnerNames}</b> đã xuất sắc giành chiến thắng!";
         } else {
             $text = "🏆 <b>KẾT QUẢ KHIÊU CHIẾN: {$winner->name} CHIẾN THẮNG!</b>\n\n";
@@ -157,14 +162,14 @@ class TelegramBotService
             $this->sendMessage($config->group_chat_id, $text, $replyMarkup);
         }
 
-        // Gửi tin nhắn riêng cho người thắng
-        if ($winner->telegram_id) {
-            $this->sendMessage($winner->telegram_id, $text, $replyMarkup);
-        }
-
-        // Gửi tin nhắn riêng cho người thua
-        if ($loser->telegram_id && $loser->telegram_id !== $winner->telegram_id) {
-            $this->sendMessage($loser->telegram_id, $text, $replyMarkup);
+        // Gửi tin nhắn riêng cho các cơ thủ tham gia
+        $notifiedIds = [];
+        $recipients = array_filter([$winner, $loser, $match->winnerPartner, $match->loserPartner]);
+        foreach ($recipients as $recipient) {
+            if ($recipient && $recipient->telegram_id && ! in_array($recipient->telegram_id, $notifiedIds)) {
+                $this->sendMessage($recipient->telegram_id, $text, $replyMarkup);
+                $notifiedIds[] = $recipient->telegram_id;
+            }
         }
 
         return true;
@@ -186,17 +191,20 @@ class TelegramBotService
         $text .= "👤 <b>Người ghi nhận:</b> {$creator->name}\n";
 
         if ($match->isDoubles()) {
-            $text .= "⚔️ <b>Thể thức:</b> Đánh đôi 2vs2\n";
+            $text .= "⚔️ <b>Thể thức:</b> Đánh đôi 2vs2 (Tách chéo độc lập)\n";
             $text .= "👥 <b>Đội 1:</b> {$match->player1?->name} & {$match->player1Partner?->name}\n";
             $text .= "👥 <b>Đội 2:</b> {$match->player2?->name} & {$match->player2Partner?->name}\n";
-            $text .= "🏆 <b>Khai báo Thắng:</b> {$match->winner?->name} & {$match->winnerPartner?->name}\n";
+            $text .= "🏆 <b>Khai báo Thắng:</b> {$match->winner?->name} & {$match->winnerPartner?->name}\n\n";
+            $text .= "🎯 <b>Chỉ định trả kèo (Viết trước trả trước, viết sau trả sau):</b>\n";
+            $text .= "• <b>Cặp 1:</b> <b>{$match->loser?->name}</b> ➡️ trả riêng cho <b>{$match->winner?->name}</b>\n";
+            $text .= "• <b>Cặp 2:</b> <b>{$match->loserPartner?->name}</b> ➡️ trả riêng cho <b>{$match->winnerPartner?->name}</b>\n";
         } else {
             $text .= "⚔️ <b>Trận đấu:</b> {$match->player1?->name} vs {$match->player2?->name}\n";
             $text .= "🏆 <b>Khai báo Thắng:</b> {$winner?->name}\n";
             $text .= "💀 <b>Khai báo Thua:</b> {$loser?->name}\n";
         }
 
-        $text .= "🎁 <b>Kèo/Phần thưởng:</b> <b>{$match->prize}</b>\n";
+        $text .= "\n🎁 <b>Kèo/Phần thưởng:</b> <b>{$match->prize}</b>\n";
 
         if ($match->notes) {
             $text .= "📝 <b>Ghi chú:</b> {$match->notes}\n";
@@ -240,30 +248,51 @@ class TelegramBotService
     {
         $siteUrl = url("/matches/{$match->id}");
         $recipients = [];
+        $counterpart = $match->getCounterpartForUser($actor);
 
         if ($actionType === 'settled') {
-            $recipients = array_filter([$match->winner, $match->winnerPartner]);
+            $recipients = $match->isDoubles() && $counterpart
+                ? [$counterpart]
+                : array_filter([$match->winner, $match->winnerPartner]);
+
             $text = "🎁 <b>THÔNG BÁO TRẢ KÈO (#{$match->id})</b>\n\n";
-            $text .= "👤 <b>Người trả:</b> {$actor->name}\n";
-            $text .= "🎁 <b>Kèo:</b> <b>{$match->prize}</b>\n";
+            $text .= "👤 <b>Người trả:</b> {$actor->name}";
+            if ($match->isDoubles() && $counterpart) {
+                $text .= " ➡️ trả riêng cho <b>{$counterpart->name}</b>";
+            }
+            $text .= "\n🎁 <b>Kèo:</b> <b>{$match->prize}</b>\n";
             if (! empty($extraNote)) {
                 $text .= "📝 <b>Ghi chú:</b> {$extraNote}\n";
             }
             $text .= "\n👉 Vui lòng kiểm tra và phản hồi (Đã OK hoặc Không đồng ý):\n";
             $text .= "<a href=\"{$siteUrl}\">👉 Xem và phản hồi trên website</a>";
         } elseif ($actionType === 'confirmed') {
-            $recipients = array_filter([$match->loser, $match->loserPartner]);
+            $recipients = $match->isDoubles() && $counterpart
+                ? [$counterpart]
+                : array_filter([$match->loser, $match->loserPartner]);
+
             $text = "✅ <b>KÈO ĐÃ ĐƯỢC XÁC NHẬN ĐÃ OK (#{$match->id})</b>\n\n";
-            $text .= "👤 <b>Người nhận:</b> {$actor->name} đã xác nhận <b>ĐÃ OK</b> nhận kèo <b>{$match->prize}</b>!\n";
+            $text .= "👤 <b>Người nhận:</b> {$actor->name} đã xác nhận <b>ĐÃ OK</b> nhận kèo <b>{$match->prize}</b>";
+            if ($match->isDoubles() && $counterpart) {
+                $text .= " từ <b>{$counterpart->name}</b>";
+            }
+            $text .= "!\n";
             if (! empty($extraNote)) {
                 $text .= "📝 <b>Ghi chú:</b> {$extraNote}\n";
             }
-            $text .= "\n🎉 Trận đấu #{$match->id} đã hoàn tất thanh toán sòng phẳng!\n";
+            $text .= "\n🎉 Hoàn tất thanh toán sòng phẳng!\n";
             $text .= "<a href=\"{$siteUrl}\">👉 Xem chi tiết trận đấu</a>";
         } elseif ($actionType === 'rejected') {
-            $recipients = array_filter([$match->loser, $match->loserPartner]);
+            $recipients = $match->isDoubles() && $counterpart
+                ? [$counterpart]
+                : array_filter([$match->loser, $match->loserPartner]);
+
             $text = "⚠️ <b>PHẢN HỒI KHÔNG ĐỒNG Ý TRẢ KÈO (#{$match->id})</b>\n\n";
-            $text .= "👤 <b>Người nhận:</b> {$actor->name} đã phản hồi <b>KHÔNG ĐỒNG Ý</b> với việc trả kèo <b>{$match->prize}</b>.\n";
+            $text .= "👤 <b>Người nhận:</b> {$actor->name} đã phản hồi <b>KHÔNG ĐỒNG Ý</b> với việc trả kèo <b>{$match->prize}</b>";
+            if ($match->isDoubles() && $counterpart) {
+                $text .= " của <b>{$counterpart->name}</b>";
+            }
+            $text .= ".\n";
             if (! empty($extraNote)) {
                 $text .= "📝 <b>Lý do:</b> {$extraNote}\n";
             }
@@ -875,7 +904,10 @@ class TelegramBotService
                 $winner = User::find($winnerId);
 
                 if ($p1 && $p2 && $winner) {
-                    $defaultPrize = 'Kèo cà phê muối';
+                    $cacheKey = "tg_match_prize_{$p1Id}_{$p2Id}";
+                    $defaultPrize = Cache::get($cacheKey, 'Kèo cà phê muối');
+                    Cache::forget($cacheKey);
+
                     $match = $matchService->createMatch([
                         'player1_id' => $p1Id,
                         'player2_id' => $p2Id,
@@ -917,7 +949,15 @@ class TelegramBotService
                     $loserId = ($winningTeam === 1) ? $p2Id : $p1Id;
                     $loserPartnerId = ($winningTeam === 1) ? $p2PartnerId : $p1PartnerId;
 
-                    $defaultPrize = 'Kèo 4 ly cà phê muối';
+                    $winner = ($winningTeam === 1) ? $p1 : $p2;
+                    $winnerPartner = ($winningTeam === 1) ? $p1Partner : $p2Partner;
+                    $loser = ($winningTeam === 1) ? $p2 : $p1;
+                    $loserPartner = ($winningTeam === 1) ? $p2Partner : $p1Partner;
+
+                    $cacheKey = "tg_doubles_prize_{$p1Id}_{$p1PartnerId}_{$p2Id}_{$p2PartnerId}";
+                    $defaultPrize = Cache::get($cacheKey, 'Kèo 4 ly cà phê muối');
+                    Cache::forget($cacheKey);
+
                     $match = $matchService->createMatch([
                         'match_type' => 'doubles',
                         'player1_id' => $p1Id,
@@ -936,7 +976,18 @@ class TelegramBotService
 
                     $winnerNames = ($winningTeam === 1) ? "{$p1->name} & {$p1Partner->name}" : "{$p2->name} & {$p2Partner->name}";
                     $this->answerCallbackQuery($callbackId, '✅ Trận đánh đôi đã được tạo!');
-                    $this->sendMessage($chatId, "🎉 <b>GHI NHẬN TRẬN ĐÁNH ĐÔI THÀNH CÔNG!</b>\n👥 <b>Đội 1:</b> {$p1->name} & {$p1Partner->name}\n👥 <b>Đội 2:</b> {$p2->name} & {$p2Partner->name}\n🏆 <b>Khai báo thắng:</b> <b>{$winnerNames}</b>\n🎁 <b>Kèo:</b> {$defaultPrize}\n\n⏱️ Đã gửi thông báo cho đội đối thủ xác nhận trong vòng 24 giờ.");
+                    $this->sendMessage(
+                        $chatId,
+                        "🎉 <b>GHI NHẬN TRẬN ĐÁNH ĐÔI THÀNH CÔNG!</b>\n\n"
+                        ."👥 <b>Đội 1:</b> {$p1->name} & {$p1Partner->name}\n"
+                        ."👥 <b>Đội 2:</b> {$p2->name} & {$p2Partner->name}\n"
+                        ."🏆 <b>Khai báo thắng:</b> <b>{$winnerNames}</b>\n"
+                        ."🎁 <b>Kèo:</b> {$defaultPrize}\n\n"
+                        ."🎯 <b>Chỉ định trả kèo chéo (Viết trước trả trước, viết sau trả sau):</b>\n"
+                        ."• <b>Cặp 1:</b> <b>{$loser->name}</b> ➡️ trả riêng cho <b>{$winner->name}</b>\n"
+                        ."• <b>Cặp 2:</b> <b>{$loserPartner->name}</b> ➡️ trả riêng cho <b>{$winnerPartner->name}</b>\n\n"
+                        .'⏱️ Đã gửi thông báo cho đội đối thủ xác nhận trong vòng 24 giờ.'
+                    );
 
                     return;
                 }
@@ -1190,8 +1241,15 @@ class TelegramBotService
         if ($rawCommand === '/help') {
             $helpText = "🎱 <b>HƯỚNG DẪN SỬ DỤNG BOT BIDA NỘI BỘ</b>\n\n";
             $helpText .= "🔑 <b>Đăng nhập / Đổi mật khẩu:</b>\n• <code>/login username password</code>\n• <code>/password [mật_khẩu_mới]</code>\n• <code>/logout</code>\n\n";
-            $helpText .= "1️⃣ <b>Tạo trận ĐƠN (1vs1):</b>\n<code>/an binh</code>\nBot sẽ hiển thị nút chọn ai thắng để bạn bấm chọn!\n\n";
-            $helpText .= "2️⃣ <b>Tạo trận ĐỔI (2vs2):</b>\n<code>/an binh vs cuong dung</code>\nBot hiển thị nút chọn Đội 1 Thắng hoặc Đội 2 Thắng!\n\n";
+            $helpText .= "1️⃣ <b>Tạo trận ĐƠN (1vs1):</b>\n<code>/an binh [kèo]</code>\nBot sẽ hiển thị nút chọn ai thắng để bạn bấm chọn!\n\n";
+            $helpText .= "2️⃣ <b>Tạo kèo ĐÔI (2vs2) & Chỉ định người trả:</b>\n<code>/an thanh vs tho dat [kèo]</code>\n";
+            $helpText .= "💡 <b>Quy tắc viết trước - viết sau:</b>\n";
+            $helpText .= "• Người viết trước ở Đội 1 (An) đối đầu người viết trước ở Đội 2 (Thọ)\n";
+            $helpText .= "• Người viết sau ở Đội 1 (Thanh) đối đầu người viết sau ở Đội 2 (Đạt)\n";
+            $helpText .= "➡️ <i>Đội nào thua thì người viết trước trả cho người viết trước, người viết sau trả cho người viết sau! (Muốn đổi người trả chỉ cần đổi thứ tự khi gõ: VD <code>/an thanh vs dat tho</code>).</i>\n\n";
+            $helpText .= "⚔️ <b>Khiêu chiến / Thách đấu:</b>\n";
+            $helpText .= "• Solo 1vs1: <code>/duel [username] [kèo]</code>\n";
+            $helpText .= "• Đôi 2vs2: <code>/duel [đồng_đội] vs [đối_thủ_1] [đối_thủ_2] [kèo]</code>\n\n";
             $helpText .= "3️⃣ <b>Xác nhận kết quả:</b>\nĐối thủ nhận thông báo kèm nút [✅ Chấp nhận] và [❌ Khiếu nại] (Hạn chốt 24h).\n\n";
             $helpText .= "4️⃣ <b>Các lệnh tra cứu & quản lý nhóm:</b>\n";
             $helpText .= "• <code>/report</code> : Báo cáo tình hình & danh sách nợ kèo\n";
@@ -1201,7 +1259,6 @@ class TelegramBotService
             $helpText .= "• <code>/rank</code> : Bảng xếp hạng Top 5 và Loser tháng\n";
             $helpText .= "• <code>/history</code> : 5 trận gần nhất\n";
             $helpText .= "• <code>/pending</code> : Trận đang chờ xác nhận\n";
-            $helpText .= "• <code>/duel an</code> : Lịch sử đối đầu với An\n";
 
             $this->sendMessage($chatId, $helpText);
 
@@ -1338,14 +1395,86 @@ class TelegramBotService
             return;
         }
 
-        // 9. Command /duel username
-        if ($rawCommand === '/duel') {
+        // 9. Command /duel username [prize] OR /duel partner vs opp1 opp2 [prize]
+        if ($rawCommand === '/duel' || $rawCommand === '/thachdau') {
             $parts = explode(' ', $text);
             if (count($parts) < 2) {
-                $this->sendMessage($chatId, 'Cú pháp: <code>/duel [username]</code> (Ví dụ: <code>/duel an</code>)');
+                $this->sendMessage(
+                    $chatId,
+                    "⚔️ <b>CÚ PHÁP KHIÊU CHIẾN / THÁCH ĐẤU:</b>\n\n"
+                    ."• <b>Solo 1vs1:</b> <code>/duel [username] [kèo]</code>\n"
+                    ."  <i>VD: <code>/duel an 1 ly cà phê</code></i>\n\n"
+                    ."• <b>Đôi 2vs2:</b> <code>/duel [đồng_đội] vs [đối_thủ_1] [đối_thủ_2] [kèo]</code>\n"
+                    ."  <i>VD: <code>/duel thanh vs tho dat 1 ly trà đào</code></i>\n"
+                    .'  <i>(Chỉ định người trả: Bạn ⚡ Đối thủ 1, Đồng đội ⚡ Đối thủ 2)</i>'
+                );
 
                 return;
             }
+
+            $textWithoutCmd = trim(substr($text, strlen($parts[0])));
+            $rawTokens = preg_split('/\s+/', $textWithoutCmd);
+            $cleanTokens = array_values(array_filter($rawTokens, fn ($p) => ! in_array(strtolower($p), ['vs', 'va', 'voi', '&', 'và', 'với']) && $p !== ''));
+
+            if (count($cleanTokens) >= 3 && (in_array('vs', array_map('strtolower', $rawTokens)) || in_array('với', array_map('strtolower', $rawTokens)))) {
+                $partner = $this->findUserByUsername($cleanTokens[0]);
+                $opp1 = $this->findUserByUsername($cleanTokens[1]);
+                $opp2 = $this->findUserByUsername($cleanTokens[2]);
+
+                if (! $partner || ! $opp1 || ! $opp2) {
+                    $notFound = [];
+                    if (! $partner) {
+                        $notFound[] = '@'.$cleanTokens[0];
+                    }
+                    if (! $opp1) {
+                        $notFound[] = '@'.$cleanTokens[1];
+                    }
+                    if (! $opp2) {
+                        $notFound[] = '@'.$cleanTokens[2];
+                    }
+
+                    $this->sendMessage($chatId, '❌ <b>Không tìm thấy cơ thủ:</b> '.implode(', ', $notFound));
+
+                    return;
+                }
+
+                $allIds = [$user->id, $partner->id, $opp1->id, $opp2->id];
+                if (count($allIds) !== count(array_unique($allIds))) {
+                    $this->sendMessage($chatId, '❌ 4 cơ thủ trong trận khiêu chiến đôi phải khác nhau hoàn toàn!');
+
+                    return;
+                }
+
+                $prize = count($cleanTokens) > 3 ? trim(implode(' ', array_slice($cleanTokens, 3))) : 'Kèo 4 ly cà phê muối';
+
+                $challenge = BilliardChallenge::create([
+                    'challenge_type' => 'doubles',
+                    'challenger_id' => $user->id,
+                    'challenger_partner_id' => $partner->id,
+                    'opponent_id' => $opp1->id,
+                    'opponent_partner_id' => $opp2->id,
+                    'prize' => $prize,
+                    'message' => 'Thách đấu đôi 2vs2 qua Telegram Bot',
+                    'status' => 'pending',
+                    'expires_at' => now()->addMinutes(30),
+                ]);
+
+                $this->sendDuelChallengeNotification($challenge);
+
+                $out = "🚨 <b>ĐÃ PHÁT LỆNH KHIÊU CHIẾN ĐÔI 2VS2!</b>\n\n";
+                $out .= "👥 <b>Đội thách đấu:</b> {$user->name} & {$partner->name}\n";
+                $out .= "🎯 <b>Đội mục tiêu:</b> {$opp1->name} & {$opp2->name}\n";
+                $out .= "🎁 <b>Kèo thách thức:</b> <b>{$prize}</b>\n\n";
+                $out .= "🎯 <b>Chỉ định trả kèo (Viết trước trả trước, viết sau trả sau):</b>\n";
+                $out .= "• <b>Cặp 1:</b> {$user->name} ⚡ {$opp1->name} <i>(Người viết trước)</i>\n";
+                $out .= "• <b>Cặp 2:</b> {$partner->name} ⚡ {$opp2->name} <i>(Người viết sau)</i>\n\n";
+                $out .= '<i>(Nếu đối thủ đang mở website, màn hình sẽ nháy đèn đỏ SOS bắt buộc phải phản hồi!)</i>';
+
+                $this->sendMessage($chatId, $out);
+
+                return;
+            }
+
             $targetUsername = ltrim(trim($parts[1]), '@');
             $target = User::where('username', $targetUsername)->first();
 
@@ -1396,13 +1525,13 @@ class TelegramBotService
         }
 
         // 8. Match creation via:
-        // - Đơn (1vs1): `/an binh` hoặc `/vs binh` hoặc `/tran an binh`
-        // - Đôi (2vs2): `/an binh vs cuong dung` hoặc `/doi an binh cuong dung`
+        // - Đơn (1vs1): `/an binh [kèo]` hoặc `/vs binh [kèo]` hoặc `/tran an binh [kèo]`
+        // - Đôi (2vs2): `/an thanh vs tho dat [kèo]` hoặc `/keodoi an thanh vs tho dat [kèo]`
         if (str_starts_with($text, '/')) {
             $clean = ltrim($text, '/');
 
             // Strip common command words if prefixed
-            foreach (['tran ', 'match ', 'game ', 'tao ', 'play ', 'doi ', '2v2 '] as $prefix) {
+            foreach (['tran ', 'match ', 'game ', 'tao ', 'play ', 'doi ', '2v2 ', 'keodoi ', 'keo ', 'thachdau ', 'challenge '] as $prefix) {
                 if (str_starts_with(strtolower($clean), $prefix)) {
                     $clean = trim(substr($clean, strlen($prefix)));
                     break;
@@ -1413,138 +1542,104 @@ class TelegramBotService
             $noiseWords = ['vs', 'va', 'voi', '&', 'và', 'với'];
             $parts = array_values(array_filter($rawParts, fn ($p) => ! in_array(strtolower($p), $noiseWords) && $p !== ''));
 
-            // If user typed 1 username (e.g. /vs binh or /binh), infer player 1 is the currently authenticated user
-            if (count($parts) === 1 && strtolower($parts[0]) !== 'help') {
-                $parts = [$user->username, $parts[0]];
-            }
-
-            if (count($parts) === 2) {
-                $user1 = $this->findUserByUsername($parts[0]);
-                $user2 = $this->findUserByUsername($parts[1]);
-
-                if (! $user1 || ! $user2) {
-                    $notFound = [];
-                    if (! $user1) {
-                        $notFound[] = '@'.$parts[0];
-                    }
-                    if (! $user2) {
-                        $notFound[] = '@'.$parts[1];
-                    }
-
-                    $availableList = User::where('is_active', true)->pluck('username')->take(10)->implode(', ');
-                    $hint = $availableList ? "\n📋 <b>Cơ thủ hiện có:</b> <code>{$availableList}</code>" : '';
-
-                    $this->sendMessage(
-                        $chatId,
-                        '❌ <b>Không tìm thấy cơ thủ:</b> '.implode(', ', $notFound)."\n"
-                        .$hint."\n\n"
-                        .'💡 <i>Mẹo:</i> Hãy tạo tài khoản cho cơ thủ trên website trước (mục Quản trị > Thêm cơ thủ).'
-                    );
-
-                    return;
-                }
-
-                if ($user1->id === $user2->id) {
-                    $this->sendMessage($chatId, '❌ Không thể tạo trận đấu với chính mình!');
-
-                    return;
-                }
-
-                // Prompt with Inline Keyboard to pick winner!
-                $kb = [
-                    'inline_keyboard' => [
-                        [
-                            ['text' => "🏆 {$user1->name} Thắng", 'callback_data' => "quick_win_{$user1->id}_{$user2->id}_{$user1->id}_cafe"],
-                            ['text' => "🏆 {$user2->name} Thắng", 'callback_data' => "quick_win_{$user1->id}_{$user2->id}_{$user2->id}_cafe"],
-                        ],
-                    ],
-                ];
-
-                $this->sendMessage(
-                    $chatId,
-                    "🎱 <b>TẠO TRẬN ĐẤU ĐƠN (1vs1)</b>\n\n"
-                    ."⚔️ <b>Cơ thủ:</b> {$user1->name} vs {$user2->name}\n"
-                    ."🎁 <b>Kèo mặc định:</b> Kèo cà phê muối\n\n"
-                    .'<b>Ai là người chiến thắng?</b> Bấm chọn ngay bên dưới:',
-                    $kb
-                );
-
-                return;
-            }
-
-            if (count($parts) === 4) {
-                // Doubles 2vs2
+            // Check doubles 2vs2 first (4 players)
+            if (count($parts) >= 4) {
                 $user1 = $this->findUserByUsername($parts[0]);
                 $user2 = $this->findUserByUsername($parts[1]);
                 $user3 = $this->findUserByUsername($parts[2]);
                 $user4 = $this->findUserByUsername($parts[3]);
 
-                if (! $user1 || ! $user2 || ! $user3 || ! $user4) {
-                    $notFound = [];
-                    if (! $user1) {
-                        $notFound[] = '@'.$parts[0];
-                    }
-                    if (! $user2) {
-                        $notFound[] = '@'.$parts[1];
-                    }
-                    if (! $user3) {
-                        $notFound[] = '@'.$parts[2];
-                    }
-                    if (! $user4) {
-                        $notFound[] = '@'.$parts[3];
+                if ($user1 && $user2 && $user3 && $user4) {
+                    $ids = [$user1->id, $user2->id, $user3->id, $user4->id];
+                    if (count($ids) !== count(array_unique($ids))) {
+                        $this->sendMessage($chatId, '❌ 4 cơ thủ trong trận đánh đôi phải khác nhau hoàn toàn!');
+
+                        return;
                     }
 
-                    $availableList = User::where('is_active', true)->pluck('username')->take(10)->implode(', ');
-                    $hint = $availableList ? "\n📋 <b>Cơ thủ hiện có:</b> <code>{$availableList}</code>" : '';
+                    $customPrize = count($parts) > 4 ? trim(implode(' ', array_slice($parts, 4))) : 'Kèo 4 ly cà phê muối';
+                    Cache::put("tg_doubles_prize_{$user1->id}_{$user2->id}_{$user3->id}_{$user4->id}", $customPrize, now()->addMinutes(30));
+
+                    $kb = [
+                        'inline_keyboard' => [
+                            [
+                                ['text' => "🏆 Đội 1 ({$user1->name} & {$user2->name}) Thắng", 'callback_data' => "quick_doubles_{$user1->id}_{$user2->id}_{$user3->id}_{$user4->id}_1"],
+                            ],
+                            [
+                                ['text' => "🏆 Đội 2 ({$user3->name} & {$user4->name}) Thắng", 'callback_data' => "quick_doubles_{$user1->id}_{$user2->id}_{$user3->id}_{$user4->id}_2"],
+                            ],
+                        ],
+                    ];
 
                     $this->sendMessage(
                         $chatId,
-                        '❌ <b>Không tìm thấy các cơ thủ:</b> '.implode(', ', $notFound)."\n"
-                        .$hint."\n\n"
-                        .'💡 <i>Mẹo:</i> Hãy tạo tài khoản cho cơ thủ trên website trước.'
+                        "🎱 <b>TẠO KÈO ĐÔI (2vs2)</b>\n\n"
+                        ."👥 <b>Đội 1:</b> {$user1->name} & {$user2->name}\n"
+                        ."👥 <b>Đội 2:</b> {$user3->name} & {$user4->name}\n"
+                        ."🎁 <b>Kèo thách thức:</b> <b>{$customPrize}</b>\n\n"
+                        ."🎯 <b>Chỉ định người trả kèo (Viết trước trả trước, viết sau trả sau):</b>\n"
+                        ."• <b>Cặp 1:</b> {$user1->name} ⚡ {$user3->name} <i>(Người viết trước)</i>\n"
+                        ."• <b>Cặp 2:</b> {$user2->name} ⚡ {$user4->name} <i>(Người viết sau)</i>\n\n"
+                        ."💡 <i>Người thua ở mỗi cặp trả riêng cho người thắng tương ứng. Muốn đổi người trả chỉ cần đổi thứ tự tên khi gõ lệnh (VD: <code>/{$user1->username} {$user2->username} vs {$user4->username} {$user3->username}</code>).</i>\n\n"
+                        .'<b>Đội nào chiến thắng?</b> Bấm chọn ngay bên dưới:',
+                        $kb
                     );
 
                     return;
                 }
+            }
 
-                $ids = [$user1->id, $user2->id, $user3->id, $user4->id];
-                if (count($ids) !== count(array_unique($ids))) {
-                    $this->sendMessage($chatId, '❌ 4 cơ thủ trong trận đánh đôi phải khác nhau hoàn toàn!');
+            // Check singles 1vs1
+            // If user typed 1 username (e.g. /vs binh or /binh), infer player 1 is the currently authenticated user
+            if (count($parts) === 1 && strtolower($parts[0]) !== 'help') {
+                $parts = [$user->username, $parts[0]];
+            }
+
+            if (count($parts) >= 2) {
+                $user1 = $this->findUserByUsername($parts[0]);
+                $user2 = $this->findUserByUsername($parts[1]);
+
+                if ($user1 && $user2) {
+                    if ($user1->id === $user2->id) {
+                        $this->sendMessage($chatId, '❌ Không thể tạo trận đấu với chính mình!');
+
+                        return;
+                    }
+
+                    $customPrize = count($parts) > 2 ? trim(implode(' ', array_slice($parts, 2))) : 'Kèo cà phê muối';
+                    Cache::put("tg_match_prize_{$user1->id}_{$user2->id}", $customPrize, now()->addMinutes(30));
+
+                    $kb = [
+                        'inline_keyboard' => [
+                            [
+                                ['text' => "🏆 {$user1->name} Thắng", 'callback_data' => "quick_win_{$user1->id}_{$user2->id}_{$user1->id}_cafe"],
+                                ['text' => "🏆 {$user2->name} Thắng", 'callback_data' => "quick_win_{$user1->id}_{$user2->id}_{$user2->id}_cafe"],
+                            ],
+                        ],
+                    ];
+
+                    $this->sendMessage(
+                        $chatId,
+                        "🎱 <b>TẠO TRẬN ĐẤU ĐƠN (1vs1)</b>\n\n"
+                        ."⚔️ <b>Cơ thủ:</b> {$user1->name} vs {$user2->name}\n"
+                        ."🎁 <b>Kèo thách thức:</b> <b>{$customPrize}</b>\n\n"
+                        .'<b>Ai là người chiến thắng?</b> Bấm chọn ngay bên dưới:',
+                        $kb
+                    );
 
                     return;
                 }
-
-                $kb = [
-                    'inline_keyboard' => [
-                        [
-                            ['text' => "🏆 Đội 1 ({$user1->name} & {$user2->name}) Thắng", 'callback_data' => "quick_doubles_{$user1->id}_{$user2->id}_{$user3->id}_{$user4->id}_1"],
-                        ],
-                        [
-                            ['text' => "🏆 Đội 2 ({$user3->name} & {$user4->name}) Thắng", 'callback_data' => "quick_doubles_{$user1->id}_{$user2->id}_{$user3->id}_{$user4->id}_2"],
-                        ],
-                    ],
-                ];
-
-                $this->sendMessage(
-                    $chatId,
-                    "🎱 <b>TẠO TRẬN ĐÁNH ĐÔI (2vs2)</b>\n\n"
-                    ."👥 <b>Đội 1:</b> {$user1->name} & {$user2->name}\n"
-                    ."👥 <b>Đội 2:</b> {$user3->name} & {$user4->name}\n"
-                    ."🎁 <b>Kèo mặc định:</b> Kèo 4 ly cà phê muối\n\n"
-                    .'<b>Đội nào chiến thắng?</b> Bấm chọn ngay bên dưới:',
-                    $kb
-                );
-
-                return;
             }
 
             // Unrecognized slash command
             $this->sendMessage(
                 $chatId,
                 "⚠️ <b>Cú pháp chưa chính xác!</b>\n\n"
-                ."👉 <b>Tạo trận ĐƠN:</b> <code>/user1 user2</code> (VD: <code>/admin binh</code>)\n"
+                ."👉 <b>Tạo trận ĐƠN:</b> <code>/u1 u2 [kèo]</code> (VD: <code>/an binh 1 ly cà phê</code>)\n"
                 ."👉 <b>Tạo nhanh với bạn:</b> <code>/vs [đối_thủ]</code> (VD: <code>/vs binh</code>)\n"
-                ."👉 <b>Tạo trận ĐÔI:</b> <code>/u1 u2 vs u3 u4</code> (VD: <code>/an binh vs cuong dung</code>)\n\n"
+                ."👉 <b>Tạo kèo ĐÔI (2vs2):</b> <code>/u1 u2 vs u3 u4 [kèo]</code>\n"
+                ."   (VD: <code>/an thanh vs tho dat 1 ly trà đào</code>)\n"
+                ."   <i>💡 Viết trước trả cho viết trước, viết sau trả cho viết sau!</i>\n\n"
                 .'Gõ <code>/help</code> để xem hướng dẫn chi tiết.'
             );
         }
