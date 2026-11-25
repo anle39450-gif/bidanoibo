@@ -115,6 +115,16 @@ class User extends Authenticatable
         return $this->hasMany(UserNotification::class, 'user_id');
     }
 
+    public function sentChallenges(): HasMany
+    {
+        return $this->hasMany(BilliardChallenge::class, 'challenger_id');
+    }
+
+    public function receivedChallenges(): HasMany
+    {
+        return $this->hasMany(BilliardChallenge::class, 'opponent_id');
+    }
+
     /**
      * Query for all matches this user participated in.
      */

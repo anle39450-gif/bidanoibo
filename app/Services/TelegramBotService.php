@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\BilliardChallenge;
 use App\Models\BilliardMatch;
 use App\Models\TelegramBotConfig;
 use App\Models\User;
@@ -58,6 +59,38 @@ class TelegramBotService
 
             return false;
         }
+    }
+
+    public function sendDuelChallengeNotification(BilliardChallenge $challenge): bool
+    {
+        $opponent = $challenge->opponent;
+        if (! $opponent || ! $opponent->telegram_id) {
+            return false;
+        }
+
+        $challenger = $challenge->challenger;
+        $text = "🚨 <b>BÁO ĐỘNG SOS: BẠN VỪA BỊ KHIÊU CHIẾN!</b>\n\n";
+        $text .= "👤 <b>Người thách đấu:</b> <b>{$challenger->name}</b> (@{$challenger->username})\n";
+        $text .= "🎁 <b>Kèo thách thức:</b> <b>{$challenge->prize}</b>\n";
+        if ($challenge->message) {
+            $text .= "📝 <b>Lời khiêu chiến:</b> <i>\"{$challenge->message}\"</i>\n";
+        }
+        $text .= "\n⚡ <i>Cảnh báo: Nếu bạn đang mở website, màn hình sẽ nhấp nháy đèn đỏ SOS cho đến khi bạn phản hồi!</i>";
+
+        $siteUrl = url('/');
+        $replyMarkup = [
+            'inline_keyboard' => [
+                [
+                    ['text' => '⚔️ TIẾP CHIÊU (ĐỒNG Ý)', 'callback_data' => "accept_challenge_{$challenge->id}"],
+                    ['text' => '🏳️ TỪ CHỐI', 'callback_data' => "decline_challenge_{$challenge->id}"],
+                ],
+                [
+                    ['text' => '🌐 Xem trên Website', 'url' => $siteUrl],
+                ],
+            ],
+        ];
+
+        return $this->sendMessage($opponent->telegram_id, $text, $replyMarkup);
     }
 
     public function sendMatchConfirmationRequest(BilliardMatch $match, User $recipient): bool
@@ -617,6 +650,97 @@ class TelegramBotService
             return;
         }
 
+        if (str_starts_with($data, 'accept_challenge_')) {
+            $challengeId = (int) substr($data, 17);
+            $challenge = BilliardChallenge::find($challengeId);
+
+            if (! $challenge) {
+                $this->answerCallbackQuery($callbackId, '❌ Lời khiêu chiến không tồn tại hoặc đã hết hạn!');
+
+                return;
+            }
+
+            if ($challenge->status !== 'pending') {
+                $this->answerCallbackQuery($callbackId, "Lời khiêu chiến này đã ở trạng thái: {$challenge->status}");
+
+                return;
+            }
+
+            if ($challenge->opponent_id !== $user->id) {
+                $this->answerCallbackQuery($callbackId, '⚠️ Lời khiêu chiến này không dành cho bạn!');
+
+                return;
+            }
+
+            $challenge->update([
+                'status' => 'accepted',
+                'accepted_at' => now(),
+            ]);
+
+            try {
+                $match = $matchService->createMatch([
+                    'match_type' => 'singles',
+                    'player1_id' => $challenge->challenger_id,
+                    'player2_id' => $user->id,
+                    'winner_id' => $challenge->challenger_id,
+                    'loser_id' => $user->id,
+                    'played_at' => now(),
+                    'prize' => $challenge->prize,
+                    'notes' => 'Trận đấu từ Lời Khiêu Chiến: '.($challenge->message ?: 'Tiếp chiêu qua Telegram'),
+                    'created_from' => 'challenge',
+                ], $challenge->challenger ?: $user);
+
+                $challenge->update(['match_id' => $match->id]);
+            } catch (\Throwable $e) {
+            }
+
+            $this->answerCallbackQuery($callbackId, '⚔️ Bạn đã TIẾP CHIÊU thành công!');
+            $this->sendMessage($chatId, "⚔️ <b>BẠN ĐÃ TIẾP CHIÊU THÀNH CÔNG!</b>\nTrận đấu với <b>{$challenge->challenger->name}</b> kèo <b>{$challenge->prize}</b> đã được tạo trên hệ thống!");
+
+            if ($challenge->challenger && $challenge->challenger->telegram_id) {
+                $this->sendMessage($challenge->challenger->telegram_id, "⚔️ <b>{$user->name} ĐÃ TIẾP CHIÊU!</b>\nĐối thủ đã chấp nhận lời thách đấu kèo <b>{$challenge->prize}</b>. Ra bàn chiến ngay thôi!");
+            }
+
+            return;
+        }
+
+        if (str_starts_with($data, 'decline_challenge_')) {
+            $challengeId = (int) substr($data, 18);
+            $challenge = BilliardChallenge::find($challengeId);
+
+            if (! $challenge) {
+                $this->answerCallbackQuery($callbackId, '❌ Lời khiêu chiến không tồn tại!');
+
+                return;
+            }
+
+            if ($challenge->status !== 'pending') {
+                $this->answerCallbackQuery($callbackId, "Lời khiêu chiến này đã ở trạng thái: {$challenge->status}");
+
+                return;
+            }
+
+            if ($challenge->opponent_id !== $user->id) {
+                $this->answerCallbackQuery($callbackId, '⚠️ Lời khiêu chiến này không dành cho bạn!');
+
+                return;
+            }
+
+            $challenge->update([
+                'status' => 'declined',
+                'declined_at' => now(),
+            ]);
+
+            $this->answerCallbackQuery($callbackId, '🏳️ Bạn đã từ chối lời khiêu chiến!');
+            $this->sendMessage($chatId, "🏳️ Bạn đã từ chối lời khiêu chiến của <b>{$challenge->challenger->name}</b>.");
+
+            if ($challenge->challenger && $challenge->challenger->telegram_id) {
+                $this->sendMessage($challenge->challenger->telegram_id, "🏳️ <b>ĐỐI THỦ ĐÃ TỪ CHỐI!</b>\n{$user->name} đã từ chối lời khiêu chiến kèo <i>{$challenge->prize}</i> của bạn.");
+            }
+
+            return;
+        }
+
         if (str_starts_with($data, 'confirm_')) {
             $matchId = (int) substr($data, 8);
             $match = BilliardMatch::find($matchId);
@@ -1163,6 +1287,35 @@ class TelegramBotService
             $out .= "🎱 Tổng số trận đã đấu: <b>{$h2h['total_matches']}</b>\n";
             $out .= "🏆 <b>{$user->name}:</b> {$h2h['user1_wins']} trận thắng ({$h2h['user1_win_rate']}%)\n";
             $out .= "🏆 <b>{$target->name}:</b> {$h2h['user2_wins']} trận thắng ({$h2h['user2_win_rate']}%)\n";
+
+            // If user passed a prize after username, e.g. /duel binh 1 ly cà phê
+            $prize = null;
+            if (count($parts) >= 3) {
+                $prize = trim(implode(' ', array_slice($parts, 2)));
+            }
+
+            if ($prize) {
+                if ($target->id === $user->id) {
+                    $this->sendMessage($chatId, '⚠️ Bạn không thể tự khiêu chiến chính mình!');
+
+                    return;
+                }
+
+                $challenge = BilliardChallenge::create([
+                    'challenger_id' => $user->id,
+                    'opponent_id' => $target->id,
+                    'prize' => $prize,
+                    'message' => 'Thách đấu qua Telegram Bot',
+                    'status' => 'pending',
+                    'expires_at' => now()->addMinutes(30),
+                ]);
+
+                $this->sendDuelChallengeNotification($challenge);
+
+                $out .= "\n🚨 <b>ĐÃ PHÁT LỆNH KHIÊU CHIẾN TỚI {$target->name}!</b>\n";
+                $out .= "🎁 <b>Kèo:</b> {$prize}\n";
+                $out .= "<i>(Nếu {$target->name} đang mở web, màn hình sẽ nháy đèn đỏ SOS bắt buộc phải phản hồi!)</i>";
+            }
 
             $this->sendMessage($chatId, $out);
 

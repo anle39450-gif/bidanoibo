@@ -56,6 +56,12 @@
                         </div>
 
                         <div class="flex items-center gap-2">
+                            @auth
+                                <button type="button" @click="$dispatch('openSendChallengeModal'); mobileMenuOpen = false;"
+                                    class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 text-white font-extrabold py-2.5 px-3 rounded-lg text-xs shadow-sm transition text-center cursor-pointer shrink-0">
+                                    ⚔️ Khiêu chiến
+                                </button>
+                            @endauth
                             <button type="button" onclick="triggerCreateMatchModal(); mobileMenuOpen = false;"
                                 class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg text-sm shadow-sm transition text-center cursor-pointer">
                                 + Ghi nhận trận đấu
@@ -370,6 +376,13 @@
 
                 <!-- Right items: Realtime Notification Bell & Quick links -->
                 <div class="flex items-center gap-2.5 ml-auto">
+                    @auth
+                        <button type="button" @click="$dispatch('openSendChallengeModal')"
+                            class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-extrabold py-2 px-3.5 rounded-lg text-sm shadow-xs transition flex items-center gap-1.5 cursor-pointer transform hover:scale-[1.03] active:scale-[0.98]">
+                            <span class="animate-pulse">⚔️</span>
+                            <span>Khiêu chiến</span>
+                        </button>
+                    @endauth
                     <button type="button" onclick="triggerCreateMatchModal()"
                         class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3.5 rounded-lg text-sm shadow-xs transition flex items-center gap-1.5 cursor-pointer">
                         <span>+ Ghi nhận trận</span>
@@ -433,6 +446,10 @@
 
     <!-- Change Password Modal -->
     @include('partials.change-password-modal')
+
+    @auth
+        <livewire:duel-challenge-alert />
+    @endauth
 
     @livewireScripts
 </body>

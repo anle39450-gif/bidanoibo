@@ -376,9 +376,18 @@
                                 </div>
                             </div>
 
-                            <div class="text-right shrink-0">
-                                <div class="text-sm font-bold text-gray-900">{{ $item['wins'] }} Thắng</div>
-                                <div class="text-xs text-gray-500 font-medium">{{ $item['win_rate'] }}%</div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <div class="text-right">
+                                    <div class="text-sm font-bold text-gray-900">{{ $item['wins'] }} Thắng</div>
+                                    <div class="text-xs text-gray-500 font-medium">{{ $item['win_rate'] }}%</div>
+                                </div>
+                                @if(auth()->check() && $item['user']->id !== auth()->id())
+                                    <button type="button" @click="$dispatch('openSendChallengeModal', { opponentId: {{ $item['user']->id }} })"
+                                        title="Khiêu chiến {{ $item['user']->name }}"
+                                        class="text-xs text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg border border-red-200 font-bold transition cursor-pointer shrink-0">
+                                        ⚔️
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     @empty
