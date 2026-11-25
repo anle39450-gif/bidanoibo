@@ -4,7 +4,8 @@
     <div class="space-y-6">
         <div>
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Bảng Điều Khiển Quản Trị Viên</h1>
-            <p class="text-sm sm:text-base text-gray-500 mt-1">Xử lý khiếu nại tranh chấp, quản lý tài khoản và cấu hình Telegram Bot.</p>
+            <p class="text-sm sm:text-base text-gray-500 mt-1">Xử lý khiếu nại tranh chấp, quản lý tài khoản và cấu hình
+                Telegram Bot.</p>
         </div>
 
         <!-- Section 1: Disputed Matches Queue -->
@@ -34,30 +35,37 @@
                     </div>
 
                     @if($dm->dispute_evidence_path)
-                        <img src="{{ asset('storage/' . $dm->dispute_evidence_path) }}" alt="Bằng chứng" class="max-h-56 rounded-lg border border-gray-300 shadow-sm">
+                        <img src="{{ asset('storage/' . $dm->dispute_evidence_path) }}" alt="Bằng chứng"
+                            class="max-h-56 rounded-lg border border-gray-300 shadow-sm">
                     @endif
 
                     <!-- Form resolve -->
-                    <form method="POST" action="{{ route('admin.matches.resolve', $dm->id) }}" class="space-y-3 pt-3 border-t border-red-200">
+                    <form method="POST" action="{{ route('admin.matches.resolve', $dm->id) }}"
+                        class="space-y-3 pt-3 border-t border-red-200">
                         @csrf
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-sm">
-                            <label class="p-3 border rounded-lg bg-white cursor-pointer flex items-center gap-2 hover:bg-gray-50">
+                            <label
+                                class="p-3 border rounded-lg bg-white cursor-pointer flex items-center gap-2 hover:bg-gray-50">
                                 <input type="radio" name="resolution" value="confirm_initial" checked>
                                 <span class="font-medium">Giữ nguyên kết quả</span>
                             </label>
-                            <label class="p-3 border rounded-lg bg-white cursor-pointer flex items-center gap-2 hover:bg-gray-50">
+                            <label
+                                class="p-3 border rounded-lg bg-white cursor-pointer flex items-center gap-2 hover:bg-gray-50">
                                 <input type="radio" name="resolution" value="reverse_winner">
                                 <span class="font-medium">Đảo ngược người thắng</span>
                             </label>
-                            <label class="p-3 border rounded-lg bg-white cursor-pointer flex items-center gap-2 hover:bg-gray-50">
+                            <label
+                                class="p-3 border rounded-lg bg-white cursor-pointer flex items-center gap-2 hover:bg-gray-50">
                                 <input type="radio" name="resolution" value="cancel">
                                 <span class="font-medium">Hủy trận đấu</span>
                             </label>
                         </div>
 
                         <div class="flex flex-col sm:flex-row gap-2.5">
-                            <input type="text" name="admin_notes" required placeholder="Nhập lý do xử lý của quản trị viên..." class="flex-1 text-sm border border-gray-300 rounded-lg px-3.5 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2 rounded-lg cursor-pointer transition shadow-sm shrink-0">
+                            <input type="text" name="admin_notes" required placeholder="Nhập lý do xử lý của quản trị viên..."
+                                class="flex-1 text-sm border border-gray-300 rounded-lg px-3.5 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button type="submit"
+                                class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2 rounded-lg cursor-pointer transition shadow-sm shrink-0">
                                 Lưu quyết định
                             </button>
                         </div>
@@ -74,18 +82,16 @@
         <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-bold text-gray-900">Quản Lý Cơ Thủ ({{ $members->count() }})</h2>
-                <button 
-                    type="button" 
-                    onclick="openCreateMemberModal()" 
-                    class="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg shadow-sm transition cursor-pointer"
-                >
+                <button type="button" onclick="openCreateMemberModal()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg shadow-sm transition cursor-pointer">
                     + Tạo mới cơ thủ
                 </button>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-gray-50 border-b border-gray-200 text-gray-600 uppercase font-semibold text-xs tracking-wider">
+                    <thead
+                        class="bg-gray-50 border-b border-gray-200 text-gray-600 uppercase font-semibold text-xs tracking-wider">
                         <tr>
                             <th class="py-3 px-3.5">Thành viên</th>
                             <th class="py-3 px-3.5">Username</th>
@@ -99,26 +105,34 @@
                         @foreach($members as $mb)
                             <tr class="hover:bg-gray-50 transition">
                                 <td class="py-3.5 px-3.5 font-bold text-gray-900 flex items-center gap-2.5">
-                                    <img src="{{ $mb->avatar_url }}" alt="{{ $mb->name }}" class="w-8 h-8 rounded-full border border-gray-200 object-cover">
+                                    <img src="{{ $mb->avatar_url }}" alt="{{ $mb->name }}"
+                                        class="w-8 h-8 rounded-full border border-gray-200 object-cover">
                                     <span>{{ $mb->name }}</span>
                                 </td>
                                 <td class="py-3.5 px-3.5 text-gray-500 font-mono">@<span>{{ $mb->username }}</span></td>
                                 <td class="py-3.5 px-3.5">
-                                    <span class="px-2.5 py-0.5 rounded text-xs font-semibold {{ $mb->isAdmin() ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-700' }}">
+                                    <span
+                                        class="px-2.5 py-0.5 rounded text-xs font-semibold {{ $mb->isAdmin() ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-700' }}">
                                         {{ $mb->role }}
                                     </span>
                                 </td>
                                 <td class="py-3.5 px-3.5 text-xs">
                                     @if($mb->telegram_id)
                                         <span class="text-green-700 font-semibold flex items-center gap-1">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M5 13l4 4L19 7"></path>
+                                            </svg>
                                             <span>Đã nối (ID: {{ $mb->telegram_id }})</span>
                                         </span>
                                     @else
                                         <div class="space-y-1">
-                                            <div class="font-mono text-gray-500">Mã: <span class="bg-gray-100 font-bold px-1.5 py-0.5 rounded text-gray-800 select-all">{{ $mb->getTelegramLinkCode() }}</span></div>
+                                            <div class="font-mono text-gray-500">Mã: <span
+                                                    class="bg-gray-100 font-bold px-1.5 py-0.5 rounded text-gray-800 select-all">{{ $mb->getTelegramLinkCode() }}</span>
+                                            </div>
                                             @if($botConfig->bot_username)
-                                                <a href="https://t.me/{{ $botConfig->bot_username }}?start={{ $mb->getTelegramLinkCode() }}" target="_blank" class="text-blue-600 hover:underline block font-medium text-[11px]">
+                                                <a href="https://t.me/{{ $botConfig->bot_username }}?start={{ $mb->getTelegramLinkCode() }}"
+                                                    target="_blank" class="text-blue-600 hover:underline block font-medium text-[11px]">
                                                     Link kết nối bot
                                                 </a>
                                             @endif
@@ -126,25 +140,27 @@
                                     @endif
                                 </td>
                                 <td class="py-3.5 px-3.5">
-                                    <span class="px-2.5 py-0.5 rounded text-xs font-semibold {{ $mb->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                    <span
+                                        class="px-2.5 py-0.5 rounded text-xs font-semibold {{ $mb->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
                                         {{ $mb->is_active ? 'Hoạt động' : 'Đã khóa' }}
                                     </span>
                                 </td>
                                 <td class="py-3.5 px-3.5 text-right space-x-2 font-semibold">
-                                    <button 
-                                        type="button" 
-                                        onclick="openAdminResetModal({{ $mb->id }}, '{{ addslashes($mb->name) }}', '{{ $mb->username }}')" 
-                                        class="text-amber-600 hover:text-amber-800 hover:underline cursor-pointer"
-                                    >
+                                    <button type="button"
+                                        onclick="openAdminResetModal({{ $mb->id }}, '{{ addslashes($mb->name) }}', '{{ $mb->username }}')"
+                                        class="text-amber-600 hover:text-amber-800 hover:underline cursor-pointer">
                                         Đổi MK
                                     </button>
                                     <form method="POST" action="{{ route('admin.users.role', $mb->id) }}" class="inline">
                                         @csrf
-                                        <button type="submit" class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">Đổi quyền</button>
+                                        <button type="submit"
+                                            class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">Đổi
+                                            quyền</button>
                                     </form>
                                     <form method="POST" action="{{ route('admin.users.status', $mb->id) }}" class="inline">
                                         @csrf
-                                        <button type="submit" class="text-red-600 hover:text-red-800 hover:underline cursor-pointer">{{ $mb->is_active ? 'Khóa' : 'Mở' }}</button>
+                                        <button type="submit"
+                                            class="text-red-600 hover:text-red-800 hover:underline cursor-pointer">{{ $mb->is_active ? 'Khóa' : 'Mở' }}</button>
                                     </form>
                                 </td>
                             </tr>
@@ -159,7 +175,8 @@
             <div class="flex items-center justify-between pb-3 border-b border-gray-100">
                 <div>
                     <h2 class="text-lg font-bold text-gray-900">Logo Hệ Thống</h2>
-                    <p class="text-xs sm:text-sm text-gray-500 mt-0.5">Tùy chỉnh logo hiển thị trên màn hình đăng nhập và thanh menu điều hướng.</p>
+                    <p class="text-xs sm:text-sm text-gray-500 mt-0.5">Tùy chỉnh logo hiển thị trên màn hình đăng nhập và
+                        thanh menu điều hướng.</p>
                 </div>
             </div>
 
@@ -176,26 +193,23 @@
 
                 <!-- Upload & Action Form -->
                 <div class="flex-1 space-y-3 w-full">
-                    <form method="POST" action="{{ route('admin.logo.update') }}" enctype="multipart/form-data" class="space-y-3">
+                    <form method="POST" action="{{ route('admin.logo.update') }}" enctype="multipart/form-data"
+                        class="space-y-3">
                         @csrf
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
                                 Tải lên logo mới (PNG, JPG, SVG, WebP - Tối đa 5MB)
                             </label>
-                            <input 
-                                type="file" 
-                                name="logo" 
-                                required 
-                                accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                                class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-                            >
+                            <input type="file" name="logo" required accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                                class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
                             @error('logo')
                                 <span class="text-red-600 text-xs mt-1 block font-medium">{{ $message }}</span>
                             @enderror
                         </div>
 
                         <div class="flex items-center gap-3">
-                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-sm transition cursor-pointer">
+                            <button type="submit"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-sm transition cursor-pointer">
                                 Cập nhật logo
                             </button>
                         </div>
@@ -204,11 +218,9 @@
                     @if($hasCustomLogo)
                         <form method="POST" action="{{ route('admin.logo.remove') }}" class="pt-2">
                             @csrf
-                            <button 
-                                type="submit" 
-                                onclick="return confirm('Bạn có chắc muốn xóa logo tùy chỉnh và quay về logo mặc định?')" 
-                                class="text-xs text-red-600 hover:text-red-800 font-medium hover:underline cursor-pointer"
-                            >
+                            <button type="submit"
+                                onclick="return confirm('Bạn có chắc muốn xóa logo tùy chỉnh và quay về logo mặc định?')"
+                                class="text-xs text-red-600 hover:text-red-800 font-medium hover:underline cursor-pointer">
                                 Xóa logo tùy chỉnh (Dùng lại logo mặc định)
                             </button>
                         </form>
@@ -225,36 +237,50 @@
                 @csrf
                 <div>
                     <label class="block font-semibold text-gray-700 mb-1.5">Telegram Bot Token</label>
-                    <input type="password" name="bot_token" value="{{ $botConfig->bot_token }}" placeholder="123456:ABC-DEF..." class="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="password" name="bot_token" value="{{ $botConfig->bot_token }}"
+                        placeholder="123456:ABC-DEF..."
+                        class="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
 
                 <div>
                     <label class="block font-semibold text-gray-700 mb-1.5">Bot Username</label>
-                    <input type="text" name="bot_username" value="{{ $botConfig->bot_username }}" placeholder="BidaNoiBoBot" class="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" name="bot_username" value="{{ $botConfig->bot_username }}" placeholder="BidaNoiBoBot"
+                        class="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
 
                 <div>
                     <label class="block font-semibold text-gray-700 mb-1.5">Group Chat ID (ID Nhóm nhận thông báo)</label>
                     <div class="flex flex-col sm:flex-row gap-2">
-                        <input type="text" name="group_chat_id" value="{{ $botConfig->group_chat_id }}" placeholder="-1001234567890" class="flex-1 border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" name="group_chat_id" value="{{ $botConfig->group_chat_id }}"
+                            placeholder="-1001234567890"
+                            class="flex-1 border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
                         @if($botConfig->bot_username)
-                            <a href="https://t.me/{{ $botConfig->bot_username }}?startgroup=true" target="_blank" class="inline-flex items-center justify-center gap-1.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs px-3.5 py-2 rounded-lg shadow-xs transition shrink-0 cursor-pointer">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            <a href="https://t.me/{{ $botConfig->bot_username }}?startgroup=true" target="_blank"
+                                class="inline-flex items-center justify-center gap-1.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs px-3.5 py-2 rounded-lg shadow-xs transition shrink-0 cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                                    </path>
+                                </svg>
                                 <span>Tạo nhóm / Thêm Bot</span>
                             </a>
                         @endif
                     </div>
                     <p class="text-xs text-gray-500 mt-1.5 leading-relaxed">
-                        <b>Tự động gán nhóm:</b> Nhấn nút <b>"Tạo nhóm / Thêm Bot"</b> ở trên để mở Telegram. Bạn có thể chọn <i>"New Group" (Tạo nhóm mới)</i> hoặc chọn nhóm có sẵn. Ngay khi Bot được thêm vào nhóm, hệ thống sẽ <b>tự động lưu Group Chat ID</b> vào web mà bạn không cần gõ thủ công!
+                        <b>Tự động gán nhóm:</b> Nhấn nút <b>"Tạo nhóm / Thêm Bot"</b> ở trên để mở Telegram. Bạn có thể
+                        chọn <i>"New Group" (Tạo nhóm mới)</i> hoặc chọn nhóm có sẵn. Ngay khi Bot được thêm vào nhóm, hệ
+                        thống sẽ <b>tự động lưu Group Chat ID</b> vào web mà bạn không cần gõ thủ công!
                     </p>
                 </div>
 
                 <div class="flex items-center gap-2.5">
-                    <input type="checkbox" name="set_webhook" value="1" id="set_webhook" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                    <label for="set_webhook" class="text-gray-700 font-medium">Đăng ký Webhook URL với Telegram API khi lưu</label>
+                    <input type="checkbox" name="set_webhook" value="1" id="set_webhook"
+                        class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <label for="set_webhook" class="text-gray-700 font-medium">Đăng ký Webhook URL với Telegram API khi
+                        lưu</label>
                 </div>
 
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm shadow-sm transition cursor-pointer">
+                <button type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm shadow-sm transition cursor-pointer">
                     Lưu cấu hình Bot
                 </button>
             </form>
@@ -266,11 +292,16 @@
                 <div>
                     <h2 class="text-lg font-bold text-gray-900">Báo Cáo Bida Hằng Ngày (Telegram Report)</h2>
                     <p class="text-xs sm:text-sm text-gray-500 mt-0.5">
-                        Tự động tổng kết tình hình thi đấu, số trận chờ duyệt, top cơ thủ và đặc biệt là <b>danh sách các kèo nợ chưa trả</b>.
+                        Tự động tổng kết tình hình thi đấu, số trận chờ duyệt, top cơ thủ và đặc biệt là <b>danh sách các
+                            kèo nợ chưa trả</b>.
                     </p>
                 </div>
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
                     <span>Tự động: 08:30 sáng hàng ngày</span>
                 </span>
             </div>
@@ -280,8 +311,11 @@
                     <div class="font-semibold text-gray-800">Kênh nhận báo cáo hiện tại:</div>
                     @if($botConfig->group_chat_id)
                         <div class="flex items-center gap-2 text-emerald-700 font-medium">
-                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                            <span>Nhóm Telegram: <code class="font-mono bg-white px-2 py-0.5 rounded border border-gray-200 text-gray-900">{{ $botConfig->group_chat_id }}</code></span>
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>Nhóm Telegram: <code
+                                    class="font-mono bg-white px-2 py-0.5 rounded border border-gray-200 text-gray-900">{{ $botConfig->group_chat_id }}</code></span>
                         </div>
                     @else
                         <div class="text-amber-700 text-xs">
@@ -289,22 +323,26 @@
                         </div>
                     @endif
                     <div class="text-xs text-gray-500 pt-1">
-                        Nội dung báo cáo: Trận đấu 24h qua, danh sách cơ thủ còn nợ kèo, Top cơ thủ dẫn đầu tháng và Chiến thần bao kèo.
+                        Nội dung báo cáo: Trận đấu 24h qua, danh sách cơ thủ còn nợ kèo, Top cơ thủ dẫn đầu tháng và Chiến
+                        thần bao kèo.
                     </div>
                 </div>
 
-                <div class="flex flex-col justify-center items-start bg-blue-50/50 rounded-lg p-4 border border-blue-100 space-y-3">
+                <div
+                    class="flex flex-col justify-center items-start bg-blue-50/50 rounded-lg p-4 border border-blue-100 space-y-3">
                     <div class="text-xs text-gray-700">
-                        Admin có thể kích hoạt gửi báo cáo ngay lập tức về nhóm chat hoặc mời tất cả cơ thủ đã liên kết Telegram tham gia nhóm:
+                        Admin có thể kích hoạt gửi báo cáo ngay lập tức về nhóm chat hoặc mời tất cả cơ thủ đã liên kết
+                        Telegram tham gia nhóm:
                     </div>
                     <div class="flex flex-wrap items-center gap-2.5 pt-1">
                         <form method="POST" action="{{ route('admin.telegram.daily-report') }}">
                             @csrf
-                            <button 
-                                type="submit" 
-                                class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3.5 py-2 rounded-lg text-xs sm:text-sm shadow-sm transition cursor-pointer"
-                            >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                            <button type="submit"
+                                class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3.5 py-2 rounded-lg text-xs sm:text-sm shadow-sm transition cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                </svg>
                                 <span>Gửi Báo Cáo Ngay</span>
                             </button>
                         </form>
@@ -312,12 +350,14 @@
                         @if($botConfig->group_chat_id)
                             <form method="POST" action="{{ route('admin.telegram.invite-all') }}">
                                 @csrf
-                                <button 
-                                    type="submit" 
+                                <button type="submit"
                                     class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3.5 py-2 rounded-lg text-xs sm:text-sm shadow-sm transition cursor-pointer"
-                                    title="Gửi tin nhắn riêng mời các cơ thủ vào nhóm"
-                                >
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                                    title="Gửi tin nhắn riêng mời các cơ thủ vào nhóm">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z">
+                                        </path>
+                                    </svg>
                                     <span>Mời cơ thủ vào nhóm</span>
                                 </button>
                             </form>
@@ -346,41 +386,46 @@
     </div>
 
     <!-- Admin Reset Member Password Modal -->
-    <div id="adminResetPasswordModal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="admin-reset-modal-title" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-xs transition-opacity" onclick="closeAdminResetModal()"></div>
+    <div id="adminResetPasswordModal" class="fixed inset-0 z-50 overflow-y-auto hidden"
+        aria-labelledby="admin-reset-modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-xs transition-opacity" onclick="closeAdminResetModal()">
+        </div>
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-            <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-gray-100">
+            <div
+                class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-gray-100">
                 <div class="bg-gray-50/80 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <div>
-                        <h3 class="text-base font-bold text-gray-900" id="admin-reset-modal-title">Đặt Lại Mật Khẩu Cơ Thủ</h3>
+                        <h3 class="text-base font-bold text-gray-900" id="admin-reset-modal-title">Đặt Lại Mật Khẩu Cơ Thủ
+                        </h3>
                         <p class="text-xs text-gray-500 mt-0.5" id="adminResetTargetInfo">Cơ thủ: ...</p>
                     </div>
-                    <button type="button" onclick="closeAdminResetModal()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition cursor-pointer">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    <button type="button" onclick="closeAdminResetModal()"
+                        class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            </path>
+                        </svg>
                     </button>
                 </div>
                 <form id="adminResetPasswordForm" method="POST" action="" class="p-6 space-y-4">
                     @csrf
                     <div>
-                        <label for="admin_new_password" class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                        <label for="admin_new_password"
+                            class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
                             Mật khẩu mới <span class="text-red-500">*</span>
                         </label>
-                        <input 
-                            type="text" 
-                            name="password" 
-                            id="admin_new_password" 
-                            required 
-                            minlength="6"
+                        <input type="text" name="password" id="admin_new_password" required minlength="6"
                             placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
-                            class="w-full text-sm rounded-lg border border-gray-300 px-3.5 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition font-mono"
-                        >
+                            class="w-full text-sm rounded-lg border border-gray-300 px-3.5 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition font-mono">
                     </div>
 
                     <div class="pt-3 border-t border-gray-100 flex items-center justify-end gap-2.5">
-                        <button type="button" onclick="closeAdminResetModal()" class="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-xs sm:text-sm font-semibold transition cursor-pointer">
+                        <button type="button" onclick="closeAdminResetModal()"
+                            class="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-xs sm:text-sm font-semibold transition cursor-pointer">
                             Hủy bỏ
                         </button>
-                        <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition cursor-pointer">
+                        <button type="submit"
+                            class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition cursor-pointer">
                             Lưu mật khẩu mới
                         </button>
                     </div>
@@ -406,7 +451,7 @@
             var m = document.getElementById('adminResetPasswordModal');
             if (m) {
                 m.classList.remove('hidden');
-                setTimeout(function() { if (input) input.focus(); }, 100);
+                setTimeout(function () { if (input) input.focus(); }, 100);
             }
         }
 
