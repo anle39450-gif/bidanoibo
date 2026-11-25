@@ -184,7 +184,7 @@ class User extends Authenticatable
         }
 
         return $this->memoizedUnpaidDebtsCount = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
-            ->where('prize_status', '!=', 'paid')
+            ->whereNotIn('prize_status', ['paid', 'confirmed'])
             ->where(function ($q) {
                 $q->where('loser_id', $this->id)
                     ->orWhere('loser_partner_id', $this->id);
@@ -199,7 +199,7 @@ class User extends Authenticatable
         }
 
         return $this->memoizedPaidDebtsCount = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
-            ->where('prize_status', 'paid')
+            ->whereIn('prize_status', ['paid', 'confirmed'])
             ->where(function ($q) {
                 $q->where('loser_id', $this->id)
                     ->orWhere('loser_partner_id', $this->id);
@@ -216,7 +216,7 @@ class User extends Authenticatable
         }
 
         return $this->memoizedUnpaidReceivablesCount = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
-            ->where('prize_status', '!=', 'paid')
+            ->whereNotIn('prize_status', ['confirmed'])
             ->where(function ($q) {
                 $q->where('winner_id', $this->id)
                     ->orWhere('winner_partner_id', $this->id);

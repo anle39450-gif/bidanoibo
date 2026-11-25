@@ -30,6 +30,9 @@ class BilliardMatch extends Model
         'prize_paid_at',
         'prize_paid_by',
         'prize_notes',
+        'prize_confirmed_at',
+        'prize_confirmed_by',
+        'prize_feedback',
         'notes',
         'evidence_path',
         'status',
@@ -49,6 +52,7 @@ class BilliardMatch extends Model
         return [
             'played_at' => 'datetime',
             'prize_paid_at' => 'datetime',
+            'prize_confirmed_at' => 'datetime',
             'notified_at' => 'datetime',
             'auto_confirm_at' => 'datetime',
             'confirmed_at' => 'datetime',
@@ -106,6 +110,11 @@ class BilliardMatch extends Model
         return $this->belongsTo(User::class, 'prize_paid_by');
     }
 
+    public function prizeConfirmedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'prize_confirmed_by');
+    }
+
     public function histories(): HasMany
     {
         return $this->hasMany(MatchHistory::class, 'billiard_match_id')->orderBy('created_at', 'desc');
@@ -134,15 +143,40 @@ class BilliardMatch extends Model
 
     public function scopePrizePaid(Builder $query): Builder
     {
-        return $query->where('prize_status', 'paid');
+        return $query->whereIn('prize_status', ['paid', 'confirmed']);
     }
 
     public function scopePrizeUnpaid(Builder $query): Builder
     {
-        return $query->where('prize_status', '!=', 'paid');
+        return $query->whereNotIn('prize_status', ['paid', 'confirmed']);
+    }
+
+    public function scopePrizeConfirmed(Builder $query): Builder
+    {
+        return $query->where('prize_status', 'confirmed');
+    }
+
+    public function scopePrizeRejected(Builder $query): Builder
+    {
+        return $query->where('prize_status', 'rejected');
     }
 
     public function isPrizePaid(): bool
+    {
+        return in_array($this->prize_status, ['paid', 'confirmed']);
+    }
+
+    public function isPrizeConfirmed(): bool
+    {
+        return $this->prize_status === 'confirmed';
+    }
+
+    public function isPrizeRejected(): bool
+    {
+        return $this->prize_status === 'rejected';
+    }
+
+    public function isPrizePendingConfirmation(): bool
     {
         return $this->prize_status === 'paid';
     }
@@ -159,6 +193,18 @@ class BilliardMatch extends Model
         ]));
     }
 
+    public function isUserRecipient(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return in_array($user->id, array_filter([
+            $this->winner_id,
+            $this->winner_partner_id,
+        ]));
+    }
+
     public function canUserPayPrize(?User $user): bool
     {
         if (! $user) {
@@ -169,7 +215,8 @@ class BilliardMatch extends Model
             return false;
         }
 
-        if ($this->isPrizePaid()) {
+        // Once confirmed OK, the prize is completely settled
+        if ($this->isPrizeConfirmed()) {
             return false;
         }
 
@@ -177,12 +224,24 @@ class BilliardMatch extends Model
             return true;
         }
 
-        return in_array($user->id, array_filter([
-            $this->loser_id,
-            $this->loser_partner_id,
-            $this->winner_id,
-            $this->winner_partner_id,
-        ]));
+        return $this->isUserDebtor($user);
+    }
+
+    public function canUserConfirmPrize(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if (! in_array($this->status, ['confirmed', 'resolved'])) {
+            return false;
+        }
+
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $this->isUserRecipient($user);
     }
 
     public function isDoubles(): bool

@@ -34,6 +34,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/matches/{match}/confirm', [MatchController::class, 'confirm'])->name('matches.confirm');
     Route::post('/matches/{match}/dispute', [MatchController::class, 'dispute'])->name('matches.dispute');
     Route::post('/matches/{match}/pay-prize', [MatchController::class, 'payPrize'])->name('matches.pay-prize');
+    Route::post('/matches/{match}/confirm-prize', [MatchController::class, 'confirmPrize'])->name('matches.confirm-prize');
+    Route::post('/matches/{match}/reject-prize', [MatchController::class, 'rejectPrize'])->name('matches.reject-prize');
 
     // Leaderboard & Members
     Route::get('/leaderboard', [LeaderboardController::class, 'index'])->name('leaderboard');
@@ -51,6 +53,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/users/{user}/password', [AdminController::class, 'resetUserPassword'])->name('users.password');
         Route::post('/bot/config', [AdminController::class, 'updateBotConfig'])->name('bot.config');
         Route::post('/telegram/daily-report', [AdminController::class, 'sendDailyReport'])->name('telegram.daily-report');
+        Route::post('/telegram/invite-all', [AdminController::class, 'inviteGroupMembers'])->name('telegram.invite-all');
         Route::post('/logo', [AdminController::class, 'updateLogo'])->name('logo.update');
         Route::post('/logo/remove', [AdminController::class, 'removeLogo'])->name('logo.remove');
     });

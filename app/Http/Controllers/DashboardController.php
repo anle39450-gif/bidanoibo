@@ -43,21 +43,28 @@ class DashboardController extends Controller
 
         if ($currentUser) {
             $unpaidQuery = BilliardMatch::confirmed()
-                ->where('prize_status', '!=', 'paid')
+                ->whereNotIn('prize_status', ['confirmed'])
                 ->where(function ($q) use ($currentUser) {
                     $q->where('loser_id', $currentUser->id)
                         ->orWhere('loser_partner_id', $currentUser->id);
                 });
 
-            $myUnpaidDebtsCount = (clone $unpaidQuery)->count();
+            $myUnpaidDebtsCount = BilliardMatch::confirmed()
+                ->whereNotIn('prize_status', ['paid', 'confirmed'])
+                ->where(function ($q) use ($currentUser) {
+                    $q->where('loser_id', $currentUser->id)
+                        ->orWhere('loser_partner_id', $currentUser->id);
+                })
+                ->count();
+
             $myUnpaidMatches = (clone $unpaidQuery)
-                ->with(['winner', 'winnerPartner', 'loser', 'loserPartner'])
+                ->with(['winner', 'winnerPartner', 'loser', 'loserPartner', 'prizePaidBy', 'prizeConfirmedBy'])
                 ->orderBy('played_at', 'desc')
                 ->take(6)
                 ->get();
 
             $myPaidDebtsCount = BilliardMatch::confirmed()
-                ->where('prize_status', 'paid')
+                ->whereIn('prize_status', ['paid', 'confirmed'])
                 ->where(function ($q) use ($currentUser) {
                     $q->where('loser_id', $currentUser->id)
                         ->orWhere('loser_partner_id', $currentUser->id);
@@ -65,7 +72,7 @@ class DashboardController extends Controller
                 ->count();
 
             $receivablesQuery = BilliardMatch::confirmed()
-                ->where('prize_status', '!=', 'paid')
+                ->whereNotIn('prize_status', ['confirmed'])
                 ->where(function ($q) use ($currentUser) {
                     $q->where('winner_id', $currentUser->id)
                         ->orWhere('winner_partner_id', $currentUser->id);
@@ -73,7 +80,7 @@ class DashboardController extends Controller
 
             $myUnpaidReceivablesCount = (clone $receivablesQuery)->count();
             $myUnpaidReceivables = (clone $receivablesQuery)
-                ->with(['winner', 'winnerPartner', 'loser', 'loserPartner'])
+                ->with(['winner', 'winnerPartner', 'loser', 'loserPartner', 'prizePaidBy', 'prizeConfirmedBy'])
                 ->orderBy('played_at', 'desc')
                 ->take(6)
                 ->get();

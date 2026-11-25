@@ -438,9 +438,9 @@ class BilliardMatchService
             ]);
         }
 
-        if ($match->isPrizePaid()) {
+        if ($match->isPrizeConfirmed()) {
             throw ValidationException::withMessages([
-                'prize' => 'Kèo của trận đấu này đã được trả trước đó!',
+                'prize' => 'Kèo của trận đấu này đã được người nhận xác nhận Đã OK trước đó!',
             ]);
         }
 
@@ -456,11 +456,14 @@ class BilliardMatchService
                 'prize_paid_at' => Carbon::now(),
                 'prize_paid_by' => $user->id,
                 'prize_notes' => $note,
+                'prize_confirmed_at' => null,
+                'prize_confirmed_by' => null,
+                'prize_feedback' => null,
             ]);
 
             $actionNote = $match->isUserDebtor($user)
-                ? "{$user->name} đã trả kèo ({$match->prize})"
-                : "{$user->name} đã xác nhận hoàn thành trả kèo ({$match->prize})";
+                ? "{$user->name} đã thực hiện trả kèo ({$match->prize})"
+                : "{$user->name} đã ghi nhận trả kèo ({$match->prize})";
 
             if (! empty($note)) {
                 $actionNote .= ": {$note}";
@@ -487,10 +490,152 @@ class BilliardMatchService
                         'billiard_match_id' => $match->id,
                         'type' => 'prize_settled',
                         'title' => 'Kèo trận đấu đã được trả',
-                        'message' => "{$user->name} đã trả kèo '{$match->prize}' cho trận đấu #{$match->id}.",
+                        'message' => "{$user->name} đã thực hiện trả kèo '{$match->prize}' cho trận đấu #{$match->id}. Vui lòng kiểm tra và phản hồi (Đã OK hoặc Không đồng ý).",
                         'link' => "/matches/{$match->id}",
                     ]);
                 }
+            }
+
+            if ($this->telegramBot->isConfigured()) {
+                $this->telegramBot->sendPrizeNotification($match, $user, 'settled', $note);
+            }
+
+            return $match;
+        });
+    }
+
+    /**
+     * Recipient confirms "Đã OK" for prize.
+     *
+     * @throws ValidationException
+     */
+    public function confirmPrize(BilliardMatch $match, User $user, ?string $note = null): BilliardMatch
+    {
+        if (! in_array($match->status, ['confirmed', 'resolved'])) {
+            throw ValidationException::withMessages([
+                'prize' => 'Chỉ có thể xác nhận kèo cho trận đấu đã được ghi nhận kết quả!',
+            ]);
+        }
+
+        if ($match->isPrizeConfirmed()) {
+            throw ValidationException::withMessages([
+                'prize' => 'Kèo của trận đấu này đã được xác nhận Đã OK trước đó!',
+            ]);
+        }
+
+        if (! $match->canUserConfirmPrize($user)) {
+            throw ValidationException::withMessages([
+                'prize' => 'Bạn không có quyền xác nhận nhận kèo cho trận đấu này!',
+            ]);
+        }
+
+        return DB::transaction(function () use ($match, $user, $note) {
+            $match->update([
+                'prize_status' => 'confirmed',
+                'prize_confirmed_at' => Carbon::now(),
+                'prize_confirmed_by' => $user->id,
+                'prize_feedback' => $note,
+            ]);
+
+            $actionNote = "{$user->name} đã xác nhận ĐÃ OK nhận kèo ({$match->prize})";
+            if (! empty($note)) {
+                $actionNote .= ": {$note}";
+            }
+
+            MatchHistory::create([
+                'billiard_match_id' => $match->id,
+                'user_id' => $user->id,
+                'action' => 'prize_confirmed',
+                'note' => $actionNote,
+                'created_at' => Carbon::now(),
+            ]);
+
+            // Notify debtor(s) that recipient confirmed OK
+            $recipients = array_filter([$match->loser, $match->loserPartner]);
+            foreach ($recipients as $recipient) {
+                if ($recipient && $recipient->id !== $user->id) {
+                    UserNotification::create([
+                        'user_id' => $recipient->id,
+                        'billiard_match_id' => $match->id,
+                        'type' => 'prize_confirmed',
+                        'title' => 'Kèo đã được người nhận xác nhận Đã OK',
+                        'message' => "{$user->name} đã xác nhận ĐÃ OK nhận kèo '{$match->prize}' cho trận đấu #{$match->id}.",
+                        'link' => "/matches/{$match->id}",
+                    ]);
+                }
+            }
+
+            if ($this->telegramBot->isConfigured()) {
+                $this->telegramBot->sendPrizeNotification($match, $user, 'confirmed', $note);
+            }
+
+            return $match;
+        });
+    }
+
+    /**
+     * Recipient rejects / disagrees with prize settlement.
+     *
+     * @throws ValidationException
+     */
+    public function rejectPrize(BilliardMatch $match, User $user, ?string $reason = null): BilliardMatch
+    {
+        if (! in_array($match->status, ['confirmed', 'resolved'])) {
+            throw ValidationException::withMessages([
+                'prize' => 'Chỉ có thể phản hồi cho trận đấu đã được ghi nhận kết quả!',
+            ]);
+        }
+
+        if ($match->isPrizeConfirmed()) {
+            throw ValidationException::withMessages([
+                'prize' => 'Kèo của trận đấu này đã được xác nhận Đã OK trước đó!',
+            ]);
+        }
+
+        if (! $match->canUserConfirmPrize($user)) {
+            throw ValidationException::withMessages([
+                'prize' => 'Bạn không có quyền phản hồi về việc trả kèo cho trận đấu này!',
+            ]);
+        }
+
+        return DB::transaction(function () use ($match, $user, $reason) {
+            $match->update([
+                'prize_status' => 'rejected',
+                'prize_confirmed_at' => Carbon::now(),
+                'prize_confirmed_by' => $user->id,
+                'prize_feedback' => $reason,
+            ]);
+
+            $actionNote = "{$user->name} đã phản hồi KHÔNG ĐỒNG Ý với việc trả kèo ({$match->prize})";
+            if (! empty($reason)) {
+                $actionNote .= ". Lý do: {$reason}";
+            }
+
+            MatchHistory::create([
+                'billiard_match_id' => $match->id,
+                'user_id' => $user->id,
+                'action' => 'prize_rejected',
+                'note' => $actionNote,
+                'created_at' => Carbon::now(),
+            ]);
+
+            // Notify debtor(s) that recipient rejected
+            $recipients = array_filter([$match->loser, $match->loserPartner]);
+            foreach ($recipients as $recipient) {
+                if ($recipient && $recipient->id !== $user->id) {
+                    UserNotification::create([
+                        'user_id' => $recipient->id,
+                        'billiard_match_id' => $match->id,
+                        'type' => 'prize_rejected',
+                        'title' => 'Người nhận không đồng ý với việc trả kèo',
+                        'message' => "{$user->name} không đồng ý với việc trả kèo '{$match->prize}' cho trận đấu #{$match->id}.".(! empty($reason) ? " Lý do: {$reason}" : ''),
+                        'link' => "/matches/{$match->id}",
+                    ]);
+                }
+            }
+
+            if ($this->telegramBot->isConfigured()) {
+                $this->telegramBot->sendPrizeNotification($match, $user, 'rejected', $reason);
             }
 
             return $match;

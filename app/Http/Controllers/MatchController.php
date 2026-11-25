@@ -305,7 +305,43 @@ class MatchController extends Controller
         try {
             $this->matchService->settlePrize($match, $currentUser, $request->input('note'));
 
-            return back()->with('success', 'Đã cập nhật trạng thái trả kèo thành công!');
+            return back()->with('success', 'Đã cập nhật trạng thái trả kèo thành công! Hệ thống đã gửi thông báo đến người nhận.');
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function confirmPrize(Request $request, BilliardMatch $match): RedirectResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = Auth::user();
+
+        $request->validate([
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $this->matchService->confirmPrize($match, $currentUser, $request->input('note'));
+
+            return back()->with('success', 'Bạn đã xác nhận ĐÃ OK nhận kèo thành công!');
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function rejectPrize(Request $request, BilliardMatch $match): RedirectResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = Auth::user();
+
+        $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $this->matchService->rejectPrize($match, $currentUser, $request->input('reason'));
+
+            return back()->with('success', 'Đã gửi phản hồi không đồng ý với việc trả kèo!');
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }

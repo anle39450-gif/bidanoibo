@@ -218,6 +218,17 @@ class AdminController extends Controller
         return back()->with('error', $result['message']);
     }
 
+    public function inviteGroupMembers(): RedirectResponse
+    {
+        $result = $this->telegramBot->inviteAllConnectedUsers();
+
+        if ($result['success']) {
+            return back()->with('success', $result['message']);
+        }
+
+        return back()->with('warning', $result['message']);
+    }
+
     public function updateLogo(Request $request): RedirectResponse
     {
         $request->validate([

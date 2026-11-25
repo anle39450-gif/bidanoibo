@@ -289,3 +289,126 @@ test('user can pay prize via web route', function () {
     expect($match->prize_paid_by)->toBe($loser->id);
     expect($match->prize_notes)->toBe('Đã bao ăn trưa');
 });
+
+test('recipient can confirm prize as OK', function () {
+    $winner = User::factory()->create();
+    $loser = User::factory()->create();
+
+    $match = BilliardMatch::create([
+        'creator_id' => $winner->id,
+        'player1_id' => $winner->id,
+        'player2_id' => $loser->id,
+        'winner_id' => $winner->id,
+        'loser_id' => $loser->id,
+        'played_at' => Carbon::now(),
+        'prize' => 'Ly cà phê',
+        'status' => 'confirmed',
+        'prize_status' => 'paid',
+        'prize_paid_by' => $loser->id,
+        'prize_paid_at' => Carbon::now(),
+    ]);
+
+    $matchService = app(BilliardMatchService::class);
+    $matchService->confirmPrize($match, $winner, 'Đã nhận đủ');
+
+    $match->refresh();
+    expect($match->isPrizeConfirmed())->toBeTrue();
+    expect($match->prize_status)->toBe('confirmed');
+    expect($match->prize_confirmed_by)->toBe($winner->id);
+    expect($match->prize_feedback)->toBe('Đã nhận đủ');
+    expect($match->prize_confirmed_at)->not->toBeNull();
+
+    // Check loser received notification
+    $notification = UserNotification::where('user_id', $loser->id)->where('type', 'prize_confirmed')->first();
+    expect($notification)->not->toBeNull();
+});
+
+test('recipient can reject prize and debtor can pay again', function () {
+    $winner = User::factory()->create();
+    $loser = User::factory()->create();
+
+    $match = BilliardMatch::create([
+        'creator_id' => $winner->id,
+        'player1_id' => $winner->id,
+        'player2_id' => $loser->id,
+        'winner_id' => $winner->id,
+        'loser_id' => $loser->id,
+        'played_at' => Carbon::now(),
+        'prize' => 'Ly cà phê',
+        'status' => 'confirmed',
+        'prize_status' => 'paid',
+        'prize_paid_by' => $loser->id,
+        'prize_paid_at' => Carbon::now(),
+    ]);
+
+    $matchService = app(BilliardMatchService::class);
+
+    // 1. Recipient rejects
+    $matchService->rejectPrize($match, $winner, 'Chưa thấy gửi nước');
+
+    $match->refresh();
+    expect($match->isPrizeRejected())->toBeTrue();
+    expect($match->prize_status)->toBe('rejected');
+    expect($match->prize_feedback)->toBe('Chưa thấy gửi nước');
+
+    // Debtor gets notification
+    $notification = UserNotification::where('user_id', $loser->id)->where('type', 'prize_rejected')->first();
+    expect($notification)->not->toBeNull();
+
+    // 2. Debtor can pay again without being blocked
+    expect($match->canUserPayPrize($loser))->toBeTrue();
+    $matchService->settlePrize($match, $loser, 'Đã mua nước mang đến tận bàn');
+
+    $match->refresh();
+    expect($match->prize_status)->toBe('paid');
+    expect($match->prize_notes)->toBe('Đã mua nước mang đến tận bàn');
+    expect($match->prize_feedback)->toBeNull();
+});
+
+test('recipient can confirm or reject prize via web routes', function () {
+    $winner = User::factory()->create();
+    $loser = User::factory()->create();
+
+    $match = BilliardMatch::create([
+        'creator_id' => $winner->id,
+        'player1_id' => $winner->id,
+        'player2_id' => $loser->id,
+        'winner_id' => $winner->id,
+        'loser_id' => $loser->id,
+        'played_at' => Carbon::now(),
+        'prize' => 'Trà sữa',
+        'status' => 'confirmed',
+        'prize_status' => 'paid',
+        'prize_paid_by' => $loser->id,
+        'prize_paid_at' => Carbon::now(),
+    ]);
+
+    // Stranger cannot reject or confirm
+    $stranger = User::factory()->create();
+    $this->actingAs($stranger)->post(route('matches.reject-prize', $match->id))->assertSessionHas('error');
+    $this->actingAs($stranger)->post(route('matches.confirm-prize', $match->id))->assertSessionHas('error');
+
+    // Winner rejects
+    $response = $this->actingAs($winner)->post(route('matches.reject-prize', $match->id), [
+        'reason' => 'Chưa nhận được',
+    ]);
+    $response->assertSessionHas('success');
+    $match->refresh();
+    expect($match->prize_status)->toBe('rejected');
+
+    // Loser pays again
+    $this->actingAs($loser)->post(route('matches.pay-prize', $match->id), [
+        'note' => 'Đã chuyển khoản qua Momo',
+    ])->assertSessionHas('success');
+    $match->refresh();
+    expect($match->prize_status)->toBe('paid');
+
+    // Winner confirms OK
+    $responseOk = $this->actingAs($winner)->post(route('matches.confirm-prize', $match->id), [
+        'note' => 'Đã nhận chuyển khoản',
+    ]);
+    $responseOk->assertSessionHas('success');
+    $match->refresh();
+    expect($match->prize_status)->toBe('confirmed');
+    expect($match->isPrizeConfirmed())->toBeTrue();
+});

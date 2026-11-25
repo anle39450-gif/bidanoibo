@@ -109,16 +109,29 @@
                                         <div class="font-bold text-gray-900 flex items-center gap-2">
                                             <span>Thua trước: <span class="text-blue-700">{{ $debtMatch->winner_names }}</span></span>
                                             <span class="text-xs text-gray-400 font-normal font-mono">({{ $debtMatch->played_at->format('d/m/Y') }})</span>
+                                            @if($debtMatch->prize_status === 'rejected')
+                                                <span class="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded font-bold">Người nhận không đồng ý</span>
+                                            @elseif($debtMatch->prize_status === 'paid')
+                                                <span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-bold">Đã trả kèo (Chờ đối thủ OK)</span>
+                                            @endif
                                         </div>
                                         <div class="text-xs text-gray-600 mt-0.5">
                                             Kèo phải trả: <b class="text-amber-900 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded">{{ $debtMatch->prize }}</b>
+                                            @if($debtMatch->prize_notes)
+                                                <span class="text-gray-500 italic ml-1">"{{ $debtMatch->prize_notes }}"</span>
+                                            @endif
                                         </div>
+                                        @if($debtMatch->prize_status === 'rejected' && $debtMatch->prize_feedback)
+                                            <div class="text-xs text-red-600 mt-1 italic font-medium">
+                                                Lý do không đồng ý: "{{ $debtMatch->prize_feedback }}"
+                                            </div>
+                                        @endif
                                     </div>
                                     <div class="flex items-center gap-2 shrink-0">
                                         <form method="POST" action="{{ route('matches.pay-prize', $debtMatch->id) }}" onsubmit="return confirm('Xác nhận bạn đã trả kèo \'{{ $debtMatch->prize }}\' cho trận đấu này?')">
                                             @csrf
                                             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-3.5 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
-                                                Trả kèo ngay
+                                                {{ $debtMatch->prize_status === 'rejected' ? 'Trả kèo lại' : ($debtMatch->prize_status === 'paid' ? 'Cập nhật trả kèo' : 'Trả kèo ngay') }}
                                             </button>
                                         </form>
                                         <a href="{{ route('matches.show', $debtMatch->id) }}" class="text-xs text-blue-600 hover:underline font-medium">
@@ -136,7 +149,7 @@
                     <div class="bg-blue-50/60 border border-blue-200 rounded-lg p-4 mt-2">
                         <div class="text-sm font-bold text-blue-900 flex items-center justify-between mb-2.5">
                             <span>Kèo đối thủ chưa trả cho bạn (Chờ nhận: {{ $myUnpaidReceivablesCount }} trận)</span>
-                            <span class="text-xs text-blue-700 font-normal">Trận bạn thắng đối thủ chưa trả kèo</span>
+                            <span class="text-xs text-blue-700 font-normal">Trận bạn thắng đối thủ chưa hoàn tất trả kèo</span>
                         </div>
                         <div class="divide-y divide-blue-200/60 space-y-2">
                             @foreach($myUnpaidReceivables as $recMatch)
@@ -145,12 +158,38 @@
                                         <div class="font-bold text-gray-900 flex items-center gap-2">
                                             <span>Thắng trước: <span class="text-red-600">{{ $recMatch->loser_names }}</span></span>
                                             <span class="text-xs text-gray-400 font-normal font-mono">({{ $recMatch->played_at->format('d/m/Y') }})</span>
+                                            @if($recMatch->prize_status === 'paid')
+                                                <span class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded font-bold">Đối thủ đã trả (Cần bạn xác nhận)</span>
+                                            @elseif($recMatch->prize_status === 'rejected')
+                                                <span class="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded font-bold">Bạn đã phản hồi Không đồng ý</span>
+                                            @else
+                                                <span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded font-bold">Chưa trả</span>
+                                            @endif
                                         </div>
                                         <div class="text-xs text-gray-600 mt-0.5">
                                             Kèo chờ nhận: <b class="text-blue-900 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded">{{ $recMatch->prize }}</b>
+                                            @if($recMatch->prize_notes)
+                                                <span class="text-gray-500 italic ml-1">Ghi chú đối thủ: "{{ $recMatch->prize_notes }}"</span>
+                                            @endif
                                         </div>
+                                        @if($recMatch->prize_status === 'rejected' && $recMatch->prize_feedback)
+                                            <div class="text-xs text-red-600 mt-1 italic font-medium">
+                                                Lý do bạn từ chối: "{{ $recMatch->prize_feedback }}"
+                                            </div>
+                                        @endif
                                     </div>
                                     <div class="flex items-center gap-2 shrink-0">
+                                        @if($recMatch->prize_status === 'paid')
+                                            <form method="POST" action="{{ route('matches.confirm-prize', $recMatch->id) }}" onsubmit="return confirm('Xác nhận bạn ĐÃ OK / đã nhận đủ kèo \'{{ $recMatch->prize }}\'?')">
+                                                @csrf
+                                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
+                                                    Đã OK
+                                                </button>
+                                            </form>
+                                            <button type="button" onclick="openRejectPrizeModal({{ $recMatch->id }}, '{{ addslashes($recMatch->prize) }}', '{{ addslashes($recMatch->loser_names) }}')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-xs px-2.5 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
+                                                Không đồng ý
+                                            </button>
+                                        @endif
                                         <a href="{{ route('matches.show', $recMatch->id) }}" class="text-xs text-blue-600 hover:underline font-medium">
                                             Xem chi tiết →
                                         </a>
@@ -353,4 +392,49 @@
         </div>
 
     </div>
+
+    <!-- Reject Prize Feedback Modal -->
+    <div id="rejectPrizeModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="fixed inset-0 bg-gray-900/60" onclick="closeRejectPrizeModal()"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-xl p-6 max-w-md w-full shadow-2xl border border-gray-200 space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-900">Phản Hồi Không Đồng Ý Trả Kèo</h3>
+                    <button type="button" onclick="closeRejectPrizeModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
+                </div>
+
+                <div class="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-900">
+                    <div><b>Kèo:</b> <span id="rejectModalPrize"></span></div>
+                    <div class="mt-1"><b>Người trả:</b> <span id="rejectModalDebtor"></span></div>
+                </div>
+
+                <form id="rejectPrizeForm" method="POST" action="" class="space-y-4 text-sm">
+                    @csrf
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-1.5">Lý do không đồng ý (tùy chọn)</label>
+                        <input type="text" name="reason" placeholder="VD: Chưa nhận được nước, chưa thấy chuyển khoản..." class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500">
+                    </div>
+
+                    <div class="flex justify-end gap-2.5 pt-3 border-t border-gray-200">
+                        <button type="button" onclick="closeRejectPrizeModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 font-medium hover:bg-gray-50 cursor-pointer">Hủy</button>
+                        <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-semibold cursor-pointer shadow-sm">
+                            Xác nhận Không đồng ý
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openRejectPrizeModal(matchId, prize, debtor) {
+            document.getElementById('rejectModalPrize').textContent = prize;
+            document.getElementById('rejectModalDebtor').textContent = debtor;
+            document.getElementById('rejectPrizeForm').action = '/matches/' + matchId + '/reject-prize';
+            document.getElementById('rejectPrizeModal').classList.remove('hidden');
+        }
+        function closeRejectPrizeModal() {
+            document.getElementById('rejectPrizeModal').classList.add('hidden');
+        }
+    </script>
 @endsection

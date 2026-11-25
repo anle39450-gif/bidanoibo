@@ -235,9 +235,17 @@
 
                 <div>
                     <label class="block font-semibold text-gray-700 mb-1.5">Group Chat ID (ID Nhóm nhận thông báo)</label>
-                    <input type="text" name="group_chat_id" value="{{ $botConfig->group_chat_id }}" placeholder="-1001234567890" class="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <p class="text-xs text-gray-500 mt-1">
-                        Mẹo: Thêm Bot vào nhóm bida, gõ lệnh <code class="bg-gray-100 px-1 py-0.5 rounded text-blue-600 font-mono">/id</code> để lấy mã Chat ID nhóm (thường bắt đầu bằng dấu trừ, ví dụ: <code class="text-gray-700">-10022334455</code>).
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" name="group_chat_id" value="{{ $botConfig->group_chat_id }}" placeholder="-1001234567890" class="flex-1 border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        @if($botConfig->bot_username)
+                            <a href="https://t.me/{{ $botConfig->bot_username }}?startgroup=true" target="_blank" class="inline-flex items-center justify-center gap-1.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs px-3.5 py-2 rounded-lg shadow-xs transition shrink-0 cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                <span>Tạo nhóm / Thêm Bot</span>
+                            </a>
+                        @endif
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                        <b>Tự động gán nhóm:</b> Nhấn nút <b>"Tạo nhóm / Thêm Bot"</b> ở trên để mở Telegram. Bạn có thể chọn <i>"New Group" (Tạo nhóm mới)</i> hoặc chọn nhóm có sẵn. Ngay khi Bot được thêm vào nhóm, hệ thống sẽ <b>tự động lưu Group Chat ID</b> vào web mà bạn không cần gõ thủ công!
                     </p>
                 </div>
 
@@ -287,18 +295,34 @@
 
                 <div class="flex flex-col justify-center items-start bg-blue-50/50 rounded-lg p-4 border border-blue-100 space-y-3">
                     <div class="text-xs text-gray-700">
-                        Admin có thể kích hoạt gửi báo cáo ngay lập tức về nhóm chat bất cứ lúc nào bằng nút bên dưới:
+                        Admin có thể kích hoạt gửi báo cáo ngay lập tức về nhóm chat hoặc mời tất cả cơ thủ đã liên kết Telegram tham gia nhóm:
                     </div>
-                    <form method="POST" action="{{ route('admin.telegram.daily-report') }}">
-                        @csrf
-                        <button 
-                            type="submit" 
-                            class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-lg text-sm shadow-sm transition cursor-pointer"
-                        >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                            <span>Gửi Báo Cáo Telegram Ngay</span>
-                        </button>
-                    </form>
+                    <div class="flex flex-wrap items-center gap-2.5 pt-1">
+                        <form method="POST" action="{{ route('admin.telegram.daily-report') }}">
+                            @csrf
+                            <button 
+                                type="submit" 
+                                class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3.5 py-2 rounded-lg text-xs sm:text-sm shadow-sm transition cursor-pointer"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                <span>Gửi Báo Cáo Ngay</span>
+                            </button>
+                        </form>
+
+                        @if($botConfig->group_chat_id)
+                            <form method="POST" action="{{ route('admin.telegram.invite-all') }}">
+                                @csrf
+                                <button 
+                                    type="submit" 
+                                    class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3.5 py-2 rounded-lg text-xs sm:text-sm shadow-sm transition cursor-pointer"
+                                    title="Gửi tin nhắn riêng mời các cơ thủ vào nhóm"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                                    <span>Mời cơ thủ vào nhóm</span>
+                                </button>
+                            </form>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>

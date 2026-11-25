@@ -125,6 +125,50 @@ class TelegramBotService
         }
     }
 
+    public function sendPrizeNotification(BilliardMatch $match, User $actor, string $actionType, ?string $extraNote = null): void
+    {
+        $siteUrl = url("/matches/{$match->id}");
+        $recipients = [];
+
+        if ($actionType === 'settled') {
+            $recipients = array_filter([$match->winner, $match->winnerPartner]);
+            $text = "🎁 <b>THÔNG BÁO TRẢ KÈO (#{$match->id})</b>\n\n";
+            $text .= "👤 <b>Người trả:</b> {$actor->name}\n";
+            $text .= "🎁 <b>Kèo:</b> <b>{$match->prize}</b>\n";
+            if (! empty($extraNote)) {
+                $text .= "📝 <b>Ghi chú:</b> {$extraNote}\n";
+            }
+            $text .= "\n👉 Vui lòng kiểm tra và phản hồi (Đã OK hoặc Không đồng ý):\n";
+            $text .= "<a href=\"{$siteUrl}\">👉 Xem và phản hồi trên website</a>";
+        } elseif ($actionType === 'confirmed') {
+            $recipients = array_filter([$match->loser, $match->loserPartner]);
+            $text = "✅ <b>KÈO ĐÃ ĐƯỢC XÁC NHẬN ĐÃ OK (#{$match->id})</b>\n\n";
+            $text .= "👤 <b>Người nhận:</b> {$actor->name} đã xác nhận <b>ĐÃ OK</b> nhận kèo <b>{$match->prize}</b>!\n";
+            if (! empty($extraNote)) {
+                $text .= "📝 <b>Ghi chú:</b> {$extraNote}\n";
+            }
+            $text .= "\n🎉 Trận đấu #{$match->id} đã hoàn tất thanh toán sòng phẳng!\n";
+            $text .= "<a href=\"{$siteUrl}\">👉 Xem chi tiết trận đấu</a>";
+        } elseif ($actionType === 'rejected') {
+            $recipients = array_filter([$match->loser, $match->loserPartner]);
+            $text = "⚠️ <b>PHẢN HỒI KHÔNG ĐỒNG Ý TRẢ KÈO (#{$match->id})</b>\n\n";
+            $text .= "👤 <b>Người nhận:</b> {$actor->name} đã phản hồi <b>KHÔNG ĐỒNG Ý</b> với việc trả kèo <b>{$match->prize}</b>.\n";
+            if (! empty($extraNote)) {
+                $text .= "📝 <b>Lý do:</b> {$extraNote}\n";
+            }
+            $text .= "\n👉 Bạn có thể kiểm tra lại và thực hiện trả lại kèo trên website:\n";
+            $text .= "<a href=\"{$siteUrl}\">👉 Xem chi tiết trận đấu</a>";
+        } else {
+            return;
+        }
+
+        foreach ($recipients as $recipient) {
+            if ($recipient && $recipient->telegram_id && $recipient->id !== $actor->id) {
+                $this->sendMessage($recipient->telegram_id, $text);
+            }
+        }
+    }
+
     /**
      * Build formatted daily report text.
      */
@@ -153,7 +197,7 @@ class TelegramBotService
 
         // 2. Unpaid debts list
         $unpaidMatches = BilliardMatch::confirmed()
-            ->where('prize_status', '!=', 'paid')
+            ->whereNotIn('prize_status', ['paid', 'confirmed'])
             ->with(['winner', 'winnerPartner', 'loser', 'loserPartner'])
             ->orderBy('played_at', 'asc')
             ->get();
@@ -294,20 +338,161 @@ class TelegramBotService
     }
 
     /**
+     * Get or create invite link for the connected Telegram group.
+     */
+    public function getGroupInviteLink(?string $chatId = null): ?string
+    {
+        if (! $this->isConfigured()) {
+            return null;
+        }
+
+        $config = TelegramBotConfig::current();
+        $targetChatId = $chatId ?: ($config->group_chat_id ?: config('services.telegram.group_chat_id'));
+
+        if (! $targetChatId) {
+            return null;
+        }
+
+        try {
+            $res = $this->client()->post("https://api.telegram.org/bot{$this->token}/exportChatInviteLink", [
+                'chat_id' => $targetChatId,
+            ]);
+
+            if ($res->successful() && ! empty($res->json('result'))) {
+                return $res->json('result');
+            }
+
+            $res2 = $this->client()->post("https://api.telegram.org/bot{$this->token}/createChatInviteLink", [
+                'chat_id' => $targetChatId,
+                'name' => 'Bida Noi Bo',
+            ]);
+
+            if ($res2->successful() && ! empty($res2->json('result.invite_link'))) {
+                return $res2->json('result.invite_link');
+            }
+        } catch (\Throwable $e) {
+            Log::error('Telegram getGroupInviteLink error: '.$e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Broadcast an invitation message with the group link to all connected users.
+     *
+     * @return array{success: bool, sent_count: int, invite_link: ?string, message: string}
+     */
+    public function inviteAllConnectedUsers(?string $chatId = null): array
+    {
+        if (! $this->isConfigured()) {
+            return [
+                'success' => false,
+                'sent_count' => 0,
+                'invite_link' => null,
+                'message' => 'Telegram Bot chưa được cấu hình token!',
+            ];
+        }
+
+        $config = TelegramBotConfig::current();
+        $targetChatId = $chatId ?: ($config->group_chat_id ?: config('services.telegram.group_chat_id'));
+
+        if (! $targetChatId) {
+            return [
+                'success' => false,
+                'sent_count' => 0,
+                'invite_link' => null,
+                'message' => 'Chưa cấu hình hoặc kết nối Group Chat ID!',
+            ];
+        }
+
+        $inviteLink = $this->getGroupInviteLink($targetChatId);
+
+        $connectedUsers = User::where('is_active', true)
+            ->whereNotNull('telegram_id')
+            ->get();
+
+        if ($connectedUsers->isEmpty()) {
+            return [
+                'success' => false,
+                'sent_count' => 0,
+                'invite_link' => $inviteLink,
+                'message' => 'Chưa có cơ thủ nào liên kết tài khoản với Telegram!',
+            ];
+        }
+
+        $text = "🎱 <b>MỜI THAM GIA NHÓM CHAT BIDA NỘI BỘ</b>\n\n";
+        $text .= "Nhóm Telegram chính thức của CLB Bida Nội Bộ đã được kết nối!\n";
+        if ($inviteLink) {
+            $text .= "👉 Nhấn vào đường link sau để tham gia nhóm ngay:\n<a href=\"{$inviteLink}\">{$inviteLink}</a>\n\n";
+        }
+        $text .= 'Tất cả thông báo thi đấu, kết quả trận và báo cáo nợ kèo hàng ngày (8:30 sáng) sẽ được gửi trong nhóm này.';
+
+        $sentCount = 0;
+        foreach ($connectedUsers as $user) {
+            if ($this->sendMessage($user->telegram_id, $text)) {
+                $sentCount++;
+            }
+        }
+
+        return [
+            'success' => $sentCount > 0,
+            'sent_count' => $sentCount,
+            'invite_link' => $inviteLink,
+            'message' => "Đã gửi lời mời tham gia nhóm tới {$sentCount} cơ thủ đã liên kết Telegram!",
+        ];
+    }
+
+    /**
      * Handle Telegram incoming Webhook updates.
      */
     public function handleWebhook(array $update, BilliardMatchService $matchService, BilliardStatsService $statsService): void
     {
-        // 1. Handle Callback Query (Inline buttons)
+        // 1. Handle Bot added to group or membership change (my_chat_member)
+        if (isset($update['my_chat_member'])) {
+            $this->handleMyChatMember($update['my_chat_member']);
+
+            return;
+        }
+
+        // 2. Handle Callback Query (Inline buttons)
         if (isset($update['callback_query'])) {
             $this->handleCallbackQuery($update['callback_query'], $matchService);
 
             return;
         }
 
-        // 2. Handle Message
+        // 3. Handle Message
         if (isset($update['message'])) {
             $this->handleMessage($update['message'], $matchService, $statsService);
+        }
+    }
+
+    /**
+     * Handle my_chat_member update when bot is added to or promoted in a group.
+     */
+    public function handleMyChatMember(array $memberUpdate): void
+    {
+        $chat = $memberUpdate['chat'] ?? [];
+        $chatId = $chat['id'] ?? null;
+        $chatTitle = $chat['title'] ?? 'Nhóm Bida';
+        $chatType = $chat['type'] ?? '';
+        $newStatus = $memberUpdate['new_chat_member']['status'] ?? '';
+
+        if ($chatId && in_array($chatType, ['group', 'supergroup']) && in_array($newStatus, ['member', 'administrator'])) {
+            // Auto-bind group_chat_id!
+            $config = TelegramBotConfig::current();
+            $config->update(['group_chat_id' => (string) $chatId]);
+
+            $welcomeText = "🎉 <b>KẾT NỐI NHÓM THÀNH CÔNG!</b>\n\n"
+                ."Nhóm <b>{$chatTitle}</b> đã được tự động kết nối với <b>Hệ Thống Bida Nội Bộ</b>!\n\n"
+                ."• <b>Group Chat ID:</b> <code>{$chatId}</code> (Đã tự động gán vào website)\n"
+                ."• <b>Thông báo:</b> Tất cả trận đấu mới, kết quả, trả kèo và báo cáo hàng ngày (8:30 sáng) sẽ được gửi vào đây.\n\n"
+                .'⚡ Gõ <code>/help</code> để xem danh sách lệnh bot hỗ trợ.';
+
+            $this->sendMessage($chatId, $welcomeText);
+
+            // Automatically send invitation message to all connected members
+            $this->inviteAllConnectedUsers((string) $chatId);
         }
     }
 
@@ -463,6 +648,17 @@ class TelegramBotService
         $text = trim($msg['text'] ?? '');
         $fromId = (string) ($msg['from']['id'] ?? '');
         $telegramUsername = $msg['from']['username'] ?? null;
+
+        // Auto-bind group if bot was added to a group via new_chat_members
+        if (! empty($msg['new_chat_members']) && $chatId < 0) {
+            $config = TelegramBotConfig::current();
+            $config->update(['group_chat_id' => (string) $chatId]);
+            $title = $msg['chat']['title'] ?? 'Nhóm Bida';
+            $this->sendMessage($chatId, "🎉 <b>KẾT NỐI NHÓM THÀNH CÔNG!</b>\n\nNhóm <b>{$title}</b> đã được tự động gán làm nhóm thông báo chính thức của Bida Nội Bộ! (Chat ID: <code>{$chatId}</code>)");
+            $this->inviteAllConnectedUsers((string) $chatId);
+
+            return;
+        }
 
         if (empty($text)) {
             return;
@@ -647,16 +843,41 @@ class TelegramBotService
             return;
         }
 
-        // 7. Command /help
+        // 7. Command /setgroup (Set current group as default notification group)
+        if ($rawCommand === '/setgroup') {
+            if ($chatId >= 0) {
+                $this->sendMessage($chatId, '⚠️ Lệnh <code>/setgroup</code> chỉ dùng bên trong Nhóm chat Telegram (không dùng trong chat riêng cá nhân)!');
+
+                return;
+            }
+
+            $config = TelegramBotConfig::current();
+            $config->update(['group_chat_id' => (string) $chatId]);
+            $title = $msg['chat']['title'] ?? 'Nhóm Bida';
+
+            $this->sendMessage(
+                $chatId,
+                "✅ <b>ĐÃ GÁN NHÓM THÀNH CÔNG!</b>\n\n"
+                ."Nhóm <b>{$title}</b> (ID: <code>{$chatId}</code>) đã được cài đặt làm nhóm thông báo chính thức của hệ thống Bida Nội Bộ.\n"
+                .'Hệ thống đang gửi thông báo mời tham gia nhóm cho các cơ thủ...'
+            );
+
+            $this->inviteAllConnectedUsers((string) $chatId);
+
+            return;
+        }
+
+        // 8. Command /help
         if ($rawCommand === '/help') {
             $helpText = "🎱 <b>HƯỚNG DẪN SỬ DỤNG BOT BIDA NỘI BỘ</b>\n\n";
             $helpText .= "🔑 <b>Đăng nhập / Đổi mật khẩu:</b>\n• <code>/login username password</code>\n• <code>/password [mật_khẩu_mới]</code>\n• <code>/logout</code>\n\n";
             $helpText .= "1️⃣ <b>Tạo trận ĐƠN (1vs1):</b>\n<code>/an binh</code>\nBot sẽ hiển thị nút chọn ai thắng để bạn bấm chọn!\n\n";
             $helpText .= "2️⃣ <b>Tạo trận ĐỔI (2vs2):</b>\n<code>/an binh vs cuong dung</code>\nBot hiển thị nút chọn Đội 1 Thắng hoặc Đội 2 Thắng!\n\n";
             $helpText .= "3️⃣ <b>Xác nhận kết quả:</b>\nĐối thủ nhận thông báo kèm nút [✅ Chấp nhận] và [❌ Khiếu nại] (Hạn chốt 24h).\n\n";
-            $helpText .= "4️⃣ <b>Các lệnh tra cứu & báo cáo:</b>\n";
+            $helpText .= "4️⃣ <b>Các lệnh tra cứu & quản lý nhóm:</b>\n";
             $helpText .= "• <code>/report</code> : Báo cáo tình hình & danh sách nợ kèo\n";
             $helpText .= "• <code>/id</code> : Lấy Chat ID của nhóm hoặc cá nhân\n";
+            $helpText .= "• <code>/setgroup</code> : Gán nhóm này làm nhóm thông báo chính thức\n";
             $helpText .= "• <code>/stats</code> : Thống kê cá nhân\n";
             $helpText .= "• <code>/rank</code> : Bảng xếp hạng Top 5 và Loser tháng\n";
             $helpText .= "• <code>/history</code> : 5 trận gần nhất\n";
@@ -1039,6 +1260,7 @@ class TelegramBotService
             ['command' => 'logout', 'description' => 'Đăng xuất khỏi Telegram Bot'],
             ['command' => 'report', 'description' => 'Xem báo cáo tình hình & nợ kèo hôm nay'],
             ['command' => 'id', 'description' => 'Lấy Chat ID nhóm hoặc cá nhân'],
+            ['command' => 'setgroup', 'description' => 'Gán nhóm này làm nhóm nhận thông báo'],
             ['command' => 'help', 'description' => 'Hướng dẫn sử dụng và cú pháp ghi trận'],
             ['command' => 'vs', 'description' => 'Tạo trận nhanh với bạn (VD: /vs binh)'],
             ['command' => 'stats', 'description' => 'Xem thống kê cá nhân và tỷ lệ thắng'],

@@ -183,3 +183,108 @@ test('admin can update bot config including group_chat_id', function () {
     expect($config->group_chat_id)->toBe('-10055443322');
     expect($config->bot_username)->toBe('UpdatedBot');
 });
+
+test('bot auto-binds group_chat_id when added to a group via my_chat_member', function () {
+    Http::fake([
+        'https://api.telegram.org/*/createChatInviteLink' => Http::response(['ok' => true, 'result' => ['invite_link' => 'https://t.me/+joinGroup123']], 200),
+        'https://api.telegram.org/*/exportChatInviteLink' => Http::response(['ok' => true, 'result' => 'https://t.me/+joinGroup123'], 200),
+        'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $connectedUser = User::factory()->create([
+        'telegram_id' => '888999',
+        'is_active' => true,
+    ]);
+
+    $botService = app(TelegramBotService::class);
+    $matchService = app(BilliardMatchService::class);
+    $statsService = app(BilliardStatsService::class);
+
+    $botService->handleWebhook([
+        'my_chat_member' => [
+            'chat' => [
+                'id' => -10044556677,
+                'title' => 'CLB Bida Cty',
+                'type' => 'supergroup',
+            ],
+            'new_chat_member' => [
+                'status' => 'member',
+            ],
+        ],
+    ], $matchService, $statsService);
+
+    $config = TelegramBotConfig::current();
+    expect($config->group_chat_id)->toBe('-10044556677');
+
+    // Check greeting sent to the group
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), 'sendMessage')
+            && $request['chat_id'] === -10044556677
+            && str_contains($request['text'], 'KẾT NỐI NHÓM THÀNH CÔNG');
+    });
+
+    // Check invitation sent to connected member
+    Http::assertSent(function ($request) use ($connectedUser) {
+        return str_contains($request->url(), 'sendMessage')
+            && (string) $request['chat_id'] === $connectedUser->telegram_id
+            && str_contains($request['text'], 'THAM GIA NHÓM CHAT BIDA NỘI BỘ');
+    });
+});
+
+test('bot auto-binds group when /setgroup command is sent in group', function () {
+    Http::fake([
+        'https://api.telegram.org/*/createChatInviteLink' => Http::response(['ok' => true, 'result' => ['invite_link' => 'https://t.me/+joinGroup123']], 200),
+        'https://api.telegram.org/*/exportChatInviteLink' => Http::response(['ok' => true, 'result' => 'https://t.me/+joinGroup123'], 200),
+        'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $botService = app(TelegramBotService::class);
+    $matchService = app(BilliardMatchService::class);
+    $statsService = app(BilliardStatsService::class);
+
+    $botService->handleWebhook([
+        'message' => [
+            'chat' => ['id' => -10033221100, 'type' => 'supergroup', 'title' => 'Bida VIP'],
+            'from' => ['id' => 123456],
+            'text' => '/setgroup',
+        ],
+    ], $matchService, $statsService);
+
+    $config = TelegramBotConfig::current();
+    expect($config->group_chat_id)->toBe('-10033221100');
+
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), 'sendMessage')
+            && $request['chat_id'] === -10033221100
+            && str_contains($request['text'], 'ĐÃ GÁN NHÓM THÀNH CÔNG');
+    });
+});
+
+test('admin can trigger invite all connected users from web', function () {
+    $admin = User::factory()->create([
+        'role' => 'admin',
+        'is_active' => true,
+    ]);
+
+    $connectedUser = User::factory()->create([
+        'telegram_id' => '777666',
+        'is_active' => true,
+    ]);
+
+    Http::fake([
+        'https://api.telegram.org/*/createChatInviteLink' => Http::response(['ok' => true, 'result' => ['invite_link' => 'https://t.me/+joinGroup123']], 200),
+        'https://api.telegram.org/*/exportChatInviteLink' => Http::response(['ok' => true, 'result' => 'https://t.me/+joinGroup123'], 200),
+        'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $response = $this->actingAs($admin)->post('/admin/telegram/invite-all');
+
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
+
+    Http::assertSent(function ($request) use ($connectedUser) {
+        return str_contains($request->url(), 'sendMessage')
+            && (string) $request['chat_id'] === $connectedUser->telegram_id
+            && str_contains($request['text'], 'THAM GIA NHÓM CHAT BIDA NỘI BỘ');
+    });
+});
