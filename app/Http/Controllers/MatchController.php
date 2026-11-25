@@ -194,10 +194,14 @@ class MatchController extends Controller
         $startOfCalendar = $startOfMonth->copy()->startOfWeek(Carbon::MONDAY);
         $endOfCalendar = $endOfMonth->copy()->endOfWeek(Carbon::SUNDAY);
 
-        $matches = BilliardMatch::with(['creator', 'player1', 'player2', 'player1Partner', 'player2Partner', 'winner', 'loser', 'winnerPartner', 'loserPartner'])
-            ->whereBetween('played_at', [$startOfCalendar->copy()->startOfDay(), $endOfCalendar->copy()->endOfDay()])
-            ->orderBy('played_at', 'desc')
-            ->get();
+        $matchesQuery = BilliardMatch::with(['creator', 'player1', 'player2', 'player1Partner', 'player2Partner', 'winner', 'loser', 'winnerPartner', 'loserPartner'])
+            ->whereBetween('played_at', [$startOfCalendar->copy()->startOfDay(), $endOfCalendar->copy()->endOfDay()]);
+
+        if (! (Auth::check() && Auth::user()->isAdmin())) {
+            $matchesQuery->where('is_hidden', false);
+        }
+
+        $matches = $matchesQuery->orderBy('played_at', 'desc')->get();
 
         $matchesByDate = [];
         foreach ($matches as $m) {
@@ -280,6 +284,16 @@ class MatchController extends Controller
 
     public function show(BilliardMatch $match): View
     {
+        $currentUser = Auth::user();
+
+        if ($match->trashed() && ! ($currentUser && $currentUser->isAdmin())) {
+            abort(404);
+        }
+
+        if ($match->is_hidden && ! ($currentUser && $currentUser->isAdmin())) {
+            abort(404);
+        }
+
         $this->matchService->autoConfirmExpiredMatches();
 
         $match->load([

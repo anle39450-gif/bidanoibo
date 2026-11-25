@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BilliardMatch extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'creator_id',
@@ -36,6 +37,7 @@ class BilliardMatch extends Model
         'notes',
         'evidence_path',
         'status',
+        'is_hidden',
         'notified_at',
         'auto_confirm_at',
         'confirmed_at',
@@ -57,6 +59,7 @@ class BilliardMatch extends Model
             'auto_confirm_at' => 'datetime',
             'confirmed_at' => 'datetime',
             'disputed_at' => 'datetime',
+            'is_hidden' => 'boolean',
         ];
     }
 
@@ -128,7 +131,7 @@ class BilliardMatch extends Model
     // Scopes
     public function scopeConfirmed(Builder $query): Builder
     {
-        return $query->whereIn('status', ['confirmed', 'resolved']);
+        return $query->whereIn('status', ['confirmed', 'resolved'])->where('is_hidden', false);
     }
 
     public function scopePending(Builder $query): Builder
@@ -179,6 +182,31 @@ class BilliardMatch extends Model
     public function isPrizePendingConfirmation(): bool
     {
         return $this->prize_status === 'paid';
+    }
+
+    public function scopeVisible(Builder $query): Builder
+    {
+        return $query->where('is_hidden', false);
+    }
+
+    public function scopeHidden(Builder $query): Builder
+    {
+        return $query->where('is_hidden', true);
+    }
+
+    public function scopeCancelled(Builder $query): Builder
+    {
+        return $query->where('status', 'cancelled');
+    }
+
+    public function isHidden(): bool
+    {
+        return (bool) $this->is_hidden;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === 'cancelled';
     }
 
     public function isUserDebtor(?User $user): bool

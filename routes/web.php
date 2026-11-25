@@ -30,7 +30,7 @@ Route::middleware('auth')->group(function () {
     // Internal Dashboard & Matches
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/matches', [MatchController::class, 'index'])->name('matches.index');
-    Route::get('/matches/{match}', [MatchController::class, 'show'])->name('matches.show');
+    Route::get('/matches/{match}', [MatchController::class, 'show'])->name('matches.show')->withTrashed();
     Route::post('/matches', [MatchController::class, 'store'])->name('matches.store');
     Route::post('/matches/{match}/confirm', [MatchController::class, 'confirm'])->name('matches.confirm');
     Route::post('/matches/{match}/dispute', [MatchController::class, 'dispute'])->name('matches.dispute');
@@ -60,6 +60,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [AdminController::class, 'index'])->name('index');
         Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store');
         Route::post('/matches/{match}/resolve', [AdminController::class, 'resolveDispute'])->name('matches.resolve');
+        Route::post('/matches/{match}/cancel', [AdminController::class, 'cancelMatch'])->name('matches.cancel');
+        Route::post('/matches/{match}/toggle-hidden', [AdminController::class, 'toggleMatchHidden'])->name('matches.toggle-hidden');
+        Route::post('/matches/{match}/trash', [AdminController::class, 'trashMatch'])->name('matches.trash');
+        Route::delete('/matches/{match}', [AdminController::class, 'trashMatch'])->name('matches.destroy');
+        Route::post('/trash/{id}/restore', [AdminController::class, 'restoreMatch'])->name('trash.restore');
+        Route::post('/trash/{id}/force-delete', [AdminController::class, 'forceDeleteMatch'])->name('trash.force-delete');
+        Route::delete('/trash/{id}/force-delete', [AdminController::class, 'forceDeleteMatch']);
+        Route::post('/trash/empty', [AdminController::class, 'emptyTrash'])->name('trash.empty');
+        Route::delete('/trash/empty', [AdminController::class, 'emptyTrash']);
         Route::post('/users/{user}/status', [AdminController::class, 'toggleUserStatus'])->name('users.status');
         Route::post('/users/{user}/role', [AdminController::class, 'toggleUserRole'])->name('users.role');
         Route::post('/users/{user}/password', [AdminController::class, 'resetUserPassword'])->name('users.password');

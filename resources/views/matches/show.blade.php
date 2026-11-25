@@ -18,12 +18,55 @@
 
     <div class="max-w-4xl mx-auto space-y-6">
         <!-- Back button -->
-        <div>
+        <div class="flex items-center justify-between">
             <a href="{{ route('matches.index') }}"
                 class="text-sm text-blue-600 hover:text-blue-800 font-semibold inline-flex items-center gap-1">
                 ← Quay lại danh sách
             </a>
+            @auth
+                @if(auth()->user()->isAdmin())
+                    <a href="{{ route('admin.index') }}"
+                        class="text-xs sm:text-sm text-indigo-600 hover:text-indigo-800 font-semibold inline-flex items-center gap-1">
+                        ⚙️ Bảng Quản Trị Viên
+                    </a>
+                @endif
+            @endauth
         </div>
+
+        @if($match->trashed())
+            <div class="bg-red-50 border-2 border-red-300 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                <div class="flex items-start sm:items-center gap-3">
+                    <span class="text-3xl">🗑️</span>
+                    <div>
+                        <h4 class="text-base font-bold text-red-900">Trận đấu này đang nằm trong Thùng rác</h4>
+                        <p class="text-xs sm:text-sm text-red-700 mt-0.5">
+                            Đã xóa tạm thời lúc {{ $match->deleted_at->format('H:i d/m/Y') }}. Trận này bị ẩn hoàn toàn khỏi danh sách thi đấu và bảng xếp hạng.
+                        </p>
+                    </div>
+                </div>
+                @auth
+                    @if(auth()->user()->isAdmin())
+                        <div class="flex items-center gap-2 shrink-0">
+                            <form method="POST" action="{{ route('admin.trash.restore', $match->id) }}">
+                                @csrf
+                                <button type="submit"
+                                    class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm px-4 py-2 rounded-lg shadow-sm transition cursor-pointer">
+                                    ♻️ Khôi phục trận
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('admin.trash.force-delete', $match->id) }}"
+                                onsubmit="return confirm('CẢNH BÁO: Bạn chắc chắn muốn xóa vĩnh viễn trận đấu này? Thao tác này KHÔNG THỂ hoàn tác!')">
+                                @csrf
+                                <button type="submit"
+                                    class="bg-red-600 hover:bg-red-700 text-white font-semibold text-xs sm:text-sm px-4 py-2 rounded-lg shadow-sm transition cursor-pointer">
+                                    💥 Xóa vĩnh viễn
+                                </button>
+                            </form>
+                        </div>
+                    @endif
+                @endauth
+            </div>
+        @endif
 
         <!-- Match Detail Card -->
         <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-5 sm:p-7 space-y-6">
@@ -33,9 +76,14 @@
                 <div class="flex flex-wrap items-center gap-3">
                     <span
                         class="px-3 py-1 rounded-md text-sm font-bold
-                            {{ $match->status === 'confirmed' ? 'bg-green-100 text-green-800' : ($match->status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800') }}">
+                            {{ $match->status === 'confirmed' ? 'bg-green-100 text-green-800' : ($match->status === 'pending' ? 'bg-amber-100 text-amber-800' : ($match->status === 'cancelled' ? 'bg-gray-100 text-gray-700' : 'bg-red-100 text-red-800')) }}">
                         {{ $statusLabel }}
                     </span>
+                    @if($match->is_hidden)
+                        <span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-md font-bold flex items-center gap-1">
+                            🙈 Đang ẩn
+                        </span>
+                    @endif
                     <span class="text-sm font-medium text-gray-500">Mã trận: #{{ $match->id }}</span>
                     <span class="text-sm font-medium text-gray-500">• Diễn ra:
                         {{ $match->played_at->format('d/m/Y H:i') }}</span>
@@ -46,6 +94,71 @@
                     ({{ $match->created_from === 'telegram' ? 'Qua Telegram' : 'Qua Website' }})
                 </span>
             </div>
+
+            <!-- Admin Omnipotent Action Bar -->
+            @auth
+                @if(auth()->user()->isAdmin())
+                    <div class="bg-indigo-50/80 border border-indigo-200 rounded-xl p-4 sm:p-5 space-y-3">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <span class="text-xs sm:text-sm font-bold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                                Toàn Quyền Quản Trị Viên (Admin Omnipotent Controls)
+                            </span>
+                            <span class="text-xs text-indigo-700 font-medium">
+                                Hiển thị: <b>{{ $match->is_hidden ? 'Đang ẩn' : 'Đang hiện' }}</b> • Thùng rác: <b>{{ $match->trashed() ? 'Đang trong thùng rác' : 'Bình thường' }}</b>
+                            </span>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2 pt-1">
+                            @if(!$match->trashed())
+                                {{-- 1. Cancel Match --}}
+                                @if($match->status !== 'cancelled')
+                                    <button type="button" onclick="document.getElementById('adminCancelModal').classList.remove('hidden')"
+                                        class="bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg shadow-sm transition cursor-pointer flex items-center gap-1.5">
+                                        <span>🚫 Hủy trận</span>
+                                    </button>
+                                @endif
+
+                                {{-- 2. Toggle Hidden --}}
+                                <form method="POST" action="{{ route('admin.matches.toggle-hidden', $match->id) }}">
+                                    @csrf
+                                    <button type="submit"
+                                        class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg shadow-sm transition cursor-pointer flex items-center gap-1.5">
+                                        <span>{{ $match->is_hidden ? '👁️ Mở hiển thị' : '🙈 Ẩn trận đấu' }}</span>
+                                    </button>
+                                </form>
+
+                                {{-- 3. Move to Trash --}}
+                                <form method="POST" action="{{ route('admin.matches.trash', $match->id) }}"
+                                    onsubmit="return confirm('Bạn có chắc muốn chuyển trận đấu #{{ $match->id }} vào thùng rác?')">
+                                    @csrf
+                                    <button type="submit"
+                                        class="bg-white hover:bg-red-50 text-red-700 border border-red-200 text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg shadow-sm transition cursor-pointer flex items-center gap-1.5">
+                                        <span>🗑️ Cho vào thùng rác</span>
+                                    </button>
+                                </form>
+                            @else
+                                {{-- Trashed Controls --}}
+                                <form method="POST" action="{{ route('admin.trash.restore', $match->id) }}">
+                                    @csrf
+                                    <button type="submit"
+                                        class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg shadow-sm transition cursor-pointer flex items-center gap-1.5">
+                                        <span>♻️ Khôi phục trận</span>
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ route('admin.trash.force-delete', $match->id) }}"
+                                    onsubmit="return confirm('CẢNH BÁO: Xóa vĩnh viễn trận đấu này? Thao tác này không thể hoàn tác!')">
+                                    @csrf
+                                    <button type="submit"
+                                        class="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg shadow-sm transition cursor-pointer flex items-center gap-1.5">
+                                        <span>💥 Xóa vĩnh viễn</span>
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+            @endauth
 
             <!-- 24h Countdown alert if pending -->
             @if($isPending)
@@ -470,4 +583,49 @@
             </div>
         </div>
     </div>
+
+    <!-- Admin Cancel Match Modal -->
+    @auth
+        @if(auth()->user()->isAdmin())
+            <div id="adminCancelModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+                <div class="fixed inset-0 bg-gray-900/60"
+                    onclick="document.getElementById('adminCancelModal').classList.add('hidden')"></div>
+                <div class="flex min-h-full items-center justify-center p-4">
+                    <div class="relative bg-white rounded-xl p-6 max-w-md w-full shadow-2xl border border-gray-200 space-y-4">
+                        <div class="flex items-center justify-between pb-3 border-b border-gray-200">
+                            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                <span>🚫 Hủy trận đấu #{{ $match->id }}</span>
+                            </h3>
+                            <button type="button" onclick="document.getElementById('adminCancelModal').classList.add('hidden')"
+                                class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
+                        </div>
+
+                        <p class="text-sm text-gray-600">
+                            Khi hủy trận đấu, kết quả trận này sẽ không được tính vào bảng xếp hạng, chuỗi thắng/thua cũng như nợ kèo của các cơ thủ.
+                        </p>
+
+                        <form method="POST" action="{{ route('admin.matches.cancel', $match->id) }}" class="space-y-4 text-sm">
+                            @csrf
+                            <div>
+                                <label class="block font-semibold text-gray-700 mb-1.5">Lý do hủy trận (tùy chọn)</label>
+                                <textarea name="reason" rows="3" placeholder="Nhập lý do admin hủy trận..."
+                                    class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"></textarea>
+                            </div>
+
+                            <div class="flex justify-end gap-2.5 pt-3 border-t border-gray-200">
+                                <button type="button" onclick="document.getElementById('adminCancelModal').classList.add('hidden')"
+                                    class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 font-medium hover:bg-gray-50 cursor-pointer">
+                                    Đóng
+                                </button>
+                                <button type="submit"
+                                    class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-semibold cursor-pointer shadow-sm">
+                                    Xác nhận Hủy trận
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endauth
 @endsection

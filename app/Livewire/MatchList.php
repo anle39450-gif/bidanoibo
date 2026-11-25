@@ -76,6 +76,10 @@ class MatchList extends Component
 
         $currentUser = Auth::user();
 
+        if (! ($currentUser && $currentUser->isAdmin())) {
+            $query->where('is_hidden', false);
+        }
+
         // 1. Status Filter
         if ($this->status !== 'all') {
             if ($this->status === 'confirmed') {

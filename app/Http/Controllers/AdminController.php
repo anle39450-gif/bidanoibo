@@ -52,7 +52,29 @@ class AdminController extends Controller
         $currentLogoUrl = Setting::getLogoUrl();
         $hasCustomLogo = ! empty(Setting::get('app_logo'));
 
-        return view('admin.index', compact('disputedMatches', 'members', 'recentHistories', 'botConfig', 'currentLogoUrl', 'hasCustomLogo'));
+        // 6. All Matches for Omnipotent Admin Management
+        $allMatches = BilliardMatch::with(['creator', 'player1', 'player2', 'winner', 'loser'])
+            ->orderBy('played_at', 'desc')
+            ->paginate(15, ['*'], 'matches_page');
+
+        // 7. Trashed Matches for Trash Bin
+        $trashedMatches = BilliardMatch::onlyTrashed()
+            ->with(['creator', 'player1', 'player2', 'winner', 'loser'])
+            ->orderBy('deleted_at', 'desc')
+            ->get();
+        $trashedCount = $trashedMatches->count();
+
+        return view('admin.index', compact(
+            'disputedMatches',
+            'members',
+            'recentHistories',
+            'botConfig',
+            'currentLogoUrl',
+            'hasCustomLogo',
+            'allMatches',
+            'trashedMatches',
+            'trashedCount'
+        ));
     }
 
     public function resolveDispute(Request $request, BilliardMatch $match): RedirectResponse
@@ -261,5 +283,181 @@ class AdminController extends Controller
         Setting::forget('app_logo');
 
         return back()->with('success', 'Đã xóa logo tùy chỉnh. Hệ thống chuyển về logo mặc định!');
+    }
+
+    public function cancelMatch(Request $request, BilliardMatch $match): RedirectResponse|JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $reason = $validated['reason'] ?? 'Admin đã hủy trận đấu này';
+
+        $match->update([
+            'status' => 'cancelled',
+            'is_disputed' => false,
+        ]);
+
+        MatchHistory::create([
+            'billiard_match_id' => $match->id,
+            'user_id' => Auth::id(),
+            'action' => 'admin_cancelled',
+            'note' => 'Quản trị viên đã hủy trận đấu. Lý do: '.$reason,
+            'created_at' => now(),
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Đã hủy trận đấu #{$match->id} thành công!",
+            ]);
+        }
+
+        return back()->with('success', "Đã hủy trận đấu #{$match->id} thành công!");
+    }
+
+    public function toggleMatchHidden(Request $request, BilliardMatch $match): RedirectResponse|JsonResponse
+    {
+        $match->update([
+            'is_hidden' => ! $match->is_hidden,
+        ]);
+
+        $statusText = $match->is_hidden ? 'ẩn khỏi hệ thống' : 'hiển thị lại';
+
+        MatchHistory::create([
+            'billiard_match_id' => $match->id,
+            'user_id' => Auth::id(),
+            'action' => $match->is_hidden ? 'hidden_by_admin' : 'unhidden_by_admin',
+            'note' => "Quản trị viên đã {$statusText} trận đấu này.",
+            'created_at' => now(),
+        ]);
+
+        $message = $match->is_hidden
+            ? "Đã ẩn trận đấu #{$match->id} khỏi danh sách và bảng xếp hạng!"
+            : "Đã mở hiển thị lại trận đấu #{$match->id}!";
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'is_hidden' => $match->is_hidden,
+                'message' => $message,
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    public function trashMatch(Request $request, BilliardMatch $match): RedirectResponse|JsonResponse
+    {
+        $matchId = $match->id;
+
+        MatchHistory::create([
+            'billiard_match_id' => $match->id,
+            'user_id' => Auth::id(),
+            'action' => 'moved_to_trash',
+            'note' => 'Quản trị viên đã chuyển trận đấu vào thùng rác.',
+            'created_at' => now(),
+        ]);
+
+        $match->delete();
+
+        $message = "Đã chuyển trận đấu #{$matchId} vào thùng rác thành công!";
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+            ]);
+        }
+
+        if ($request->header('referer') && str_contains($request->header('referer'), '/matches/'.$matchId)) {
+            return redirect()->route('admin.index')->with('success', $message);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    public function restoreMatch(Request $request, int $id): RedirectResponse|JsonResponse
+    {
+        /** @var BilliardMatch $match */
+        $match = BilliardMatch::onlyTrashed()->findOrFail($id);
+        $match->restore();
+
+        MatchHistory::create([
+            'billiard_match_id' => $match->id,
+            'user_id' => Auth::id(),
+            'action' => 'restored_from_trash',
+            'note' => 'Quản trị viên đã khôi phục trận đấu từ thùng rác.',
+            'created_at' => now(),
+        ]);
+
+        $message = "Đã khôi phục trận đấu #{$match->id} thành công!";
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    public function forceDeleteMatch(Request $request, int $id): RedirectResponse|JsonResponse
+    {
+        /** @var BilliardMatch $match */
+        $match = BilliardMatch::onlyTrashed()->findOrFail($id);
+
+        $match->histories()->delete();
+        $match->notifications()->delete();
+        if ($match->evidence_path && Storage::disk('public')->exists($match->evidence_path)) {
+            Storage::disk('public')->delete($match->evidence_path);
+        }
+        if ($match->dispute_evidence_path && Storage::disk('public')->exists($match->dispute_evidence_path)) {
+            Storage::disk('public')->delete($match->dispute_evidence_path);
+        }
+
+        $match->forceDelete();
+
+        $message = "Đã xóa vĩnh viễn trận đấu #{$id} khỏi hệ thống!";
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    public function emptyTrash(Request $request): RedirectResponse|JsonResponse
+    {
+        $trashedMatches = BilliardMatch::onlyTrashed()->get();
+        $count = $trashedMatches->count();
+
+        foreach ($trashedMatches as $match) {
+            $match->histories()->delete();
+            $match->notifications()->delete();
+            if ($match->evidence_path && Storage::disk('public')->exists($match->evidence_path)) {
+                Storage::disk('public')->delete($match->evidence_path);
+            }
+            if ($match->dispute_evidence_path && Storage::disk('public')->exists($match->dispute_evidence_path)) {
+                Storage::disk('public')->delete($match->dispute_evidence_path);
+            }
+            $match->forceDelete();
+        }
+
+        $message = "Đã làm sạch thùng rác (đã xóa vĩnh viễn {$count} trận đấu)!";
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'count' => $count,
+                'message' => $message,
+            ]);
+        }
+
+        return back()->with('success', $message);
     }
 }

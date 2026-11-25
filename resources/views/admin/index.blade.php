@@ -2,14 +2,33 @@
 
 @section('content')
     <div class="space-y-6">
-        <div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Bảng Điều Khiển Quản Trị Viên</h1>
-            <p class="text-sm sm:text-base text-gray-500 mt-1">Xử lý khiếu nại tranh chấp, quản lý tài khoản và cấu hình
-                Telegram Bot.</p>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Bảng Điều Khiển Quản Trị Viên</h1>
+                <p class="text-sm sm:text-base text-gray-500 mt-1">
+                    Toàn quyền quản trị hệ thống: Xử lý khiếu nại, hủy trận, ẩn/hiện trận, xóa trận & dọn dẹp thùng rác.
+                </p>
+            </div>
+
+            <!-- Quick Jump Navigation Pills -->
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="#disputed-queue" class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 shadow-2xs transition">
+                    🛡️ Tranh chấp ({{ $disputedMatches->count() }})
+                </a>
+                <a href="#matches-management" class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-800 shadow-2xs transition">
+                    🎱 Quản lý trận ({{ $allMatches->total() }})
+                </a>
+                <a href="#trash-bin" class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 bg-red-50/70 hover:bg-red-100 text-red-800 shadow-2xs transition">
+                    🗑️ Thùng rác ({{ $trashedCount }})
+                </a>
+                <a href="#members-section" class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 shadow-2xs transition">
+                    👥 Cơ thủ ({{ $members->count() }})
+                </a>
+            </div>
         </div>
 
         <!-- Section 1: Disputed Matches Queue -->
-        <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
+        <div id="disputed-queue" class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-gray-200">
                 <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
                     <span>Tranh Chấp Cần Xử Lý</span>
@@ -78,8 +97,226 @@
             @endforelse
         </div>
 
-        <!-- Section 2: Members Management Table -->
-        <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
+        <!-- Section 2: Omnipotent Match Management -->
+        <div id="matches-management" class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-200">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <span>Quản Lý Toàn Bộ Trận Đấu</span>
+                        <span class="bg-indigo-100 text-indigo-800 text-xs px-2.5 py-0.5 rounded-full font-bold">
+                            {{ $allMatches->total() }} trận
+                        </span>
+                    </h2>
+                    <p class="text-xs sm:text-sm text-gray-500 mt-0.5">
+                        Admin toàn quyền: Hủy trận đấu, ẩn/bỏ ẩn khỏi bảng xếp hạng, và chuyển trận đấu vào thùng rác.
+                    </p>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-gray-50 border-b border-gray-200 text-gray-600 uppercase font-semibold text-xs tracking-wider">
+                        <tr>
+                            <th class="py-3 px-3.5">Mã</th>
+                            <th class="py-3 px-3.5">Cặp đấu</th>
+                            <th class="py-3 px-3.5">Kèo / Thưởng</th>
+                            <th class="py-3 px-3.5">Ngày đấu</th>
+                            <th class="py-3 px-3.5">Trạng thái</th>
+                            <th class="py-3 px-3.5">Hiển thị</th>
+                            <th class="py-3 px-3.5 text-right">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @forelse($allMatches as $m)
+                            <tr class="hover:bg-gray-50/80 transition {{ $m->is_hidden ? 'bg-amber-50/30' : '' }}">
+                                <td class="py-3 px-3.5 font-mono text-xs font-bold text-gray-600">
+                                    #{{ $m->id }}
+                                </td>
+                                <td class="py-3 px-3.5">
+                                    <div class="font-bold text-gray-900 text-sm">
+                                        {{ $m->team1_names }} <span class="text-gray-400 font-normal">vs</span> {{ $m->team2_names }}
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-0.5">
+                                        Thắng: <b class="text-emerald-700">{{ $m->winner_names }}</b>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-3.5 font-medium text-gray-800">
+                                    {{ $m->prize }}
+                                </td>
+                                <td class="py-3 px-3.5 text-xs text-gray-500 font-mono">
+                                    {{ $m->played_at->format('d/m/Y H:i') }}
+                                </td>
+                                <td class="py-3 px-3.5">
+                                    @if($m->status === 'confirmed')
+                                        <span class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded font-bold">Đã xác nhận</span>
+                                    @elseif($m->status === 'pending')
+                                        <span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded font-bold">Chờ duyệt</span>
+                                    @elseif($m->status === 'disputed')
+                                        <span class="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded font-bold">Khiếu nại</span>
+                                    @elseif($m->status === 'cancelled')
+                                        <span class="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded font-bold">Đã hủy</span>
+                                    @else
+                                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-bold">{{ $m->status }}</span>
+                                    @endif
+                                </td>
+                                <td class="py-3 px-3.5">
+                                    @if($m->is_hidden)
+                                        <span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded font-bold">🙈 Đang ẩn</span>
+                                    @else
+                                        <span class="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded font-medium">👁️ Đang hiện</span>
+                                    @endif
+                                </td>
+                                <td class="py-3 px-3.5 text-right space-x-2 shrink-0">
+                                    <a href="{{ route('matches.show', $m->id) }}"
+                                        class="text-blue-600 hover:text-blue-800 text-xs font-semibold">
+                                        Chi tiết
+                                    </a>
+
+                                    @if($m->status !== 'cancelled')
+                                        <button type="button"
+                                            onclick="openAdminCancelMatchModal({{ $m->id }}, '{{ addslashes($m->team1_names) }} vs {{ addslashes($m->team2_names) }}')"
+                                            class="text-rose-600 hover:text-rose-800 text-xs font-semibold cursor-pointer">
+                                            Hủy
+                                        </button>
+                                    @endif
+
+                                    <form method="POST" action="{{ route('admin.matches.toggle-hidden', $m->id) }}" class="inline">
+                                        @csrf
+                                        <button type="submit"
+                                            class="text-gray-600 hover:text-gray-900 text-xs font-semibold cursor-pointer">
+                                            {{ $m->is_hidden ? 'Bỏ ẩn' : 'Ẩn' }}
+                                        </button>
+                                    </form>
+
+                                    <form method="POST" action="{{ route('admin.matches.trash', $m->id) }}"
+                                        onsubmit="return confirm('Bạn có chắc muốn chuyển trận đấu #{{ $m->id }} vào thùng rác?')"
+                                        class="inline">
+                                        @csrf
+                                        <button type="submit"
+                                            class="text-red-600 hover:text-red-800 text-xs font-semibold cursor-pointer">
+                                            Xóa
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="py-8 text-center text-sm text-gray-500">
+                                    Chưa có trận đấu nào trong hệ thống.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            @if($allMatches->hasPages())
+                <div class="pt-4 border-t border-gray-200">
+                    {{ $allMatches->links() }}
+                </div>
+            @endif
+        </div>
+
+        <!-- Section 3: Trash Bin (Thùng rác) -->
+        <div id="trash-bin" class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-200">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🗑️</span>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <span>Thùng Rác Trận Đấu</span>
+                            <span class="bg-red-100 text-red-800 text-xs px-2.5 py-0.5 rounded-full font-bold">
+                                {{ $trashedCount }} trận
+                            </span>
+                        </h2>
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            Các trận bị xóa mềm. Bạn có thể khôi phục lại hoặc xóa vĩnh viễn khỏi cơ sở dữ liệu.
+                        </p>
+                    </div>
+                </div>
+
+                @if($trashedCount > 0)
+                    <form method="POST" action="{{ route('admin.trash.empty') }}"
+                        onsubmit="return confirm('CẢNH BÁO QUAN TRỌNG: Bạn có chắc muốn DỌN SẠCH THÙNG RÁC? Toàn bộ {{ $trashedCount }} trận đấu sẽ bị xóa vĩnh viễn và KHÔNG THỂ KHÔI PHỤC!')">
+                        @csrf
+                        <button type="submit"
+                            class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg shadow-sm transition cursor-pointer flex items-center gap-1.5">
+                            <span>🧹 Dọn sạch thùng rác</span>
+                        </button>
+                    </form>
+                @endif
+            </div>
+
+            @if($trashedMatches->isNotEmpty())
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-red-50/50 border-b border-red-100 text-red-900 uppercase font-semibold text-xs tracking-wider">
+                            <tr>
+                                <th class="py-3 px-3.5">Mã</th>
+                                <th class="py-3 px-3.5">Cặp đấu</th>
+                                <th class="py-3 px-3.5">Kèo</th>
+                                <th class="py-3 px-3.5">Thời gian diễn ra</th>
+                                <th class="py-3 px-3.5">Thời gian xóa</th>
+                                <th class="py-3 px-3.5 text-right">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @foreach($trashedMatches as $tm)
+                                <tr class="hover:bg-red-50/30 transition">
+                                    <td class="py-3 px-3.5 font-mono text-xs font-bold text-gray-600">
+                                        #{{ $tm->id }}
+                                    </td>
+                                    <td class="py-3 px-3.5 font-medium text-gray-900 text-sm">
+                                        {{ $tm->team1_names }} <span class="text-gray-400 font-normal">vs</span> {{ $tm->team2_names }}
+                                    </td>
+                                    <td class="py-3 px-3.5 font-medium text-gray-800">
+                                        {{ $tm->prize }}
+                                    </td>
+                                    <td class="py-3 px-3.5 text-xs text-gray-500 font-mono">
+                                        {{ $tm->played_at->format('d/m/Y H:i') }}
+                                    </td>
+                                    <td class="py-3 px-3.5 text-xs text-red-600 font-mono">
+                                        {{ $tm->deleted_at->format('d/m/Y H:i') }}
+                                    </td>
+                                    <td class="py-3 px-3.5 text-right space-x-2 shrink-0">
+                                        <a href="{{ route('matches.show', $tm->id) }}"
+                                            class="text-blue-600 hover:text-blue-800 text-xs font-semibold">
+                                            Xem
+                                        </a>
+
+                                        <form method="POST" action="{{ route('admin.trash.restore', $tm->id) }}" class="inline">
+                                            @csrf
+                                            <button type="submit"
+                                                class="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded text-xs font-semibold transition cursor-pointer">
+                                                ♻️ Khôi phục
+                                            </button>
+                                        </form>
+
+                                        <form method="POST" action="{{ route('admin.trash.force-delete', $tm->id) }}"
+                                            onsubmit="return confirm('CẢNH BÁO: Xóa vĩnh viễn trận #{{ $tm->id }}? Không thể hoàn tác!')"
+                                            class="inline">
+                                            @csrf
+                                            <button type="submit"
+                                                class="bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded text-xs font-semibold transition cursor-pointer">
+                                                💥 Xóa vĩnh viễn
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <div class="py-8 text-center text-sm text-gray-500 flex flex-col items-center justify-center gap-2">
+                    <span class="text-3xl text-gray-400">🗑️</span>
+                    <span>Thùng rác trống. Không có trận đấu nào bị xóa.</span>
+                </div>
+            @endif
+        </div>
+
+        <!-- Section 4: Members Management Table -->
+        <div id="members-section" class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-bold text-gray-900">Quản Lý Cơ Thủ ({{ $members->count() }})</h2>
                 <button type="button" onclick="openCreateMemberModal()"
@@ -464,7 +701,85 @@
         </div>
     </div>
 
+    <!-- Admin Cancel Match Modal -->
+    <div id="adminCancelMatchModal" class="fixed inset-0 z-50 overflow-y-auto hidden"
+        aria-labelledby="admin-cancel-match-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-xs transition-opacity" onclick="closeAdminCancelMatchModal()">
+        </div>
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div
+                class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-gray-100">
+                <div class="bg-gray-50/80 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900" id="admin-cancel-match-title">
+                            Hủy Trận Đấu
+                        </h3>
+                        <p class="text-xs text-gray-500 mt-0.5" id="adminCancelMatchInfo">Trận đấu: ...</p>
+                    </div>
+                    <button type="button" onclick="closeAdminCancelMatchModal()"
+                        class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                <form id="adminCancelMatchForm" method="POST" action="" class="p-6 space-y-4">
+                    @csrf
+                    <p class="text-xs text-gray-600">
+                        Khi hủy trận, kết quả này sẽ chuyển sang trạng thái <b>Đã hủy</b> và không còn tính vào bảng xếp hạng hay nợ kèo của các cơ thủ.
+                    </p>
+                    <div>
+                        <label for="admin_cancel_reason"
+                            class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                            Lý do hủy trận (tùy chọn)
+                        </label>
+                        <textarea name="reason" id="admin_cancel_reason" rows="3"
+                            placeholder="Nhập lý do admin hủy trận..."
+                            class="w-full text-sm rounded-lg border border-gray-300 p-3 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition"></textarea>
+                    </div>
+
+                    <div class="pt-3 border-t border-gray-100 flex items-center justify-end gap-2.5">
+                        <button type="button" onclick="closeAdminCancelMatchModal()"
+                            class="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-xs sm:text-sm font-semibold transition cursor-pointer">
+                            Đóng
+                        </button>
+                        <button type="submit"
+                            class="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition cursor-pointer">
+                            Xác nhận Hủy trận
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
+        function openAdminCancelMatchModal(matchId, summary) {
+            var form = document.getElementById('adminCancelMatchForm');
+            var info = document.getElementById('adminCancelMatchInfo');
+            var input = document.getElementById('admin_cancel_reason');
+            if (form) {
+                form.action = '/admin/matches/' + matchId + '/cancel';
+            }
+            if (info) {
+                info.innerText = 'Trận #' + matchId + ': ' + summary;
+            }
+            if (input) {
+                input.value = '';
+            }
+            var m = document.getElementById('adminCancelMatchModal');
+            if (m) {
+                m.classList.remove('hidden');
+                setTimeout(function () { if (input) input.focus(); }, 100);
+            }
+        }
+
+        function closeAdminCancelMatchModal() {
+            var m = document.getElementById('adminCancelMatchModal');
+            if (m) m.classList.add('hidden');
+        }
+
         function openAdminResetModal(userId, name, username) {
             var form = document.getElementById('adminResetPasswordForm');
             var info = document.getElementById('adminResetTargetInfo');
