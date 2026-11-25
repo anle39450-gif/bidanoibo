@@ -255,7 +255,7 @@
                             placeholder="-1001234567890"
                             class="flex-1 border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
                         @if($botConfig->bot_username)
-                            <a href="https://t.me/{{ $botConfig->bot_username }}?startgroup=true" target="_blank"
+                            <a href="https://t.me/{{ $botConfig->bot_username }}?startgroup=bida&admin=invite_users+manage_chat" target="_blank"
                                 class="inline-flex items-center justify-center gap-1.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs px-3.5 py-2 rounded-lg shadow-xs transition shrink-0 cursor-pointer">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
@@ -269,6 +269,29 @@
                         <b>Tự động gán nhóm:</b> Nhấn nút <b>"Tạo nhóm / Thêm Bot"</b> ở trên để mở Telegram. Bạn có thể
                         chọn <i>"New Group" (Tạo nhóm mới)</i> hoặc chọn nhóm có sẵn. Ngay khi Bot được thêm vào nhóm, hệ
                         thống sẽ <b>tự động lưu Group Chat ID</b> vào web mà bạn không cần gõ thủ công!
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1.5">Link mời vào nhóm (Group Invite Link)</label>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="url" name="group_invite_link" value="{{ $botConfig->group_invite_link }}"
+                            placeholder="https://t.me/+AbCdEfGhIjKl hoặc https://t.me/ten_nhom"
+                            class="flex-1 border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        @if($botConfig->group_invite_link)
+                            <a href="{{ $botConfig->group_invite_link }}" target="_blank"
+                                class="inline-flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-xs px-3.5 py-2 rounded-lg border border-gray-300 transition shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14">
+                                    </path>
+                                </svg>
+                                <span>Mở link</span>
+                            </a>
+                        @endif
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                        <b>Link gửi cho cơ thủ:</b> Khi bấm nút mời, Bot sẽ tự động tạo link nếu Bot có quyền Quản trị viên (Admin) trong nhóm Telegram. Nếu Bot chỉ là thành viên thường hoặc nhóm riêng tư, bạn chỉ cần mở Telegram &gt; Quản lý nhóm &gt; Link mời (Invite Links) &gt; Copy link dán vào ô này để hệ thống luôn có sẵn link gửi tới các cơ thủ.
                     </p>
                 </div>
 
@@ -320,6 +343,13 @@
                     @else
                         <div class="text-amber-700 text-xs">
                             Chưa cài đặt Group Chat ID. Báo cáo sẽ được gửi riêng cho các Quản trị viên đã liên kết Telegram.
+                        </div>
+                    @endif
+                    @if($botConfig->group_invite_link)
+                        <div class="text-xs text-blue-700 flex items-center gap-1.5 pt-0.5">
+                            <span class="font-semibold text-gray-700">Link mời nhóm:</span>
+                            <a href="{{ $botConfig->group_invite_link }}" target="_blank"
+                                class="underline font-mono truncate max-w-[220px] sm:max-w-xs text-blue-600 hover:text-blue-800">{{ $botConfig->group_invite_link }}</a>
                         </div>
                     @endif
                     <div class="text-xs text-gray-500 pt-1">

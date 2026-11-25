@@ -14,6 +14,7 @@ class TelegramBotConfig extends Model
         'bot_token',
         'bot_username',
         'group_chat_id',
+        'group_invite_link',
         'webhook_url',
         'is_active',
         'last_webhook_ping_at',
@@ -35,6 +36,7 @@ class TelegramBotConfig extends Model
                     'bot_token' => config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN')),
                     'bot_username' => config('services.telegram.bot_username', env('TELEGRAM_BOT_USERNAME', 'BidaNoiBoBot')),
                     'group_chat_id' => config('services.telegram.group_chat_id', env('TELEGRAM_GROUP_CHAT_ID')),
+                    'group_invite_link' => config('services.telegram.group_invite_link', env('TELEGRAM_GROUP_INVITE_LINK')),
                     'is_active' => true,
                 ]);
             }
@@ -46,6 +48,7 @@ class TelegramBotConfig extends Model
             'bot_token' => config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN')),
             'bot_username' => config('services.telegram.bot_username', env('TELEGRAM_BOT_USERNAME', 'BidaNoiBoBot')),
             'group_chat_id' => config('services.telegram.group_chat_id', env('TELEGRAM_GROUP_CHAT_ID')),
+            'group_invite_link' => config('services.telegram.group_invite_link', env('TELEGRAM_GROUP_INVITE_LINK')),
             'is_active' => true,
         ]);
     }

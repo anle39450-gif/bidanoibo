@@ -46,7 +46,7 @@ class TelegramBotService
             ];
 
             if ($replyMarkup) {
-                $payload['reply_markup'] = json_encode($replyMarkup);
+                $payload['reply_markup'] = json_encode($replyMarkup, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             }
 
             $response = $this->client()->post("https://api.telegram.org/bot{$this->token}/sendMessage", $payload);
@@ -353,23 +353,62 @@ class TelegramBotService
             return null;
         }
 
+        // 1. If group_invite_link is already stored in config and chatId matches or is omitted, use it directly
+        if (! empty($config->group_invite_link) && (! $chatId || (string) $chatId === (string) $config->group_chat_id)) {
+            return $config->group_invite_link;
+        }
+
         try {
-            $res = $this->client()->post("https://api.telegram.org/bot{$this->token}/exportChatInviteLink", [
+            // 2. Try getChat first to check if chat has public username or an existing invite_link
+            $getChatRes = $this->client()->post("https://api.telegram.org/bot{$this->token}/getChat", [
                 'chat_id' => $targetChatId,
             ]);
 
-            if ($res->successful() && ! empty($res->json('result'))) {
-                return $res->json('result');
+            if ($getChatRes->successful()) {
+                $chatData = $getChatRes->json('result') ?? [];
+                if (! empty($chatData['invite_link'])) {
+                    $link = $chatData['invite_link'];
+                    $config->update(['group_invite_link' => $link]);
+
+                    return $link;
+                }
+
+                if (! empty($chatData['username'])) {
+                    $link = 'https://t.me/'.$chatData['username'];
+                    $config->update(['group_invite_link' => $link]);
+
+                    return $link;
+                }
             }
 
+            // 3. Try createChatInviteLink (requires Administrator permission can_invite_users)
             $res2 = $this->client()->post("https://api.telegram.org/bot{$this->token}/createChatInviteLink", [
                 'chat_id' => $targetChatId,
                 'name' => 'Bida Noi Bo',
             ]);
 
             if ($res2->successful() && ! empty($res2->json('result.invite_link'))) {
-                return $res2->json('result.invite_link');
+                $link = $res2->json('result.invite_link');
+                $config->update(['group_invite_link' => $link]);
+
+                return $link;
             }
+
+            // 4. Try exportChatInviteLink (generates primary invite link, requires Administrator)
+            $res = $this->client()->post("https://api.telegram.org/bot{$this->token}/exportChatInviteLink", [
+                'chat_id' => $targetChatId,
+            ]);
+
+            if ($res->successful() && ! empty($res->json('result'))) {
+                $link = $res->json('result');
+                $config->update(['group_invite_link' => $link]);
+
+                return $link;
+            }
+
+            Log::warning("Telegram getGroupInviteLink failed for chat {$targetChatId}. "
+                .'exportChatInviteLink: '.($res->body() ?? 'none').' | '
+                .'createChatInviteLink: '.($res2->body() ?? 'none'));
         } catch (\Throwable $e) {
             Log::error('Telegram getGroupInviteLink error: '.$e->getMessage());
         }
@@ -401,11 +440,20 @@ class TelegramBotService
                 'success' => false,
                 'sent_count' => 0,
                 'invite_link' => null,
-                'message' => 'Chưa cấu hình hoặc kết nối Group Chat ID!',
+                'message' => 'Chưa cấu hình hoặc kết nối Group Chat ID! Vui lòng nhấn "Tạo nhóm / Thêm Bot" hoặc nhập Group Chat ID trước.',
             ];
         }
 
         $inviteLink = $this->getGroupInviteLink($targetChatId);
+
+        if (empty($inviteLink)) {
+            return [
+                'success' => false,
+                'sent_count' => 0,
+                'invite_link' => null,
+                'message' => 'Không thể tạo link mời nhóm tự động (Do Bot chưa được thăng làm Quản trị viên trong nhóm Telegram với quyền "Mời người dùng / Invite Users"). Vui lòng cấp quyền Quản trị viên cho Bot trong nhóm, hoặc dán trực tiếp Link mời vào ô "Link mời vào nhóm (Group Invite Link)" bên dưới rồi nhấn Mời lại!',
+            ];
+        }
 
         $connectedUsers = User::where('is_active', true)
             ->whereNotNull('telegram_id')
@@ -421,15 +469,22 @@ class TelegramBotService
         }
 
         $text = "🎱 <b>MỜI THAM GIA NHÓM CHAT BIDA NỘI BỘ</b>\n\n";
-        $text .= "Nhóm Telegram chính thức của CLB Bida Nội Bộ đã được kết nối!\n";
-        if ($inviteLink) {
-            $text .= "👉 Nhấn vào đường link sau để tham gia nhóm ngay:\n<a href=\"{$inviteLink}\">{$inviteLink}</a>\n\n";
-        }
-        $text .= 'Tất cả thông báo thi đấu, kết quả trận và báo cáo nợ kèo hàng ngày (8:30 sáng) sẽ được gửi trong nhóm này.';
+        $text .= "Nhóm Telegram chính thức của CLB Bida Nội Bộ đã sẵn sàng!\n\n";
+        $text .= "👉 <b>Nhấn vào link bên dưới để tham gia nhóm ngay:</b>\n";
+        $text .= "<a href=\"{$inviteLink}\">{$inviteLink}</a>\n\n";
+        $text .= 'ℹ️ <i>Tất cả thông báo thi đấu, kết quả trận, trả kèo và báo cáo hàng ngày (8:30 sáng) sẽ được gửi trong nhóm này.</i>';
+
+        $replyMarkup = [
+            'inline_keyboard' => [
+                [
+                    ['text' => '👉 Tham gia nhóm Telegram ngay', 'url' => $inviteLink],
+                ],
+            ],
+        ];
 
         $sentCount = 0;
         foreach ($connectedUsers as $user) {
-            if ($this->sendMessage($user->telegram_id, $text)) {
+            if ($this->sendMessage($user->telegram_id, $text, $replyMarkup)) {
                 $sentCount++;
             }
         }
@@ -438,7 +493,7 @@ class TelegramBotService
             'success' => $sentCount > 0,
             'sent_count' => $sentCount,
             'invite_link' => $inviteLink,
-            'message' => "Đã gửi lời mời tham gia nhóm tới {$sentCount} cơ thủ đã liên kết Telegram!",
+            'message' => "Đã gửi lời mời tham gia nhóm kèm link tới {$sentCount} cơ thủ đã liên kết Telegram!",
         ];
     }
 

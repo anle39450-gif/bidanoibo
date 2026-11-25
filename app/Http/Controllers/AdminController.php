@@ -183,6 +183,7 @@ class AdminController extends Controller
             'bot_token' => ['nullable', 'string'],
             'bot_username' => ['nullable', 'string'],
             'group_chat_id' => ['nullable', 'string'],
+            'group_invite_link' => ['nullable', 'string', 'max:500'],
         ]);
 
         $config = TelegramBotConfig::current();
@@ -226,7 +227,7 @@ class AdminController extends Controller
             return back()->with('success', $result['message']);
         }
 
-        return back()->with('warning', $result['message']);
+        return back()->with('error', $result['message']);
     }
 
     public function updateLogo(Request $request): RedirectResponse

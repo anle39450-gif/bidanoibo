@@ -164,7 +164,7 @@ test('non-admin cannot trigger telegram daily report', function () {
     $response->assertForbidden();
 });
 
-test('admin can update bot config including group_chat_id', function () {
+test('admin can update bot config including group_chat_id and group_invite_link', function () {
     $admin = User::factory()->create([
         'role' => 'admin',
         'is_active' => true,
@@ -174,6 +174,7 @@ test('admin can update bot config including group_chat_id', function () {
         'bot_token' => '999:UPDATED_TOKEN',
         'bot_username' => 'UpdatedBot',
         'group_chat_id' => '-10055443322',
+        'group_invite_link' => 'https://t.me/+customGroupLink123',
     ]);
 
     $response->assertRedirect();
@@ -182,6 +183,7 @@ test('admin can update bot config including group_chat_id', function () {
     $config = TelegramBotConfig::current();
     expect($config->group_chat_id)->toBe('-10055443322');
     expect($config->bot_username)->toBe('UpdatedBot');
+    expect($config->group_invite_link)->toBe('https://t.me/+customGroupLink123');
 });
 
 test('bot auto-binds group_chat_id when added to a group via my_chat_member', function () {
@@ -285,6 +287,76 @@ test('admin can trigger invite all connected users from web', function () {
     Http::assertSent(function ($request) use ($connectedUser) {
         return str_contains($request->url(), 'sendMessage')
             && (string) $request['chat_id'] === $connectedUser->telegram_id
+            && str_contains($request['text'], 'THAM GIA NHÓM CHAT BIDA NỘI BỘ')
+            && str_contains($request['text'], 'https://t.me/+joinGroup123');
+    });
+});
+
+test('invite all connected users fails gracefully when bot cannot generate invite link', function () {
+    $admin = User::factory()->create([
+        'role' => 'admin',
+        'is_active' => true,
+    ]);
+
+    User::factory()->create([
+        'telegram_id' => '555444',
+        'is_active' => true,
+    ]);
+
+    // Group chat id exists but bot is NOT admin -> Telegram API returns error
+    TelegramBotConfig::current()->update([
+        'group_chat_id' => '-10099887766',
+        'group_invite_link' => null,
+    ]);
+
+    Http::fake([
+        'https://api.telegram.org/*/getChat' => Http::response(['ok' => false, 'error_code' => 400], 400),
+        'https://api.telegram.org/*/createChatInviteLink' => Http::response(['ok' => false, 'error_code' => 400, 'description' => 'CHAT_ADMIN_REQUIRED'], 400),
+        'https://api.telegram.org/*/exportChatInviteLink' => Http::response(['ok' => false, 'error_code' => 400, 'description' => 'CHAT_ADMIN_REQUIRED'], 400),
+        'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $response = $this->actingAs($admin)->post('/admin/telegram/invite-all');
+
+    $response->assertRedirect();
+    $response->assertSessionHas('error');
+
+    // Bot MUST NOT send empty invite message to members without a link!
+    Http::assertNotSent(function ($request) {
+        return str_contains($request->url(), 'sendMessage')
             && str_contains($request['text'], 'THAM GIA NHÓM CHAT BIDA NỘI BỘ');
+    });
+});
+
+test('invite all connected users uses manually saved group_invite_link when bot is not admin', function () {
+    $admin = User::factory()->create([
+        'role' => 'admin',
+        'is_active' => true,
+    ]);
+
+    $connectedUser = User::factory()->create([
+        'telegram_id' => '111222',
+        'is_active' => true,
+    ]);
+
+    TelegramBotConfig::current()->update([
+        'group_chat_id' => '-10099887766',
+        'group_invite_link' => 'https://t.me/+manualInviteLinkABC',
+    ]);
+
+    Http::fake([
+        'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $response = $this->actingAs($admin)->post('/admin/telegram/invite-all');
+
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
+
+    Http::assertSent(function ($request) use ($connectedUser) {
+        return str_contains($request->url(), 'sendMessage')
+            && (string) $request['chat_id'] === $connectedUser->telegram_id
+            && str_contains($request['text'], 'https://t.me/+manualInviteLinkABC')
+            && str_contains($request['reply_markup'], 'https://t.me/+manualInviteLinkABC');
     });
 });
