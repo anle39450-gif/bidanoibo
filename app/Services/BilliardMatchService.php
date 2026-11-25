@@ -88,6 +88,8 @@ class BilliardMatchService
                 'loser_partner_id' => $loserPartnerId,
                 'played_at' => $data['played_at'] ?? $now,
                 'prize' => $data['prize'] ?? 'Kèo cà phê muối',
+                'prize_status' => 'unpaid',
+                'prize_partner_status' => $matchType === 'doubles' ? 'unpaid' : null,
                 'notes' => $data['notes'] ?? null,
                 'evidence_path' => $data['evidence_path'] ?? null,
                 'status' => 'pending',
@@ -430,7 +432,7 @@ class BilliardMatchService
      *
      * @throws ValidationException
      */
-    public function settlePrize(BilliardMatch $match, User $user, ?string $note = null): BilliardMatch
+    public function settlePrize(BilliardMatch $match, User $user, ?string $note = null, ?string $slot = null): BilliardMatch
     {
         if (! in_array($match->status, ['confirmed', 'resolved'])) {
             throw ValidationException::withMessages([
@@ -438,32 +440,53 @@ class BilliardMatchService
             ]);
         }
 
-        if ($match->isPrizeConfirmed()) {
+        if ($slot === null) {
+            $slot = $match->getPrizeSlotForUser($user);
+        }
+
+        if ($match->isPrizeConfirmed($slot)) {
             throw ValidationException::withMessages([
-                'prize' => 'Kèo của trận đấu này đã được người nhận xác nhận Đã OK trước đó!',
+                'prize' => 'Kèo của phần thi đấu này đã được người nhận xác nhận Đã OK trước đó!',
             ]);
         }
 
-        if (! $match->canUserPayPrize($user)) {
+        if (! $match->canUserPayPrize($user, $slot)) {
             throw ValidationException::withMessages([
-                'prize' => 'Bạn không có quyền thực hiện trả kèo cho trận đấu này!',
+                'prize' => 'Bạn không có quyền thực hiện trả kèo cho phần thi đấu này!',
             ]);
         }
 
-        return DB::transaction(function () use ($match, $user, $note) {
-            $match->update([
-                'prize_status' => 'paid',
-                'prize_paid_at' => Carbon::now(),
-                'prize_paid_by' => $user->id,
-                'prize_notes' => $note,
-                'prize_confirmed_at' => null,
-                'prize_confirmed_by' => null,
-                'prize_feedback' => null,
-            ]);
+        return DB::transaction(function () use ($match, $user, $note, $slot) {
+            $isPartnerSlot = ($slot === 'partner');
+
+            if ($isPartnerSlot) {
+                $match->update([
+                    'prize_partner_status' => 'paid',
+                    'prize_partner_paid_at' => Carbon::now(),
+                    'prize_partner_paid_by' => $user->id,
+                    'prize_partner_notes' => $note,
+                    'prize_partner_confirmed_at' => null,
+                    'prize_partner_confirmed_by' => null,
+                    'prize_partner_feedback' => null,
+                ]);
+            } else {
+                $match->update([
+                    'prize_status' => 'paid',
+                    'prize_paid_at' => Carbon::now(),
+                    'prize_paid_by' => $user->id,
+                    'prize_notes' => $note,
+                    'prize_confirmed_at' => null,
+                    'prize_confirmed_by' => null,
+                    'prize_feedback' => null,
+                ]);
+            }
+
+            $counterpart = $match->getCounterpartForUser($user);
+            $slotLabel = $match->isDoubles() ? ($counterpart ? " [Trả riêng cho {$counterpart->name}]" : ($isPartnerSlot ? ' [Cặp 2]' : ' [Cặp 1]')) : '';
 
             $actionNote = $match->isUserDebtor($user)
-                ? "{$user->name} đã thực hiện trả kèo ({$match->prize})"
-                : "{$user->name} đã ghi nhận trả kèo ({$match->prize})";
+                ? "{$user->name} đã thực hiện trả kèo ({$match->prize}){$slotLabel}"
+                : "{$user->name} đã ghi nhận trả kèo ({$match->prize}){$slotLabel}";
 
             if (! empty($note)) {
                 $actionNote .= ": {$note}";
@@ -477,23 +500,21 @@ class BilliardMatchService
                 'created_at' => Carbon::now(),
             ]);
 
-            // Notify winner(s) if paid by loser, or notify loser if marked paid by winner
-            $isDebtor = $match->isUserDebtor($user);
-            $recipients = $isDebtor
-                ? array_filter([$match->winner, $match->winnerPartner])
-                : array_filter([$match->loser, $match->loserPartner]);
+            // Notify counterpart recipient
+            $recipient = $counterpart;
+            if (! $recipient) {
+                $recipient = $isPartnerSlot ? $match->winnerPartner : $match->winner;
+            }
 
-            foreach ($recipients as $recipient) {
-                if ($recipient && $recipient->id !== $user->id) {
-                    UserNotification::create([
-                        'user_id' => $recipient->id,
-                        'billiard_match_id' => $match->id,
-                        'type' => 'prize_settled',
-                        'title' => 'Kèo trận đấu đã được trả',
-                        'message' => "{$user->name} đã thực hiện trả kèo '{$match->prize}' cho trận đấu #{$match->id}. Vui lòng kiểm tra và phản hồi (Đã OK hoặc Không đồng ý).",
-                        'link' => "/matches/{$match->id}",
-                    ]);
-                }
+            if ($recipient && $recipient->id !== $user->id) {
+                UserNotification::create([
+                    'user_id' => $recipient->id,
+                    'billiard_match_id' => $match->id,
+                    'type' => 'prize_settled',
+                    'title' => 'Kèo trận đấu đã được trả',
+                    'message' => "{$user->name} đã thực hiện trả kèo '{$match->prize}' cho trận đấu #{$match->id}{$slotLabel}. Vui lòng kiểm tra và phản hồi (Đã OK hoặc Không đồng ý).",
+                    'link' => "/matches/{$match->id}",
+                ]);
             }
 
             if ($this->telegramBot->isConfigured()) {
@@ -509,7 +530,7 @@ class BilliardMatchService
      *
      * @throws ValidationException
      */
-    public function confirmPrize(BilliardMatch $match, User $user, ?string $note = null): BilliardMatch
+    public function confirmPrize(BilliardMatch $match, User $user, ?string $note = null, ?string $slot = null): BilliardMatch
     {
         if (! in_array($match->status, ['confirmed', 'resolved'])) {
             throw ValidationException::withMessages([
@@ -517,27 +538,45 @@ class BilliardMatchService
             ]);
         }
 
-        if ($match->isPrizeConfirmed()) {
+        if ($slot === null) {
+            $slot = $match->getPrizeSlotForUser($user);
+        }
+
+        if ($match->isPrizeConfirmed($slot)) {
             throw ValidationException::withMessages([
-                'prize' => 'Kèo của trận đấu này đã được xác nhận Đã OK trước đó!',
+                'prize' => 'Kèo của phần thi đấu này đã được xác nhận Đã OK trước đó!',
             ]);
         }
 
-        if (! $match->canUserConfirmPrize($user)) {
+        if (! $match->canUserConfirmPrize($user, $slot)) {
             throw ValidationException::withMessages([
-                'prize' => 'Bạn không có quyền xác nhận nhận kèo cho trận đấu này!',
+                'prize' => 'Bạn không có quyền xác nhận nhận kèo cho phần thi đấu này!',
             ]);
         }
 
-        return DB::transaction(function () use ($match, $user, $note) {
-            $match->update([
-                'prize_status' => 'confirmed',
-                'prize_confirmed_at' => Carbon::now(),
-                'prize_confirmed_by' => $user->id,
-                'prize_feedback' => $note,
-            ]);
+        return DB::transaction(function () use ($match, $user, $note, $slot) {
+            $isPartnerSlot = ($slot === 'partner');
 
-            $actionNote = "{$user->name} đã xác nhận ĐÃ OK nhận kèo ({$match->prize})";
+            if ($isPartnerSlot) {
+                $match->update([
+                    'prize_partner_status' => 'confirmed',
+                    'prize_partner_confirmed_at' => Carbon::now(),
+                    'prize_partner_confirmed_by' => $user->id,
+                    'prize_partner_feedback' => $note,
+                ]);
+            } else {
+                $match->update([
+                    'prize_status' => 'confirmed',
+                    'prize_confirmed_at' => Carbon::now(),
+                    'prize_confirmed_by' => $user->id,
+                    'prize_feedback' => $note,
+                ]);
+            }
+
+            $counterpart = $match->getCounterpartForUser($user);
+            $slotLabel = $match->isDoubles() ? ($counterpart ? " [Cặp cùng {$counterpart->name}]" : ($isPartnerSlot ? ' [Cặp 2]' : ' [Cặp 1]')) : '';
+
+            $actionNote = "{$user->name} đã xác nhận ĐÃ OK nhận kèo ({$match->prize}){$slotLabel}";
             if (! empty($note)) {
                 $actionNote .= ": {$note}";
             }
@@ -550,19 +589,21 @@ class BilliardMatchService
                 'created_at' => Carbon::now(),
             ]);
 
-            // Notify debtor(s) that recipient confirmed OK
-            $recipients = array_filter([$match->loser, $match->loserPartner]);
-            foreach ($recipients as $recipient) {
-                if ($recipient && $recipient->id !== $user->id) {
-                    UserNotification::create([
-                        'user_id' => $recipient->id,
-                        'billiard_match_id' => $match->id,
-                        'type' => 'prize_confirmed',
-                        'title' => 'Kèo đã được người nhận xác nhận Đã OK',
-                        'message' => "{$user->name} đã xác nhận ĐÃ OK nhận kèo '{$match->prize}' cho trận đấu #{$match->id}.",
-                        'link' => "/matches/{$match->id}",
-                    ]);
-                }
+            // Notify debtor counterpart
+            $debtor = $counterpart;
+            if (! $debtor) {
+                $debtor = $isPartnerSlot ? $match->loserPartner : $match->loser;
+            }
+
+            if ($debtor && $debtor->id !== $user->id) {
+                UserNotification::create([
+                    'user_id' => $debtor->id,
+                    'billiard_match_id' => $match->id,
+                    'type' => 'prize_confirmed',
+                    'title' => 'Kèo đã được người nhận xác nhận Đã OK',
+                    'message' => "{$user->name} đã xác nhận ĐÃ OK nhận kèo '{$match->prize}' cho trận đấu #{$match->id}{$slotLabel}.",
+                    'link' => "/matches/{$match->id}",
+                ]);
             }
 
             if ($this->telegramBot->isConfigured()) {
@@ -578,7 +619,7 @@ class BilliardMatchService
      *
      * @throws ValidationException
      */
-    public function rejectPrize(BilliardMatch $match, User $user, ?string $reason = null): BilliardMatch
+    public function rejectPrize(BilliardMatch $match, User $user, ?string $reason = null, ?string $slot = null): BilliardMatch
     {
         if (! in_array($match->status, ['confirmed', 'resolved'])) {
             throw ValidationException::withMessages([
@@ -586,27 +627,45 @@ class BilliardMatchService
             ]);
         }
 
-        if ($match->isPrizeConfirmed()) {
+        if ($slot === null) {
+            $slot = $match->getPrizeSlotForUser($user);
+        }
+
+        if ($match->isPrizeConfirmed($slot)) {
             throw ValidationException::withMessages([
-                'prize' => 'Kèo của trận đấu này đã được xác nhận Đã OK trước đó!',
+                'prize' => 'Kèo của phần thi đấu này đã được xác nhận Đã OK trước đó!',
             ]);
         }
 
-        if (! $match->canUserConfirmPrize($user)) {
+        if (! $match->canUserConfirmPrize($user, $slot)) {
             throw ValidationException::withMessages([
-                'prize' => 'Bạn không có quyền phản hồi về việc trả kèo cho trận đấu này!',
+                'prize' => 'Bạn không có quyền phản hồi về việc trả kèo cho phần thi đấu này!',
             ]);
         }
 
-        return DB::transaction(function () use ($match, $user, $reason) {
-            $match->update([
-                'prize_status' => 'rejected',
-                'prize_confirmed_at' => Carbon::now(),
-                'prize_confirmed_by' => $user->id,
-                'prize_feedback' => $reason,
-            ]);
+        return DB::transaction(function () use ($match, $user, $reason, $slot) {
+            $isPartnerSlot = ($slot === 'partner');
 
-            $actionNote = "{$user->name} đã phản hồi KHÔNG ĐỒNG Ý với việc trả kèo ({$match->prize})";
+            if ($isPartnerSlot) {
+                $match->update([
+                    'prize_partner_status' => 'rejected',
+                    'prize_partner_confirmed_at' => Carbon::now(),
+                    'prize_partner_confirmed_by' => $user->id,
+                    'prize_partner_feedback' => $reason,
+                ]);
+            } else {
+                $match->update([
+                    'prize_status' => 'rejected',
+                    'prize_confirmed_at' => Carbon::now(),
+                    'prize_confirmed_by' => $user->id,
+                    'prize_feedback' => $reason,
+                ]);
+            }
+
+            $counterpart = $match->getCounterpartForUser($user);
+            $slotLabel = $match->isDoubles() ? ($counterpart ? " [Cặp cùng {$counterpart->name}]" : ($isPartnerSlot ? ' [Cặp 2]' : ' [Cặp 1]')) : '';
+
+            $actionNote = "{$user->name} đã phản hồi KHÔNG ĐỒNG Ý với việc trả kèo ({$match->prize}){$slotLabel}";
             if (! empty($reason)) {
                 $actionNote .= ". Lý do: {$reason}";
             }
@@ -619,19 +678,21 @@ class BilliardMatchService
                 'created_at' => Carbon::now(),
             ]);
 
-            // Notify debtor(s) that recipient rejected
-            $recipients = array_filter([$match->loser, $match->loserPartner]);
-            foreach ($recipients as $recipient) {
-                if ($recipient && $recipient->id !== $user->id) {
-                    UserNotification::create([
-                        'user_id' => $recipient->id,
-                        'billiard_match_id' => $match->id,
-                        'type' => 'prize_rejected',
-                        'title' => 'Người nhận không đồng ý với việc trả kèo',
-                        'message' => "{$user->name} không đồng ý với việc trả kèo '{$match->prize}' cho trận đấu #{$match->id}.".(! empty($reason) ? " Lý do: {$reason}" : ''),
-                        'link' => "/matches/{$match->id}",
-                    ]);
-                }
+            // Notify debtor counterpart
+            $debtor = $counterpart;
+            if (! $debtor) {
+                $debtor = $isPartnerSlot ? $match->loserPartner : $match->loser;
+            }
+
+            if ($debtor && $debtor->id !== $user->id) {
+                UserNotification::create([
+                    'user_id' => $debtor->id,
+                    'billiard_match_id' => $match->id,
+                    'type' => 'prize_rejected',
+                    'title' => 'Người nhận không đồng ý với việc trả kèo',
+                    'message' => "{$user->name} không đồng ý với việc trả kèo '{$match->prize}' cho trận đấu #{$match->id}{$slotLabel}.".(! empty($reason) ? " Lý do: {$reason}" : ''),
+                    'link' => "/matches/{$match->id}",
+                ]);
             }
 
             if ($this->telegramBot->isConfigured()) {

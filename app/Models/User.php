@@ -194,10 +194,14 @@ class User extends Authenticatable
         }
 
         return $this->memoizedUnpaidDebtsCount = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
-            ->whereNotIn('prize_status', ['paid', 'confirmed'])
-            ->where(function ($q) {
-                $q->where('loser_id', $this->id)
-                    ->orWhere('loser_partner_id', $this->id);
+            ->where(function (Builder $query) {
+                $query->where(function (Builder $q) {
+                    $q->where('loser_id', $this->id)
+                        ->whereNotIn('prize_status', ['paid', 'confirmed']);
+                })->orWhere(function (Builder $q) {
+                    $q->where('loser_partner_id', $this->id)
+                        ->whereNotIn('prize_partner_status', ['paid', 'confirmed']);
+                });
             })
             ->count();
     }
@@ -209,10 +213,14 @@ class User extends Authenticatable
         }
 
         return $this->memoizedPaidDebtsCount = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
-            ->whereIn('prize_status', ['paid', 'confirmed'])
-            ->where(function ($q) {
-                $q->where('loser_id', $this->id)
-                    ->orWhere('loser_partner_id', $this->id);
+            ->where(function (Builder $query) {
+                $query->where(function (Builder $q) {
+                    $q->where('loser_id', $this->id)
+                        ->whereIn('prize_status', ['paid', 'confirmed']);
+                })->orWhere(function (Builder $q) {
+                    $q->where('loser_partner_id', $this->id)
+                        ->whereIn('prize_partner_status', ['paid', 'confirmed']);
+                });
             })
             ->count();
     }
@@ -226,10 +234,14 @@ class User extends Authenticatable
         }
 
         return $this->memoizedUnpaidReceivablesCount = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
-            ->whereNotIn('prize_status', ['confirmed'])
-            ->where(function ($q) {
-                $q->where('winner_id', $this->id)
-                    ->orWhere('winner_partner_id', $this->id);
+            ->where(function (Builder $query) {
+                $query->where(function (Builder $q) {
+                    $q->where('winner_id', $this->id)
+                        ->whereNotIn('prize_status', ['confirmed']);
+                })->orWhere(function (Builder $q) {
+                    $q->where('winner_partner_id', $this->id)
+                        ->whereNotIn('prize_partner_status', ['confirmed']);
+                });
             })
             ->count();
     }

@@ -246,95 +246,278 @@
             </div>
 
             <!-- Prize & Settlement -->
-            <div
-                class="border rounded-xl p-5 shadow-sm {{ $match->isPrizePaid() ? 'bg-green-50/50 border-green-200' : 'bg-gray-50 border-gray-200' }}">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wider">Phần
-                                thưởng / Kèo giao lưu</span>
-                            @if($match->prize_status === 'confirmed')
-                                <span
-                                    class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                                    Đã trả kèo (Người nhận đã OK)
+            @if($match->isDoubles())
+                <!-- 2vs2 Doubles Cross Settlement (Tách Chéo Độc Lập) -->
+                <div class="border border-purple-200 bg-purple-50/40 rounded-xl p-5 shadow-sm space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-200/60 pb-3">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="bg-purple-100 text-purple-800 text-xs font-black px-2.5 py-0.5 rounded-full border border-purple-300 uppercase tracking-wider inline-flex items-center gap-1">
+                                    <span>👥</span> Kèo đôi tách chéo độc lập
                                 </span>
-                            @elseif($match->prize_status === 'paid')
-                                <span
-                                    class="bg-blue-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                                    Đã trả kèo (Chờ xác nhận)
-                                </span>
-                            @elseif($match->prize_status === 'rejected')
-                                <span
-                                    class="bg-rose-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                                    Người nhận không đồng ý
-                                </span>
-                            @else
-                                <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                                    Chưa trả kèo
-                                </span>
-                            @endif
+                                @if($match->isPrizeConfirmed())
+                                    <span class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
+                                        Cả 2 cặp đã OK hoàn tất
+                                    </span>
+                                @endif
+                            </div>
+                            <div class="text-xl sm:text-2xl font-black text-gray-900 mt-1">
+                                Kèo trận: {{ $match->prize }}
+                            </div>
+                            <div class="text-xs text-gray-600 mt-0.5">
+                                Mỗi người bên đội thua trả riêng 1 phần kèo cho 1 người tương ứng bên đội thắng.
+                            </div>
                         </div>
-                        <div class="text-xl sm:text-2xl font-black text-gray-900 mt-1.5">{{ $match->prize }}</div>
-
-                        @if($match->prize_paid_at)
-                            <div class="text-xs sm:text-sm text-gray-700 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-                                <span>Thực hiện trả bởi: <b>{{ $match->prizePaidBy?->name ?? 'Người thua' }}</b></span>
-                                <span>•</span>
-                                <span>Lúc: {{ $match->prize_paid_at->format('H:i d/m/Y') }}</span>
-                                @if($match->prize_notes)
-                                    <span>•</span>
-                                    <span class="italic font-medium">"{{ $match->prize_notes }}"</span>
-                                @endif
-                            </div>
-                        @endif
-
-                        @if($match->prize_status === 'confirmed')
-                            <div class="text-xs sm:text-sm text-emerald-800 mt-1 font-medium">
-                                Xác nhận ĐÃ OK bởi: <b>{{ $match->prizeConfirmedBy?->name ?? 'Người nhận' }}</b> lúc
-                                {{ $match->prize_confirmed_at?->format('H:i d/m/Y') }}
-                                @if($match->prize_feedback)
-                                    <span class="italic"> - "{{ $match->prize_feedback }}"</span>
-                                @endif
-                            </div>
-                        @elseif($match->prize_status === 'rejected')
-                            <div class="text-xs sm:text-sm text-rose-800 mt-1 font-medium">
-                                Phản hồi không đồng ý bởi: <b>{{ $match->prizeConfirmedBy?->name ?? 'Người nhận' }}</b> lúc
-                                {{ $match->prize_confirmed_at?->format('H:i d/m/Y') }}
-                                @if($match->prize_feedback)
-                                    <span class="italic"> - Lý do: "{{ $match->prize_feedback }}"</span>
-                                @endif
-                            </div>
-                        @endif
                     </div>
 
-                    @auth
-                        <div class="flex flex-wrap items-center gap-2 shrink-0">
-                            @if($match->canUserConfirmPrize(auth()->user()) && $match->prize_status === 'paid')
-                                <form method="POST" action="{{ route('matches.confirm-prize', $match->id) }}"
-                                    onsubmit="return confirm('Xác nhận bạn ĐÃ OK / đã nhận đủ kèo cho trận đấu này?')">
-                                    @csrf
-                                    <button type="submit"
-                                        class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-sm transition cursor-pointer">
-                                        Đã OK
-                                    </button>
-                                </form>
-                                <button type="button"
-                                    onclick="document.getElementById('rejectPrizeModal').classList.remove('hidden')"
-                                    class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-sm font-semibold px-4 py-2.5 rounded-lg shadow-sm transition cursor-pointer">
-                                    Không đồng ý
-                                </button>
+                    <!-- 2 Side-by-side Cross Pairs -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Pair 1: Loser -> Winner -->
+                        <div class="bg-white border rounded-xl p-4 shadow-2xs flex flex-col justify-between space-y-3 {{ $match->prize_status === 'confirmed' ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-gray-200' }}">
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-extrabold uppercase tracking-wider text-purple-900 bg-purple-100 px-2 py-0.5 rounded">
+                                        Cặp 1: {{ $match->loser?->name }} ➡️ {{ $match->winner?->name }}
+                                    </span>
+                                    @if($match->prize_status === 'confirmed')
+                                        <span class="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-full">Đã OK</span>
+                                    @elseif($match->prize_status === 'paid')
+                                        <span class="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-full">Đã trả (Chờ OK)</span>
+                                    @elseif($match->prize_status === 'rejected')
+                                        <span class="bg-rose-100 text-rose-800 text-[11px] font-bold px-2 py-0.5 rounded-full">Không đồng ý</span>
+                                    @else
+                                        <span class="bg-amber-100 text-amber-800 text-[11px] font-bold px-2 py-0.5 rounded-full">Chưa trả</span>
+                                    @endif
+                                </div>
+
+                                <div class="text-sm text-gray-800">
+                                    <span class="text-red-700 font-bold">{{ $match->loser?->name }}</span> trả kèo cho <span class="text-emerald-700 font-bold">{{ $match->winner?->name }}</span>
+                                </div>
+
+                                @if($match->prize_paid_at)
+                                    <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
+                                        <div>Đã trả lúc: {{ $match->prize_paid_at->format('H:i d/m/Y') }}</div>
+                                        @if($match->prize_notes)
+                                            <div class="italic text-gray-700 mt-0.5">"{{ $match->prize_notes }}"</div>
+                                        @endif
+                                    </div>
+                                @endif
+
+                                @if($match->prize_status === 'confirmed')
+                                    <div class="text-xs text-emerald-700 font-medium">
+                                        ✓ {{ $match->winner?->name }} đã xác nhận OK lúc {{ $match->prize_confirmed_at?->format('H:i d/m/Y') }}
+                                        @if($match->prize_feedback)
+                                            <div class="italic">"{{ $match->prize_feedback }}"</div>
+                                        @endif
+                                    </div>
+                                @elseif($match->prize_status === 'rejected')
+                                    <div class="text-xs text-rose-700 font-medium">
+                                        ✕ {{ $match->winner?->name }} không đồng ý lúc {{ $match->prize_confirmed_at?->format('H:i d/m/Y') }}
+                                        @if($match->prize_feedback)
+                                            <div class="italic">"{{ $match->prize_feedback }}"</div>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
+
+                            @auth
+                                <div class="pt-2 border-t border-gray-100 flex flex-wrap items-center gap-2">
+                                    @if($match->canUserConfirmPrize(auth()->user(), 'primary') && $match->prize_status === 'paid')
+                                        <form method="POST" action="{{ route('matches.confirm-prize', $match->id) }}"
+                                            onsubmit="return confirm('Xác nhận bạn ĐÃ OK / đã nhận đủ kèo từ {{ $match->loser?->name }}?')">
+                                            @csrf
+                                            <input type="hidden" name="pair_slot" value="primary">
+                                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
+                                                Đã OK
+                                            </button>
+                                        </form>
+                                        <button type="button"
+                                            onclick="openRejectPrizeModalExplicit('primary', '{{ addslashes($match->loser?->name ?? 'Người thua') }}')"
+                                            class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
+                                            Không đồng ý
+                                        </button>
+                                    @endif
+
+                                    @if($match->canUserPayPrize(auth()->user(), 'primary'))
+                                        <button type="button" onclick="openPayPrizeModalExplicit('primary', 'Trả kèo Cặp 1 (cho {{ $match->winner?->name }})', '{{ addslashes($match->prize_notes ?? '') }}')"
+                                            class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
+                                            {{ $match->prize_status === 'rejected' ? 'Trả kèo lại cho ' . $match->winner?->name : ($match->prize_status === 'paid' ? 'Cập nhật trả kèo' : 'Trả kèo cho ' . $match->winner?->name) }}
+                                        </button>
+                                    @endif
+                                </div>
+                            @endauth
+                        </div>
+
+                        <!-- Pair 2: Loser Partner -> Winner Partner -->
+                        <div class="bg-white border rounded-xl p-4 shadow-2xs flex flex-col justify-between space-y-3 {{ $match->prize_partner_status === 'confirmed' ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-gray-200' }}">
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-extrabold uppercase tracking-wider text-purple-900 bg-purple-100 px-2 py-0.5 rounded">
+                                        Cặp 2: {{ $match->loserPartner?->name }} ➡️ {{ $match->winnerPartner?->name }}
+                                    </span>
+                                    @if($match->prize_partner_status === 'confirmed')
+                                        <span class="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-full">Đã OK</span>
+                                    @elseif($match->prize_partner_status === 'paid')
+                                        <span class="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-full">Đã trả (Chờ OK)</span>
+                                    @elseif($match->prize_partner_status === 'rejected')
+                                        <span class="bg-rose-100 text-rose-800 text-[11px] font-bold px-2 py-0.5 rounded-full">Không đồng ý</span>
+                                    @else
+                                        <span class="bg-amber-100 text-amber-800 text-[11px] font-bold px-2 py-0.5 rounded-full">Chưa trả</span>
+                                    @endif
+                                </div>
+
+                                <div class="text-sm text-gray-800">
+                                    <span class="text-red-700 font-bold">{{ $match->loserPartner?->name }}</span> trả kèo cho <span class="text-emerald-700 font-bold">{{ $match->winnerPartner?->name }}</span>
+                                </div>
+
+                                @if($match->prize_partner_paid_at)
+                                    <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
+                                        <div>Đã trả lúc: {{ $match->prize_partner_paid_at->format('H:i d/m/Y') }}</div>
+                                        @if($match->prize_partner_notes)
+                                            <div class="italic text-gray-700 mt-0.5">"{{ $match->prize_partner_notes }}"</div>
+                                        @endif
+                                    </div>
+                                @endif
+
+                                @if($match->prize_partner_status === 'confirmed')
+                                    <div class="text-xs text-emerald-700 font-medium">
+                                        ✓ {{ $match->winnerPartner?->name }} đã xác nhận OK lúc {{ $match->prize_partner_confirmed_at?->format('H:i d/m/Y') }}
+                                        @if($match->prize_partner_feedback)
+                                            <div class="italic">"{{ $match->prize_partner_feedback }}"</div>
+                                        @endif
+                                    </div>
+                                @elseif($match->prize_partner_status === 'rejected')
+                                    <div class="text-xs text-rose-700 font-medium">
+                                        ✕ {{ $match->winnerPartner?->name }} không đồng ý lúc {{ $match->prize_partner_confirmed_at?->format('H:i d/m/Y') }}
+                                        @if($match->prize_partner_feedback)
+                                            <div class="italic">"{{ $match->prize_partner_feedback }}"</div>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
+
+                            @auth
+                                <div class="pt-2 border-t border-gray-100 flex flex-wrap items-center gap-2">
+                                    @if($match->canUserConfirmPrize(auth()->user(), 'partner') && $match->prize_partner_status === 'paid')
+                                        <form method="POST" action="{{ route('matches.confirm-prize', $match->id) }}"
+                                            onsubmit="return confirm('Xác nhận bạn ĐÃ OK / đã nhận đủ kèo từ {{ $match->loserPartner?->name }}?')">
+                                            @csrf
+                                            <input type="hidden" name="pair_slot" value="partner">
+                                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
+                                                Đã OK
+                                            </button>
+                                        </form>
+                                        <button type="button"
+                                            onclick="openRejectPrizeModalExplicit('partner', '{{ addslashes($match->loserPartner?->name ?? 'Người thua') }}')"
+                                            class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
+                                            Không đồng ý
+                                        </button>
+                                    @endif
+
+                                    @if($match->canUserPayPrize(auth()->user(), 'partner'))
+                                        <button type="button" onclick="openPayPrizeModalExplicit('partner', 'Trả kèo Cặp 2 (cho {{ $match->winnerPartner?->name }})', '{{ addslashes($match->prize_partner_notes ?? '') }}')"
+                                            class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
+                                            {{ $match->prize_partner_status === 'rejected' ? 'Trả kèo lại cho ' . $match->winnerPartner?->name : ($match->prize_partner_status === 'paid' ? 'Cập nhật trả kèo' : 'Trả kèo cho ' . $match->winnerPartner?->name) }}
+                                        </button>
+                                    @endif
+                                </div>
+                            @endauth
+                        </div>
+                    </div>
+                </div>
+            @else
+                <!-- Singles Prize Settlement -->
+                <div
+                    class="border rounded-xl p-5 shadow-sm {{ $match->isPrizePaid() ? 'bg-green-50/50 border-green-200' : 'bg-gray-50 border-gray-200' }}">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wider">Phần
+                                    thưởng / Kèo giao lưu</span>
+                                @if($match->prize_status === 'confirmed')
+                                    <span
+                                        class="bg-emerald-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                                        Đã trả kèo (Người nhận đã OK)
+                                    </span>
+                                @elseif($match->prize_status === 'paid')
+                                    <span
+                                        class="bg-blue-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                                        Đã trả kèo (Chờ xác nhận)
+                                    </span>
+                                @elseif($match->prize_status === 'rejected')
+                                    <span
+                                        class="bg-rose-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                                        Người nhận không đồng ý
+                                    </span>
+                                @else
+                                    <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                                        Chưa trả kèo
+                                    </span>
+                                @endif
+                            </div>
+                            <div class="text-xl sm:text-2xl font-black text-gray-900 mt-1.5">{{ $match->prize }}</div>
+
+                            @if($match->prize_paid_at)
+                                <div class="text-xs sm:text-sm text-gray-700 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                    <span>Thực hiện trả bởi: <b>{{ $match->prizePaidBy?->name ?? 'Người thua' }}</b></span>
+                                    <span>•</span>
+                                    <span>Lúc: {{ $match->prize_paid_at->format('H:i d/m/Y') }}</span>
+                                    @if($match->prize_notes)
+                                        <span>•</span>
+                                        <span class="italic font-medium">"{{ $match->prize_notes }}"</span>
+                                    @endif
+                                </div>
                             @endif
 
-                            @if($match->canUserPayPrize(auth()->user()))
-                                <button type="button" onclick="document.getElementById('payPrizeModal').classList.remove('hidden')"
-                                    class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-sm transition cursor-pointer flex items-center gap-1.5">
-                                    <span>{{ $match->prize_status === 'rejected' ? 'Trả kèo lại' : ($match->prize_status === 'paid' ? 'Cập nhật trả kèo' : ($match->isUserDebtor(auth()->user()) ? 'Trả kèo trận này' : 'Xác nhận đã trả kèo')) }}</span>
-                                </button>
+                            @if($match->prize_status === 'confirmed')
+                                <div class="text-xs sm:text-sm text-emerald-800 mt-1 font-medium">
+                                    Xác nhận ĐÃ OK bởi: <b>{{ $match->prizeConfirmedBy?->name ?? 'Người nhận' }}</b> lúc
+                                    {{ $match->prize_confirmed_at?->format('H:i d/m/Y') }}
+                                    @if($match->prize_feedback)
+                                        <span class="italic"> - "{{ $match->prize_feedback }}"</span>
+                                    @endif
+                                </div>
+                            @elseif($match->prize_status === 'rejected')
+                                <div class="text-xs sm:text-sm text-rose-800 mt-1 font-medium">
+                                    Phản hồi không đồng ý bởi: <b>{{ $match->prizeConfirmedBy?->name ?? 'Người nhận' }}</b> lúc
+                                    {{ $match->prize_confirmed_at?->format('H:i d/m/Y') }}
+                                    @if($match->prize_feedback)
+                                        <span class="italic"> - Lý do: "{{ $match->prize_feedback }}"</span>
+                                    @endif
+                                </div>
                             @endif
                         </div>
-                    @endauth
+
+                        @auth
+                            <div class="flex flex-wrap items-center gap-2 shrink-0">
+                                @if($match->canUserConfirmPrize(auth()->user(), 'primary') && $match->prize_status === 'paid')
+                                    <form method="POST" action="{{ route('matches.confirm-prize', $match->id) }}"
+                                        onsubmit="return confirm('Xác nhận bạn ĐÃ OK / đã nhận đủ kèo cho trận đấu này?')">
+                                        @csrf
+                                        <input type="hidden" name="pair_slot" value="primary">
+                                        <button type="submit"
+                                            class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-sm transition cursor-pointer">
+                                            Đã OK
+                                        </button>
+                                    </form>
+                                    <button type="button"
+                                        onclick="openRejectPrizeModalExplicit('primary', '{{ addslashes($match->loser?->name ?? 'Người thua') }}')"
+                                        class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-sm font-semibold px-4 py-2.5 rounded-lg shadow-sm transition cursor-pointer">
+                                        Không đồng ý
+                                    </button>
+                                @endif
+
+                                @if($match->canUserPayPrize(auth()->user(), 'primary'))
+                                    <button type="button" onclick="openPayPrizeModalExplicit('primary', 'Xác nhận trả kèo', '{{ addslashes($match->prize_notes ?? '') }}')"
+                                        class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-sm transition cursor-pointer flex items-center gap-1.5">
+                                        <span>{{ $match->prize_status === 'rejected' ? 'Trả kèo lại' : ($match->prize_status === 'paid' ? 'Cập nhật trả kèo' : ($match->isUserDebtor(auth()->user()) ? 'Trả kèo trận này' : 'Xác nhận đã trả kèo')) }}</span>
+                                    </button>
+                                @endif
+                            </div>
+                        @endauth
+                    </div>
                 </div>
-            </div>
+            @endif
 
             <!-- Notes & Evidence -->
             @if($match->notes || $match->evidence_path)
@@ -500,7 +683,7 @@
         <div class="flex min-h-full items-center justify-center p-4">
             <div class="relative bg-white rounded-xl p-6 max-w-md w-full shadow-2xl border border-gray-200 space-y-4">
                 <div class="flex items-center justify-between pb-3 border-b border-gray-200">
-                    <h3 class="text-lg font-bold text-gray-900">
+                    <h3 class="text-lg font-bold text-gray-900" id="payModalTitle">
                         @auth
                             {{ $match->prize_status === 'rejected' ? 'Trả kèo lại' : ($match->prize_status === 'paid' ? 'Cập nhật trả kèo' : ($match->isUserDebtor(auth()->user()) ? 'Trả kèo trận đấu' : 'Xác nhận hoàn thành trả kèo')) }}
                         @else
@@ -523,9 +706,10 @@
 
                 <form method="POST" action="{{ route('matches.pay-prize', $match->id) }}" class="space-y-4 text-sm">
                     @csrf
+                    <input type="hidden" name="pair_slot" id="payModalPairSlot" value="primary">
                     <div>
                         <label class="block font-semibold text-gray-700 mb-1.5">Ghi chú xác nhận (tùy chọn)</label>
-                        <input type="text" name="note" value="{{ $match->prize_notes }}"
+                        <input type="text" name="note" id="payModalNote" value="{{ $match->prize_notes }}"
                             placeholder="VD: Đã bao chầu nước, đã chuyển khoản..."
                             class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
@@ -557,7 +741,7 @@
 
                 <div class="bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm text-rose-900">
                     <div><b>Kèo:</b> {{ $match->prize }}</div>
-                    <div class="mt-1"><b>Người trả:</b> {{ $match->prizePaidBy?->name ?? 'Người thua' }}</div>
+                    <div class="mt-1"><b>Người trả:</b> <span id="rejectModalDebtorName">{{ $match->prizePaidBy?->name ?? 'Người thua' }}</span></div>
                     @if($match->prize_notes)
                         <div class="mt-1 text-xs"><b>Ghi chú đối thủ:</b> "{{ $match->prize_notes }}"</div>
                     @endif
@@ -565,6 +749,7 @@
 
                 <form method="POST" action="{{ route('matches.reject-prize', $match->id) }}" class="space-y-4 text-sm">
                     @csrf
+                    <input type="hidden" name="pair_slot" id="rejectModalPairSlot" value="primary">
                     <div>
                         <label class="block font-semibold text-gray-700 mb-1.5">Lý do không đồng ý (tùy chọn)</label>
                         <input type="text" name="reason" placeholder="VD: Chưa nhận được nước, chưa thấy chuyển tiền..."
@@ -628,4 +813,29 @@
             </div>
         @endif
     @endauth
+
+    <script>
+        function openPayPrizeModalExplicit(slot = 'primary', title = 'Xác nhận trả kèo', defaultNote = '') {
+            const slotInput = document.getElementById('payModalPairSlot');
+            if (slotInput) slotInput.value = slot;
+
+            const titleEl = document.getElementById('payModalTitle');
+            if (titleEl && title) titleEl.textContent = title;
+
+            const noteInput = document.getElementById('payModalNote');
+            if (noteInput && defaultNote !== undefined) noteInput.value = defaultNote;
+
+            document.getElementById('payPrizeModal').classList.remove('hidden');
+        }
+
+        function openRejectPrizeModalExplicit(slot = 'primary', debtorName = '') {
+            const slotInput = document.getElementById('rejectModalPairSlot');
+            if (slotInput) slotInput.value = slot;
+
+            const debtorEl = document.getElementById('rejectModalDebtorName');
+            if (debtorEl && debtorName) debtorEl.textContent = debtorName;
+
+            document.getElementById('rejectPrizeModal').classList.remove('hidden');
+        }
+    </script>
 @endsection

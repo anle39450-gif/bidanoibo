@@ -307,6 +307,9 @@ class MatchController extends Controller
             'loser',
             'loserPartner',
             'prizePaidBy',
+            'prizeConfirmedBy',
+            'prizePartnerPaidBy',
+            'prizePartnerConfirmedBy',
             'histories.user',
         ]);
 
@@ -324,10 +327,11 @@ class MatchController extends Controller
 
         $request->validate([
             'note' => ['nullable', 'string', 'max:500'],
+            'pair_slot' => ['nullable', 'string', 'in:primary,partner'],
         ]);
 
         try {
-            $this->matchService->settlePrize($match, $currentUser, $request->input('note'));
+            $this->matchService->settlePrize($match, $currentUser, $request->input('note'), $request->input('pair_slot'));
 
             return back()->with('success', 'Đã cập nhật trạng thái trả kèo thành công! Hệ thống đã gửi thông báo đến người nhận.');
         } catch (\Throwable $e) {
@@ -342,10 +346,11 @@ class MatchController extends Controller
 
         $request->validate([
             'note' => ['nullable', 'string', 'max:500'],
+            'pair_slot' => ['nullable', 'string', 'in:primary,partner'],
         ]);
 
         try {
-            $this->matchService->confirmPrize($match, $currentUser, $request->input('note'));
+            $this->matchService->confirmPrize($match, $currentUser, $request->input('note'), $request->input('pair_slot'));
 
             return back()->with('success', 'Bạn đã xác nhận ĐÃ OK nhận kèo thành công!');
         } catch (\Throwable $e) {
@@ -360,10 +365,11 @@ class MatchController extends Controller
 
         $request->validate([
             'reason' => ['nullable', 'string', 'max:500'],
+            'pair_slot' => ['nullable', 'string', 'in:primary,partner'],
         ]);
 
         try {
-            $this->matchService->rejectPrize($match, $currentUser, $request->input('reason'));
+            $this->matchService->rejectPrize($match, $currentUser, $request->input('reason'), $request->input('pair_slot'));
 
             return back()->with('success', 'Đã gửi phản hồi không đồng ý với việc trả kèo!');
         } catch (\Throwable $e) {

@@ -43,45 +43,36 @@ class DashboardController extends Controller
         $myUnpaidReceivables = collect();
 
         if ($currentUser) {
-            $unpaidQuery = BilliardMatch::confirmed()
-                ->whereNotIn('prize_status', ['confirmed'])
-                ->where(function ($q) use ($currentUser) {
-                    $q->where('loser_id', $currentUser->id)
-                        ->orWhere('loser_partner_id', $currentUser->id);
-                });
+            $myUnpaidDebtsCount = $currentUser->unpaid_debts_count;
+            $myPaidDebtsCount = $currentUser->paid_debts_count;
+            $myUnpaidReceivablesCount = $currentUser->unpaid_receivables_count;
 
-            $myUnpaidDebtsCount = BilliardMatch::confirmed()
-                ->whereNotIn('prize_status', ['paid', 'confirmed'])
-                ->where(function ($q) use ($currentUser) {
-                    $q->where('loser_id', $currentUser->id)
-                        ->orWhere('loser_partner_id', $currentUser->id);
+            $myUnpaidMatches = BilliardMatch::confirmed()
+                ->where(function ($query) use ($currentUser) {
+                    $query->where(function ($q) use ($currentUser) {
+                        $q->where('loser_id', $currentUser->id)
+                            ->whereNotIn('prize_status', ['confirmed']);
+                    })->orWhere(function ($q) use ($currentUser) {
+                        $q->where('loser_partner_id', $currentUser->id)
+                            ->whereNotIn('prize_partner_status', ['confirmed']);
+                    });
                 })
-                ->count();
-
-            $myUnpaidMatches = (clone $unpaidQuery)
-                ->with(['winner', 'winnerPartner', 'loser', 'loserPartner', 'prizePaidBy', 'prizeConfirmedBy'])
+                ->with(['winner', 'winnerPartner', 'loser', 'loserPartner', 'prizePaidBy', 'prizeConfirmedBy', 'prizePartnerPaidBy', 'prizePartnerConfirmedBy'])
                 ->orderBy('played_at', 'desc')
                 ->take(6)
                 ->get();
 
-            $myPaidDebtsCount = BilliardMatch::confirmed()
-                ->whereIn('prize_status', ['paid', 'confirmed'])
-                ->where(function ($q) use ($currentUser) {
-                    $q->where('loser_id', $currentUser->id)
-                        ->orWhere('loser_partner_id', $currentUser->id);
+            $myUnpaidReceivables = BilliardMatch::confirmed()
+                ->where(function ($query) use ($currentUser) {
+                    $query->where(function ($q) use ($currentUser) {
+                        $q->where('winner_id', $currentUser->id)
+                            ->whereNotIn('prize_status', ['confirmed']);
+                    })->orWhere(function ($q) use ($currentUser) {
+                        $q->where('winner_partner_id', $currentUser->id)
+                            ->whereNotIn('prize_partner_status', ['confirmed']);
+                    });
                 })
-                ->count();
-
-            $receivablesQuery = BilliardMatch::confirmed()
-                ->whereNotIn('prize_status', ['confirmed'])
-                ->where(function ($q) use ($currentUser) {
-                    $q->where('winner_id', $currentUser->id)
-                        ->orWhere('winner_partner_id', $currentUser->id);
-                });
-
-            $myUnpaidReceivablesCount = (clone $receivablesQuery)->count();
-            $myUnpaidReceivables = (clone $receivablesQuery)
-                ->with(['winner', 'winnerPartner', 'loser', 'loserPartner', 'prizePaidBy', 'prizeConfirmedBy'])
+                ->with(['winner', 'winnerPartner', 'loser', 'loserPartner', 'prizePaidBy', 'prizeConfirmedBy', 'prizePartnerPaidBy', 'prizePartnerConfirmedBy'])
                 ->orderBy('played_at', 'desc')
                 ->take(6)
                 ->get();

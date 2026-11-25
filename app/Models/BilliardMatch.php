@@ -34,6 +34,13 @@ class BilliardMatch extends Model
         'prize_confirmed_at',
         'prize_confirmed_by',
         'prize_feedback',
+        'prize_partner_status',
+        'prize_partner_paid_at',
+        'prize_partner_paid_by',
+        'prize_partner_notes',
+        'prize_partner_confirmed_at',
+        'prize_partner_confirmed_by',
+        'prize_partner_feedback',
         'notes',
         'evidence_path',
         'status',
@@ -55,6 +62,8 @@ class BilliardMatch extends Model
             'played_at' => 'datetime',
             'prize_paid_at' => 'datetime',
             'prize_confirmed_at' => 'datetime',
+            'prize_partner_paid_at' => 'datetime',
+            'prize_partner_confirmed_at' => 'datetime',
             'notified_at' => 'datetime',
             'auto_confirm_at' => 'datetime',
             'confirmed_at' => 'datetime',
@@ -118,6 +127,16 @@ class BilliardMatch extends Model
         return $this->belongsTo(User::class, 'prize_confirmed_by');
     }
 
+    public function prizePartnerPaidBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'prize_partner_paid_by');
+    }
+
+    public function prizePartnerConfirmedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'prize_partner_confirmed_by');
+    }
+
     public function histories(): HasMany
     {
         return $this->hasMany(MatchHistory::class, 'billiard_match_id')->orderBy('created_at', 'desc');
@@ -162,26 +181,6 @@ class BilliardMatch extends Model
     public function scopePrizeRejected(Builder $query): Builder
     {
         return $query->where('prize_status', 'rejected');
-    }
-
-    public function isPrizePaid(): bool
-    {
-        return in_array($this->prize_status, ['paid', 'confirmed']);
-    }
-
-    public function isPrizeConfirmed(): bool
-    {
-        return $this->prize_status === 'confirmed';
-    }
-
-    public function isPrizeRejected(): bool
-    {
-        return $this->prize_status === 'rejected';
-    }
-
-    public function isPrizePendingConfirmation(): bool
-    {
-        return $this->prize_status === 'paid';
     }
 
     public function scopeVisible(Builder $query): Builder
@@ -233,29 +232,166 @@ class BilliardMatch extends Model
         ]));
     }
 
-    public function canUserPayPrize(?User $user): bool
+    public function isPrizePaid(?string $slot = null): bool
     {
-        if (! $user) {
-            return false;
+        if ($slot === 'partner') {
+            return in_array($this->prize_partner_status, ['paid', 'confirmed']);
         }
 
-        if (! in_array($this->status, ['confirmed', 'resolved'])) {
-            return false;
+        if ($slot === 'primary') {
+            return in_array($this->prize_status, ['paid', 'confirmed']);
         }
 
-        // Once confirmed OK, the prize is completely settled
-        if ($this->isPrizeConfirmed()) {
-            return false;
+        if ($this->isDoubles()) {
+            return in_array($this->prize_status, ['paid', 'confirmed'])
+                && in_array($this->prize_partner_status, ['paid', 'confirmed']);
         }
 
-        if ($user->isAdmin()) {
-            return true;
-        }
-
-        return $this->isUserDebtor($user);
+        return in_array($this->prize_status, ['paid', 'confirmed']);
     }
 
-    public function canUserConfirmPrize(?User $user): bool
+    public function isPrizeConfirmed(?string $slot = null): bool
+    {
+        if ($slot === 'partner') {
+            return $this->prize_partner_status === 'confirmed';
+        }
+
+        if ($slot === 'primary') {
+            return $this->prize_status === 'confirmed';
+        }
+
+        if ($this->isDoubles()) {
+            return $this->prize_status === 'confirmed' && $this->prize_partner_status === 'confirmed';
+        }
+
+        return $this->prize_status === 'confirmed';
+    }
+
+    public function isPrizeRejected(?string $slot = null): bool
+    {
+        if ($slot === 'partner') {
+            return $this->prize_partner_status === 'rejected';
+        }
+
+        if ($slot === 'primary') {
+            return $this->prize_status === 'rejected';
+        }
+
+        return $this->prize_status === 'rejected';
+    }
+
+    public function isPrizePendingConfirmation(?string $slot = null): bool
+    {
+        if ($slot === 'partner') {
+            return $this->prize_partner_status === 'paid';
+        }
+
+        if ($slot === 'primary') {
+            return $this->prize_status === 'paid';
+        }
+
+        return $this->prize_status === 'paid';
+    }
+
+    public function getPrizeSlotForUser(User|int|null $user): string
+    {
+        if (! $user) {
+            return 'primary';
+        }
+
+        $id = $user instanceof User ? $user->id : $user;
+
+        if ($this->isDoubles() && ($id === $this->loser_partner_id || $id === $this->winner_partner_id)) {
+            return 'partner';
+        }
+
+        return 'primary';
+    }
+
+    public function getCounterpartForUser(User|int|null $user): ?User
+    {
+        if (! $user) {
+            return null;
+        }
+
+        $id = $user instanceof User ? $user->id : $user;
+
+        if ($id === $this->loser_id) {
+            return $this->winner;
+        }
+
+        if ($this->isDoubles() && $id === $this->loser_partner_id) {
+            return $this->winnerPartner;
+        }
+
+        if ($id === $this->winner_id) {
+            return $this->loser;
+        }
+
+        if ($this->isDoubles() && $id === $this->winner_partner_id) {
+            return $this->loserPartner;
+        }
+
+        return null;
+    }
+
+    public function getPrizeStatusBySlot(string $slot = 'primary'): string
+    {
+        if ($slot === 'partner') {
+            return $this->prize_partner_status ?? 'unpaid';
+        }
+
+        return $this->prize_status ?? 'unpaid';
+    }
+
+    public function getPrizeStatusForUser(User|int|null $user): string
+    {
+        return $this->getPrizeStatusBySlot($this->getPrizeSlotForUser($user));
+    }
+
+    public function getPrizePaidAtForUser(User|int|null $user): ?Carbon
+    {
+        return $this->getPrizeSlotForUser($user) === 'partner'
+            ? $this->prize_partner_paid_at
+            : $this->prize_paid_at;
+    }
+
+    public function getPrizeNotesForUser(User|int|null $user): ?string
+    {
+        return $this->getPrizeSlotForUser($user) === 'partner'
+            ? $this->prize_partner_notes
+            : $this->prize_notes;
+    }
+
+    public function getPrizeConfirmedAtForUser(User|int|null $user): ?Carbon
+    {
+        return $this->getPrizeSlotForUser($user) === 'partner'
+            ? $this->prize_partner_confirmed_at
+            : $this->prize_confirmed_at;
+    }
+
+    public function getPrizeFeedbackForUser(User|int|null $user): ?string
+    {
+        return $this->getPrizeSlotForUser($user) === 'partner'
+            ? $this->prize_partner_feedback
+            : $this->prize_feedback;
+    }
+
+    public function getPrizePaidByForUser(User|int|null $user): ?User
+    {
+        return $this->getPrizeSlotForUser($user) === 'partner'
+            ? $this->prizePartnerPaidBy
+            : $this->prizePaidBy;
+    }
+
+    public function getPrizeConfirmedByForUser(User|int|null $user): ?User
+    {
+        return $this->getPrizeSlotForUser($user) === 'partner'
+            ? $this->prizePartnerConfirmedBy
+            : $this->prizeConfirmedBy;
+    }
+
+    public function canUserPayPrize(?User $user, ?string $slot = null): bool
     {
         if (! $user) {
             return false;
@@ -265,11 +401,53 @@ class BilliardMatch extends Model
             return false;
         }
 
+        if ($slot === null) {
+            $slot = $this->getPrizeSlotForUser($user);
+        }
+
+        // Once confirmed OK for this slot, cannot pay again
+        if ($this->isPrizeConfirmed($slot)) {
+            return false;
+        }
+
         if ($user->isAdmin()) {
             return true;
         }
 
-        return $this->isUserRecipient($user);
+        if ($slot === 'partner') {
+            return $user->id === $this->loser_partner_id;
+        }
+
+        return $user->id === $this->loser_id;
+    }
+
+    public function canUserConfirmPrize(?User $user, ?string $slot = null): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if (! in_array($this->status, ['confirmed', 'resolved'])) {
+            return false;
+        }
+
+        if ($slot === null) {
+            $slot = $this->getPrizeSlotForUser($user);
+        }
+
+        if ($this->isPrizeConfirmed($slot)) {
+            return false;
+        }
+
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        if ($slot === 'partner') {
+            return $user->id === $this->winner_partner_id;
+        }
+
+        return $user->id === $this->winner_id;
     }
 
     public function isDoubles(): bool
