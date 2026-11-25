@@ -178,23 +178,25 @@ class TelegramBotService
         $todayStr = now()->format('d/m/Y');
         $siteUrl = url('/');
 
-        $text = "🎱 <b>BÁO CÁO BIDA NỘI BỘ HẰNG NGÀY</b>\n";
-        $text .= "📅 <i>Ngày {$todayStr}</i>\n\n";
+        $text = "<b>BÁO CÁO BIDA NỘI BỘ - {$todayStr}</b>\n\n";
 
         // 1. Matches in last 24 hours
         $matches24h = BilliardMatch::where('played_at', '>=', now()->subDay())->count();
         $pendingMatches = BilliardMatch::where('status', 'pending')->count();
         $disputedMatches = BilliardMatch::where('status', 'disputed')->count();
 
-        $text .= "📊 <b>TÌNH HÌNH THI ĐẤU (24H QUA):</b>\n";
-        $text .= "• Trận đấu mới: <b>{$matches24h}</b> trận\n";
+        $text .= "<b>24H QUA:</b> {$matches24h} trận mới";
+        $extraStatus = [];
         if ($pendingMatches > 0) {
-            $text .= "• Đang chờ xác nhận: <b>{$pendingMatches}</b> trận (vui lòng vào duyệt sớm)\n";
+            $extraStatus[] = "{$pendingMatches} chờ duyệt";
         }
         if ($disputedMatches > 0) {
-            $text .= "• Khiếu nại đang chờ xử lý: <b>{$disputedMatches}</b> trận\n";
+            $extraStatus[] = "{$disputedMatches} khiếu nại";
         }
-        $text .= "\n";
+        if (! empty($extraStatus)) {
+            $text .= ' ('.implode(', ', $extraStatus).')';
+        }
+        $text .= "\n\n";
 
         // 2. Unpaid debts list
         $unpaidMatches = BilliardMatch::confirmed()
@@ -203,16 +205,16 @@ class TelegramBotService
             ->orderBy('played_at', 'asc')
             ->get();
 
-        $text .= "💸 <b>DANH SÁCH NỢ KÈO CHƯA TRẢ:</b>\n";
+        $text .= "<b>NỢ KÈO:</b>\n";
         if ($unpaidMatches->isEmpty()) {
-            $text .= "🎉 <i>Tất cả các cơ thủ đã trả kèo sòng phẳng, hiện không ai nợ ai!</i>\n";
+            $text .= "• Không có kèo nợ.\n";
         } else {
             $count = 0;
             foreach ($unpaidMatches as $m) {
                 $count++;
                 if ($count > 10) {
                     $remaining = $unpaidMatches->count() - 10;
-                    $text .= "<i>... và còn {$remaining} kèo nợ khác.</i>\n";
+                    $text .= "• <i>... và còn {$remaining} kèo nợ khác.</i>\n";
                     break;
                 }
 
@@ -227,7 +229,7 @@ class TelegramBotService
                 }
 
                 $playedDate = $m->played_at ? $m->played_at->format('d/m') : '';
-                $text .= "{$count}. 🔴 <b>{$loserName}</b> nợ <b>{$winnerName}</b>: <i>{$m->prize}</i>".($playedDate ? " ({$playedDate})" : '')."\n";
+                $text .= "{$count}. <b>{$loserName}</b> nợ <b>{$winnerName}</b>: {$m->prize}".($playedDate ? " ({$playedDate})" : '')."\n";
             }
         }
         $text .= "\n";
@@ -235,14 +237,14 @@ class TelegramBotService
         // 3. Top players of current month
         $leaderboard = $statsService->getLeaderboard('month')->take(3);
         if ($leaderboard->isNotEmpty() && $leaderboard->first()['wins'] > 0) {
-            $text .= "🏆 <b>TOP CƠ THỦ DẪN ĐẦU THÁNG:</b>\n";
-            $medals = ['🥇', '🥈', '🥉'];
-            foreach ($leaderboard as $idx => $item) {
+            $text .= "<b>TOP THÁNG:</b>\n";
+            $rank = 0;
+            foreach ($leaderboard as $item) {
                 if ($item['wins'] <= 0) {
                     continue;
                 }
-                $medal = $medals[$idx] ?? '▫️';
-                $text .= "{$medal} <b>{$item['user']->name}</b>: {$item['wins']}W / {$item['total_matches']} trận ({$item['win_rate']}%)\n";
+                $rank++;
+                $text .= "{$rank}. <b>{$item['user']->name}</b>: {$item['wins']}W / {$item['total_matches']} trận ({$item['win_rate']}%)\n";
             }
             $text .= "\n";
         }
@@ -250,11 +252,11 @@ class TelegramBotService
         // 4. Loser of the month
         $loser = $statsService->getLoserOfTheMonth();
         if ($loser && $loser['losses'] > 0) {
-            $text .= "🤡 <b>CHIẾN THẦN BAO KÈO THÁNG NÀY:</b>\n";
-            $text .= "• <b>{$loser['user']->name}</b> ({$loser['losses']} trận thua) - <i>\"{$loser['humorous_title']}\"</i>\n\n";
+            $text .= "<b>THUA NHIỀU NHẤT:</b>\n";
+            $text .= "• <b>{$loser['user']->name}</b> ({$loser['losses']} trận thua)\n\n";
         }
 
-        $text .= "👉 <a href=\"{$siteUrl}\">Truy cập Website Bida Nội Bộ</a>";
+        $text .= "<a href=\"{$siteUrl}\">👉 Mở Website Bida</a>";
 
         return $text;
     }

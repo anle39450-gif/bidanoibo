@@ -41,8 +41,8 @@ test('telegram bot builds daily report text correctly with unpaid debts', functi
 
     $reportText = $botService->buildDailyReportText($statsService);
 
-    expect($reportText)->toContain('BÁO CÁO BIDA NỘI BỘ HẰNG NGÀY');
-    expect($reportText)->toContain('DANH SÁCH NỢ KÈO CHƯA TRẢ');
+    expect($reportText)->toContain('BÁO CÁO BIDA');
+    expect($reportText)->toContain('NỢ KÈO');
     expect($reportText)->toContain('Trần Văn Bình');
     expect($reportText)->toContain('Nguyễn Văn An');
     expect($reportText)->toContain('1 ly cà phê muối');
