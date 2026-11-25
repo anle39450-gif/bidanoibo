@@ -6,6 +6,7 @@ use App\Models\BilliardMatch;
 use App\Models\User;
 use App\Services\BilliardMatchService;
 use App\Services\BilliardStatsService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -107,6 +108,34 @@ class DashboardController extends Controller
         // 6. Mini Leaderboard (Top 5)
         $miniLeaderboard = $this->statsService->getLeaderboard('month')->take(5);
 
+        // 7. Activity trend over the last 7 days for the visual chart
+        $last7Days = collect();
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::today()->subDays($i);
+            $count = BilliardMatch::whereDate('played_at', $date->format('Y-m-d'))
+                ->whereIn('status', ['confirmed', 'resolved'])
+                ->count();
+            $last7Days->push([
+                'date' => $date->format('d/m'),
+                'day_name' => $i === 0 ? 'Hôm nay' : ($date->isYesterday() ? 'Hôm qua' : 'T'.($date->dayOfWeek === 0 ? 'CN' : $date->dayOfWeek + 1)),
+                'count' => $count,
+                'is_today' => $i === 0,
+            ]);
+        }
+        $max7DaysCount = max($last7Days->max('count'), 1);
+
+        // 8. Match Status Distribution for overview chart
+        $statusTotal = max($totalMatches + $pendingCount + $disputedCount, 1);
+        $statusDistribution = [
+            'confirmed' => $totalMatches,
+            'confirmed_pct' => round(($totalMatches / $statusTotal) * 100),
+            'pending' => $pendingCount,
+            'pending_pct' => round(($pendingCount / $statusTotal) * 100),
+            'disputed' => $disputedCount,
+            'disputed_pct' => round(($disputedCount / $statusTotal) * 100),
+            'total' => $statusTotal,
+        ];
+
         return view('dashboard.index', compact(
             'totalMatches',
             'totalMembers',
@@ -122,7 +151,10 @@ class DashboardController extends Controller
             'myUnpaidReceivables',
             'myPendingMatches',
             'recentMatches',
-            'miniLeaderboard'
+            'miniLeaderboard',
+            'last7Days',
+            'max7DaysCount',
+            'statusDistribution'
         ));
     }
 }

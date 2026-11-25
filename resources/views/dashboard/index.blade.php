@@ -58,41 +58,143 @@
                     </div>
                 </div>
 
-                <!-- 4 Personal Metric Boxes -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <!-- Wins -->
-                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Trận Thắng</div>
-                        <div class="text-3xl sm:text-4xl font-extrabold text-green-600 mt-1">{{ $myStats['wins'] ?? 0 }}</div>
-                        <div class="text-xs text-gray-500 mt-1">Tỷ lệ thắng: <b class="text-gray-900">{{ $myStats['win_rate'] ?? 0 }}%</b></div>
+                <!-- Personal Overview Charts (Biểu đồ tổng quan cá nhân: trực quan, ít số) -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    
+                    <!-- Left: Biểu đồ Vòng Khuyên Tỷ Lệ Thắng (Donut Chart) -->
+                    <div class="lg:col-span-6 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-2xs">
+                        <div class="relative w-36 h-36 shrink-0 flex items-center justify-center">
+                            @php
+                                $winRate = (float) ($myStats['win_rate'] ?? 0);
+                                $circumference = 2 * 3.14159 * 50;
+                                $strokeDash = ($winRate / 100) * $circumference;
+                            @endphp
+                            <!-- SVG Donut Chart -->
+                            <svg class="w-36 h-36 transform -rotate-90" viewBox="0 0 120 120">
+                                <!-- Background Circle (Losses) -->
+                                <circle cx="60" cy="60" r="50" fill="none" stroke="#fee2e2" stroke-width="12" />
+                                <!-- Foreground Circle (Wins) -->
+                                <circle cx="60" cy="60" r="50" fill="none" stroke="#22c55e" stroke-width="12"
+                                    stroke-dasharray="{{ $circumference }}"
+                                    stroke-dashoffset="{{ $circumference - $strokeDash }}"
+                                    stroke-linecap="round"
+                                    class="transition-all duration-1000 ease-out" />
+                            </svg>
+                            <!-- Center Label -->
+                            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                <span class="text-2xl font-black text-gray-900 leading-none">{{ $myStats['win_rate'] ?? 0 }}%</span>
+                                <span class="text-[11px] font-semibold text-gray-400 mt-1 uppercase tracking-wider">Tỷ lệ thắng</span>
+                            </div>
+                        </div>
+
+                        <!-- Legend & Counts -->
+                        <div class="flex-1 w-full space-y-3">
+                            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">Hiệu suất đối đầu</div>
+                            
+                            <!-- Wins visual bar -->
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="font-bold text-gray-700 flex items-center gap-1.5">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                                        <span>Trận Thắng</span>
+                                    </span>
+                                    <span class="font-bold text-green-700">{{ $myStats['wins'] ?? 0 }} trận</span>
+                                </div>
+                                <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                    <div class="bg-green-500 h-2 rounded-full transition-all duration-700" style="width: {{ $myStats['win_rate'] ?? 0 }}%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Losses visual bar -->
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="font-bold text-gray-700 flex items-center gap-1.5">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-red-400"></span>
+                                        <span>Trận Thua</span>
+                                    </span>
+                                    <span class="font-bold text-red-600">{{ $myStats['losses'] ?? 0 }} trận</span>
+                                </div>
+                                <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                    <div class="bg-red-400 h-2 rounded-full transition-all duration-700" style="width: {{ 100 - ($myStats['win_rate'] ?? 0) }}%;"></div>
+                                </div>
+                            </div>
+
+                            <div class="pt-1 text-[11px] text-gray-400 flex items-center justify-between border-t border-gray-100">
+                                <span>Tổng trận đã đấu:</span>
+                                <span class="font-bold text-gray-700">{{ $myStats['total_matches'] ?? 0 }} trận</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Losses -->
-                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Trận Thua</div>
-                        <div class="text-3xl sm:text-4xl font-extrabold text-red-600 mt-1">{{ $myStats['losses'] ?? 0 }}</div>
-                        <div class="text-xs text-gray-500 mt-1">Tổng đấu: <b class="text-gray-900">{{ $myStats['total_matches'] ?? 0 }} trận</b></div>
+                    <!-- Right: Biểu đồ Thanh Phân Bổ Kèo (Debts vs Receivables Visual Bar) -->
+                    <div class="lg:col-span-6 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-5 flex flex-col justify-between space-y-4 shadow-2xs">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tình trạng Kèo & Nghĩa vụ</div>
+                                <div class="text-sm font-extrabold text-gray-900 mt-0.5">
+                                    @if($myUnpaidDebtsCount > 0)
+                                        <span class="text-amber-700">Có {{ $myUnpaidDebtsCount }} kèo đang cần trả</span>
+                                    @else
+                                        <span class="text-emerald-700">Đã thanh toán sòng phẳng tất cả các kèo</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold px-2.5 py-1 rounded-full {{ $myUnpaidDebtsCount > 0 ? 'bg-amber-100 text-amber-800 animate-pulse' : 'bg-emerald-100 text-emerald-800' }}">
+                                {{ $myUnpaidDebtsCount > 0 ? 'Cần trả kèo' : 'Sạch nợ' }}
+                            </span>
+                        </div>
+
+                        <!-- Segmented Progress Bar -->
+                        @php
+                            $totalDebtsMetric = max($myUnpaidDebtsCount + $myPaidDebtsCount + $myUnpaidReceivablesCount, 1);
+                            $unpaidPct = round(($myUnpaidDebtsCount / $totalDebtsMetric) * 100);
+                            $paidPct = round(($myPaidDebtsCount / $totalDebtsMetric) * 100);
+                            $recPct = 100 - $unpaidPct - $paidPct;
+                        @endphp
+                        <div class="space-y-1.5">
+                            <div class="w-full bg-gray-100 rounded-full h-3.5 flex overflow-hidden p-0.5 border border-gray-200">
+                                @if($myUnpaidDebtsCount > 0)
+                                    <div class="bg-amber-500 rounded-l-full h-full transition-all duration-700" style="width: {{ max($unpaidPct, 8) }}%;" title="Kèo Cần Trả (Nợ): {{ $myUnpaidDebtsCount }}"></div>
+                                @endif
+                                @if($myPaidDebtsCount > 0)
+                                    <div class="bg-emerald-500 h-full transition-all duration-700 {{ $myUnpaidDebtsCount == 0 ? 'rounded-l-full' : '' }} {{ $myUnpaidReceivablesCount == 0 ? 'rounded-r-full' : '' }}" style="width: {{ max($paidPct, 8) }}%;" title="Kèo Đã Trả: {{ $myPaidDebtsCount }}"></div>
+                                @endif
+                                @if($myUnpaidReceivablesCount > 0)
+                                    <div class="bg-blue-500 rounded-r-full h-full transition-all duration-700 {{ ($myUnpaidDebtsCount == 0 && $myPaidDebtsCount == 0) ? 'rounded-l-full' : '' }}" style="width: {{ max($recPct, 8) }}%;" title="Kèo Chờ Nhận: {{ $myUnpaidReceivablesCount }}"></div>
+                                @endif
+                            </div>
+                            <div class="text-[11px] text-gray-400 text-right">Phân bổ tỷ lệ thanh toán kèo</div>
+                        </div>
+
+                        <!-- 3 Visual Badges / Chips -->
+                        <div class="grid grid-cols-3 gap-2 pt-1 border-t border-gray-100 text-center">
+                            <!-- Unpaid Debts -->
+                            <div class="p-2 rounded-lg {{ $myUnpaidDebtsCount > 0 ? 'bg-amber-50 border border-amber-200' : 'bg-gray-100/60' }}">
+                                <div class="text-[10px] sm:text-xs font-semibold text-gray-500 truncate">Kèo Cần Trả (Nợ)</div>
+                                <div class="text-base sm:text-lg font-black {{ $myUnpaidDebtsCount > 0 ? 'text-amber-600' : 'text-gray-800' }} mt-0.5">
+                                    {{ $myUnpaidDebtsCount }}
+                                </div>
+                            </div>
+
+                            <!-- Paid Debts -->
+                            <div class="p-2 rounded-lg bg-gray-100/60">
+                                <div class="text-[10px] sm:text-xs font-semibold text-gray-500 truncate">Kèo Đã Trả / Đang Chờ</div>
+                                <div class="text-base sm:text-lg font-black text-emerald-600 mt-0.5">
+                                    {{ $myPaidDebtsCount }}
+                                </div>
+                            </div>
+
+                            <!-- Receivables -->
+                            <div class="p-2 rounded-lg bg-gray-100/60">
+                                <div class="text-[10px] sm:text-xs font-semibold text-gray-500 truncate">Chờ Nhận</div>
+                                <div class="text-base sm:text-lg font-black text-blue-600 mt-0.5">
+                                    {{ $myUnpaidReceivablesCount }}
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
 
-                    <!-- Unpaid Debts (Kèo cần trả) -->
-                    <div class="rounded-lg p-4 {{ $myUnpaidDebtsCount > 0 ? 'bg-amber-50 border-2 border-amber-300' : 'bg-gray-50 border border-gray-200' }}">
-                        <div class="text-xs font-semibold {{ $myUnpaidDebtsCount > 0 ? 'text-amber-800' : 'text-gray-500' }} uppercase tracking-wider">Kèo Cần Trả (Nợ)</div>
-                        <div class="text-3xl sm:text-4xl font-extrabold {{ $myUnpaidDebtsCount > 0 ? 'text-amber-600' : 'text-gray-900' }} mt-1">
-                            {{ $myUnpaidDebtsCount }}
-                        </div>
-                        <div class="text-xs {{ $myUnpaidDebtsCount > 0 ? 'text-amber-700 font-medium' : 'text-gray-500' }} mt-1">
-                            {{ $myUnpaidDebtsCount > 0 ? 'Bạn có trận thua chưa trả kèo' : 'Đã trả đủ tất cả các kèo' }}
-                        </div>
-                    </div>
-
-                    <!-- Settled Prizes -->
-                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Kèo Đã Trả / Đang Chờ</div>
-                        <div class="text-3xl sm:text-4xl font-extrabold text-blue-600 mt-1">{{ $myPaidDebtsCount }}</div>
-                        <div class="text-xs text-gray-500 mt-1">
-                            Đã trả: <b class="text-gray-800">{{ $myPaidDebtsCount }}</b> | Chờ nhận: <b class="text-gray-800">{{ $myUnpaidReceivablesCount }}</b>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- If there are unpaid debts, show list with Quick Pay button! -->
@@ -202,31 +304,137 @@
             </div>
         @endauth
 
-        <!-- 4 Stats Cards -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
-                <div class="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wider">Tổng số trận</div>
-                <div class="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-1.5">{{ $totalMatches }}</div>
-                <div class="text-xs sm:text-sm text-gray-400 mt-0.5">Trận chính thức</div>
+        <!-- System Overview Charts (Biểu đồ tổng quan hệ thống: ít số, dễ nhìn) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Chart 1: Biểu đồ Cột Hoạt Động Thi Đấu 7 Ngày Gần Nhất (7 Cols) -->
+            <div class="lg:col-span-7 bg-white border border-gray-200 rounded-xl p-5 sm:p-6 shadow-sm flex flex-col justify-between space-y-4">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div>
+                        <h2 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                            <span>Biểu đồ thi đấu 7 ngày gần nhất</span>
+                        </h2>
+                        <div class="text-xs text-gray-400 mt-0.5">Số lượng trận giao lưu diễn ra trong tuần</div>
+                    </div>
+                    <span class="text-xs font-extrabold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                        {{ $last7Days->sum('count') }} trận / tuần
+                    </span>
+                </div>
+
+                <!-- 7 Columns Visual Bar Chart -->
+                <div class="pt-2">
+                    <div class="h-44 flex items-end justify-between gap-2 sm:gap-4 px-2 pb-2 border-b border-gray-100">
+                        @foreach($last7Days as $day)
+                            @php
+                                $heightPct = $day['count'] > 0 ? max(round(($day['count'] / $max7DaysCount) * 100), 12) : 6;
+                            @endphp
+                            <div class="flex-1 flex flex-col items-center h-full justify-end group cursor-pointer relative">
+                                
+                                <!-- Floating Tooltip on Hover / Top Count -->
+                                <div class="mb-1 text-[11px] font-extrabold {{ $day['is_today'] ? 'text-emerald-700' : 'text-gray-600' }} transition-transform group-hover:-translate-y-0.5">
+                                    {{ $day['count'] }}
+                                </div>
+
+                                <!-- Vertical Column Bar -->
+                                <div class="w-full max-w-[42px] rounded-t-lg transition-all duration-700 ease-out flex items-center justify-center relative
+                                    {{ $day['is_today'] 
+                                        ? 'bg-gradient-to-t from-emerald-600 to-teal-400 shadow-sm ring-2 ring-emerald-300' 
+                                        : ($day['count'] > 0 
+                                            ? 'bg-gradient-to-t from-blue-600 to-indigo-500 hover:from-blue-500 hover:to-indigo-400 shadow-2xs' 
+                                            : 'bg-gray-100 hover:bg-gray-200') }}"
+                                    style="height: {{ $heightPct }}%;">
+                                </div>
+
+                                <!-- Day Label Underneath -->
+                                <div class="mt-2 text-center">
+                                    <div class="text-[11px] sm:text-xs font-bold {{ $day['is_today'] ? 'text-emerald-700' : 'text-gray-700' }}">
+                                        {{ $day['day_name'] }}
+                                    </div>
+                                    <div class="text-[9px] sm:text-[10px] text-gray-400 font-mono">
+                                        {{ $day['date'] }}
+                                    </div>
+                                </div>
+
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Footer Summary Note -->
+                <div class="text-xs text-gray-500 flex items-center justify-between pt-1">
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <span class="text-gray-600">Cột xanh lá là ngày Hôm nay</span>
+                    </span>
+                    <a href="{{ route('calendar') }}" class="text-blue-600 hover:underline font-semibold">
+                        Xem chi tiết lịch →
+                    </a>
+                </div>
             </div>
 
-            <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
-                <div class="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wider">Cơ thủ tham gia</div>
-                <div class="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-1.5">{{ $totalMembers }}</div>
-                <div class="text-xs sm:text-sm text-gray-400 mt-0.5">Thành viên hoạt động</div>
+            <!-- Chart 2: Biểu đồ Phân Bố Trạng Thái & Quy Mô Toàn Hệ Thống (5 Cols) -->
+            <div class="lg:col-span-5 bg-white border border-gray-200 rounded-xl p-5 sm:p-6 shadow-sm flex flex-col justify-between space-y-4">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div>
+                        <h2 class="text-base font-bold text-gray-900">Phân bố trạng thái trận</h2>
+                        <div class="text-xs text-gray-400 mt-0.5">Tỷ lệ xác nhận và hoàn tất</div>
+                    </div>
+                    <span class="text-xs font-extrabold px-2.5 py-1 rounded-full bg-gray-100 text-gray-800">
+                        {{ $totalMembers }} cơ thủ
+                    </span>
+                </div>
+
+                <!-- Donut / Segmented Progress Bar -->
+                <div class="space-y-3 py-2">
+                    <div class="w-full bg-gray-100 rounded-full h-4 flex overflow-hidden p-0.5 border border-gray-200 shadow-inner">
+                        @if($totalMatches > 0)
+                            <div class="bg-emerald-500 rounded-l-full h-full transition-all duration-700" style="width: {{ max($statusDistribution['confirmed_pct'], 8) }}%;" title="Đã xác nhận: {{ $totalMatches }} trận"></div>
+                        @endif
+                        @if($pendingCount > 0)
+                            <div class="bg-amber-400 h-full transition-all duration-700 {{ $totalMatches == 0 ? 'rounded-l-full' : '' }} {{ $disputedCount == 0 ? 'rounded-r-full' : '' }}" style="width: {{ max($statusDistribution['pending_pct'], 8) }}%;" title="Chờ xác nhận: {{ $pendingCount }} trận"></div>
+                        @endif
+                        @if($disputedCount > 0)
+                            <div class="bg-red-500 rounded-r-full h-full transition-all duration-700 {{ ($totalMatches == 0 && $pendingCount == 0) ? 'rounded-l-full' : '' }}" style="width: {{ max($statusDistribution['disputed_pct'], 8) }}%;" title="Tranh chấp: {{ $disputedCount }} trận"></div>
+                        @endif
+                    </div>
+
+                    <!-- Visual Segment Breakdown List -->
+                    <div class="space-y-2 pt-1">
+                        <!-- Confirmed -->
+                        <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-emerald-50/70 border border-emerald-100">
+                            <span class="flex items-center gap-2 font-bold text-emerald-900">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                <span>Đã xác nhận chính thức</span>
+                            </span>
+                            <span class="font-black text-emerald-700">{{ $totalMatches }} trận <span class="font-normal text-emerald-600">({{ $statusDistribution['confirmed_pct'] }}%)</span></span>
+                        </div>
+
+                        <!-- Pending -->
+                        <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-amber-50/70 border border-amber-100">
+                            <span class="flex items-center gap-2 font-bold text-amber-900">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                                <span>Chờ đối thủ xác nhận</span>
+                            </span>
+                            <span class="font-black text-amber-700">{{ $pendingCount }} trận <span class="font-normal text-amber-600">({{ $statusDistribution['pending_pct'] }}%)</span></span>
+                        </div>
+
+                        <!-- Disputed -->
+                        <div class="flex items-center justify-between text-xs p-2 rounded-lg {{ $disputedCount > 0 ? 'bg-red-50 border border-red-200' : 'bg-gray-50/70 border border-gray-100 text-gray-400' }}">
+                            <span class="flex items-center gap-2 font-bold {{ $disputedCount > 0 ? 'text-red-900' : 'text-gray-500' }}">
+                                <span class="w-2.5 h-2.5 rounded-full {{ $disputedCount > 0 ? 'bg-red-500 animate-ping' : 'bg-gray-300' }}"></span>
+                                <span>Đang tranh chấp</span>
+                            </span>
+                            <span class="font-black {{ $disputedCount > 0 ? 'text-red-700' : 'text-gray-500' }}">{{ $disputedCount }} trận</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-[11px] text-gray-400 pt-1 border-t border-gray-100 flex items-center justify-between">
+                    <span>Tổng số trận ghi nhận: <b>{{ $statusDistribution['total'] }}</b></span>
+                    <span>Thành viên hoạt động: <b>{{ $totalMembers }}</b></span>
+                </div>
             </div>
 
-            <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
-                <div class="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wider">Chờ xác nhận</div>
-                <div class="text-3xl sm:text-4xl font-extrabold text-amber-600 mt-1.5">{{ $pendingCount }}</div>
-                <div class="text-xs sm:text-sm text-gray-400 mt-0.5">Hạn chót 24 giờ</div>
-            </div>
-
-            <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
-                <div class="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wider">Đang tranh chấp</div>
-                <div class="text-3xl sm:text-4xl font-extrabold text-red-600 mt-1.5">{{ $disputedCount }}</div>
-                <div class="text-xs sm:text-sm text-gray-400 mt-0.5">Cần Admin xử lý</div>
-            </div>
         </div>
 
         <!-- Spotlight Cards: Quán quân & Chiến thần bao kèo -->
