@@ -264,6 +264,8 @@ class ChallengeController extends Controller
             }
         }
 
+        $telegramBot->sendDuelAcceptedNotification($challenge);
+
         return response()->json([
             'success' => true,
             'message' => 'Bạn đã TIẾP CHIÊU thách đấu! Trận đấu đã được đưa vào lịch sắp diễn ra.',

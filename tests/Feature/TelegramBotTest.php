@@ -325,3 +325,97 @@ test('telegram bot allows issuing doubles duel challenge via /duel command', fun
         ->and($challenge->opponent_partner_id)->toBe($dat->id)
         ->and($challenge->prize)->toBe('1 ly trà đào');
 });
+
+test('telegram bot allows resolving accepted doubles challenge via resolve_challenge callback', function () {
+    $an = User::factory()->create(['username' => 'an', 'name' => 'An', 'telegram_id' => '3001']);
+    $thanh = User::factory()->create(['username' => 'thanh', 'name' => 'Thanh', 'telegram_id' => '3002']);
+    $tho = User::factory()->create(['username' => 'tho', 'name' => 'Thọ', 'telegram_id' => '3003']);
+    $dat = User::factory()->create(['username' => 'dat', 'name' => 'Đạt', 'telegram_id' => '3004']);
+
+    $challenge = BilliardChallenge::create([
+        'challenge_type' => 'doubles',
+        'challenger_id' => $an->id,
+        'challenger_partner_id' => $thanh->id,
+        'opponent_id' => $tho->id,
+        'opponent_partner_id' => $dat->id,
+        'prize' => '2 ly sinh tố bơ',
+        'status' => 'accepted',
+        'accepted_at' => now(),
+    ]);
+
+    Http::fake([
+        'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $botService = app(TelegramBotService::class);
+    $matchService = app(BilliardMatchService::class);
+    $statsService = app(BilliardStatsService::class);
+
+    // An (Team 1) declares Team 1 won
+    $botService->handleWebhook([
+        'callback_query' => [
+            'id' => 'cb_resolve_1',
+            'from' => ['id' => 3001],
+            'message' => ['chat' => ['id' => 3001]],
+            'data' => "resolve_challenge_{$challenge->id}_1",
+        ],
+    ], $matchService, $statsService);
+
+    $challenge->refresh();
+    expect($challenge->status)->toBe('completed');
+    expect($challenge->match_id)->not->toBeNull();
+
+    $match = BilliardMatch::find($challenge->match_id);
+    expect($match)->not->toBeNull()
+        ->and($match->winner_id)->toBe($an->id)
+        ->and($match->winner_partner_id)->toBe($thanh->id)
+        ->and($match->loser_id)->toBe($tho->id)
+        ->and($match->loser_partner_id)->toBe($dat->id)
+        ->and($match->prize)->toBe('2 ly sinh tố bơ')
+        ->and($match->status)->toBe('confirmed');
+});
+
+test('telegram bot displays upcoming challenges and resolve buttons via /upcoming command', function () {
+    $an = User::factory()->create(['username' => 'an', 'name' => 'An', 'telegram_id' => '4001']);
+    $tho = User::factory()->create(['username' => 'tho', 'name' => 'Thọ', 'telegram_id' => '4002']);
+
+    $challenge = BilliardChallenge::create([
+        'challenge_type' => 'singles',
+        'challenger_id' => $an->id,
+        'opponent_id' => $tho->id,
+        'prize' => '1 bát phở bò',
+        'status' => 'accepted',
+        'accepted_at' => now(),
+    ]);
+
+    Http::fake([
+        'https://api.telegram.org/*' => Http::response(['ok' => true], 200),
+    ]);
+
+    $botService = app(TelegramBotService::class);
+    $matchService = app(BilliardMatchService::class);
+    $statsService = app(BilliardStatsService::class);
+
+    $botService->handleWebhook([
+        'message' => [
+            'chat' => ['id' => 4001],
+            'from' => ['id' => 4001],
+            'text' => '/upcoming',
+        ],
+    ], $matchService, $statsService);
+
+    // Verify Telegram sent message with inline keyboard containing resolve_challenge buttons
+    Http::assertSent(function ($request) use ($challenge) {
+        $data = $request->data();
+        $text = $data['text'] ?? '';
+        $replyMarkup = json_decode($data['reply_markup'] ?? '{}', true);
+
+        if (str_contains($text, '1 bát phở bò')) {
+            $buttons = $replyMarkup['inline_keyboard'][0] ?? [];
+
+            return ($buttons[0]['callback_data'] ?? '') === "resolve_challenge_{$challenge->id}_1";
+        }
+
+        return false;
+    });
+});

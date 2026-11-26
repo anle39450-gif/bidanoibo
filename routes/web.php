@@ -95,3 +95,15 @@ Route::post('/wifi/verify', function (Request $request) {
         'allowed' => $isAllowed,
     ]);
 })->name('wifi.verify');
+
+// Secure WiFi verification endpoint
+Route::post('/wifi/verify', function (Request $request) {
+    $clientIp = trim((string) $request->input('ip', ''));
+    $allowedIp = trim((string) config('app.allowed_wifi_ip', '222.252.18.26'));
+
+    $isAllowed = ($clientIp !== '' && hash_equals($allowedIp, $clientIp));
+
+    return response()->json([
+        'allowed' => $isAllowed,
+    ]);
+})->name('wifi.verify');

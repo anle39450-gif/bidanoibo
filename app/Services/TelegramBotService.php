@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BilliardChallenge;
 use App\Models\BilliardMatch;
+use App\Models\MatchHistory;
 use App\Models\TelegramBotConfig;
 use App\Models\User;
 use Illuminate\Http\Client\PendingRequest;
@@ -120,6 +121,62 @@ class TelegramBotService
                 ],
             ];
             $this->sendMessage($config->group_chat_id, $text, $groupMarkup);
+        }
+
+        return true;
+    }
+
+    public function sendDuelAcceptedNotification(BilliardChallenge $challenge): bool
+    {
+        $config = TelegramBotConfig::current();
+        $isDoubles = $challenge->isDoubles();
+
+        $team1Names = $isDoubles ? $challenge->challenger_team_names : $challenge->challenger->name;
+        $team2Names = $isDoubles ? $challenge->opponent_team_names : $challenge->opponent->name;
+
+        $text = "⚔️ <b>KÈO THÁCH ĐẤU ĐÃ ĐƯỢC TIẾP CHIÊU!</b>\n\n";
+        $text .= "⚔️ <b>Trận đấu:</b> <b>{$team1Names}</b> vs <b>{$team2Names}</b>\n";
+        $text .= "🎁 <b>Kèo thách thức:</b> <b>{$challenge->prize}</b>\n";
+        if ($challenge->message) {
+            $text .= "📝 <b>Lời nhắn:</b> <i>\"{$challenge->message}\"</i>\n";
+        }
+        $text .= "\n⏱️ Trận đấu đã được xếp lịch tại mục <b>Trận đấu sắp diễn ra</b>.\n";
+        $text .= '👇 <b>Sau khi thi đấu xong, 2 bên hoặc Admin bấm chọn đội thắng ngay tại đây:</b>';
+
+        $team1Btn = $isDoubles ? "🏆 Đội {$challenge->challenger->name} Thắng" : "🏆 {$challenge->challenger->name} Thắng";
+        $team2Btn = $isDoubles ? "🏆 Đội {$challenge->opponent->name} Thắng" : "🏆 {$challenge->opponent->name} Thắng";
+
+        $replyMarkup = [
+            'inline_keyboard' => [
+                [
+                    ['text' => $team1Btn, 'callback_data' => "resolve_challenge_{$challenge->id}_1"],
+                    ['text' => $team2Btn, 'callback_data' => "resolve_challenge_{$challenge->id}_2"],
+                ],
+                [
+                    ['text' => '🌐 Xem Lịch Trận Đấu', 'url' => url('/calendar?tab=upcoming')],
+                ],
+            ],
+        ];
+
+        // Gửi cho các cơ thủ tham gia
+        $recipients = array_filter([
+            $challenge->challenger,
+            $challenge->challengerPartner,
+            $challenge->opponent,
+            $challenge->opponentPartner,
+        ]);
+
+        $sentChatIds = [];
+        foreach ($recipients as $recipient) {
+            if ($recipient->telegram_id && ! in_array($recipient->telegram_id, $sentChatIds, true)) {
+                $this->sendMessage($recipient->telegram_id, $text, $replyMarkup);
+                $sentChatIds[] = $recipient->telegram_id;
+            }
+        }
+
+        // Gửi vào nhóm chung
+        if ($config && $config->is_active && $config->group_chat_id) {
+            $this->sendMessage($config->group_chat_id, $text, $replyMarkup);
         }
 
         return true;
@@ -784,24 +841,7 @@ class TelegramBotService
             ]);
 
             $this->answerCallbackQuery($callbackId, '⚔️ Bạn đã TIẾP CHIÊU thành công! Kèo đấu đã được đưa vào lịch sắp diễn ra.');
-            $upcomingUrl = url('/calendar?tab=upcoming');
-            $replyMarkup = [
-                'inline_keyboard' => [
-                    [
-                        ['text' => '📅 Xem Trận Đấu Sắp Diễn Ra', 'url' => $upcomingUrl],
-                    ],
-                ],
-            ];
-            $opponentDesc = $challenge->isDoubles() ? "đội <b>{$challenge->challenger_team_names}</b>" : "<b>{$challenge->challenger->name}</b>";
-            $this->sendMessage($chatId, "⚔️ <b>BẠN ĐÃ TIẾP CHIÊU THÀNH CÔNG!</b>\nTrận đấu với {$opponentDesc} kèo <b>{$challenge->prize}</b> đã được đưa vào mục <b>Trận đấu sắp diễn ra</b> trên lịch thi đấu!", $replyMarkup);
-
-            if ($challenge->challenger && $challenge->challenger->telegram_id) {
-                $this->sendMessage($challenge->challenger->telegram_id, "⚔️ <b>{$user->name} ĐÃ TIẾP CHIÊU!</b>\nĐối thủ đã chấp nhận lời thách đấu kèo <b>{$challenge->prize}</b>. Ra bàn chiến ngay thôi! Sau khi thi đấu xong, 2 cơ thủ/đội hoặc Admin có thể lên web chọn người thắng.", $replyMarkup);
-            }
-
-            if ($challenge->isDoubles() && $challenge->challengerPartner && $challenge->challengerPartner->telegram_id && $challenge->challengerPartner->telegram_id !== $challenge->challenger?->telegram_id) {
-                $this->sendMessage($challenge->challengerPartner->telegram_id, "⚔️ <b>{$user->name} ĐÃ TIẾP CHIÊU TRẬN ĐÔI!</b>\nĐối thủ đã chấp nhận lời thách đấu kèo <b>{$challenge->prize}</b>. Ra bàn chiến ngay thôi!", $replyMarkup);
-            }
+            $this->sendDuelAcceptedNotification($challenge);
 
             return;
         }
@@ -839,6 +879,137 @@ class TelegramBotService
             if ($challenge->challenger && $challenge->challenger->telegram_id) {
                 $this->sendMessage($challenge->challenger->telegram_id, "🏳️ <b>ĐỐI THỦ ĐÃ TỪ CHỐI!</b>\n{$user->name} đã từ chối lời khiêu chiến kèo <i>{$challenge->prize}</i> của bạn.");
             }
+
+            return;
+        }
+
+        if (str_starts_with($data, 'resolve_challenge_')) {
+            // format: resolve_challenge_{challengeId}_{winningTeam}
+            $parts = explode('_', $data);
+            $challengeId = (int) ($parts[2] ?? 0);
+            $winningTeam = (int) ($parts[3] ?? 1);
+
+            $challenge = BilliardChallenge::find($challengeId);
+
+            if (! $challenge) {
+                $this->answerCallbackQuery($callbackId, '❌ Lời khiêu chiến không tồn tại!');
+
+                return;
+            }
+
+            if ($challenge->status !== 'accepted') {
+                $this->answerCallbackQuery($callbackId, "Trận đấu đã ở trạng thái: {$challenge->status}");
+
+                return;
+            }
+
+            if (! $challenge->isParticipant($user) && ! $user->isAdmin()) {
+                $this->answerCallbackQuery($callbackId, '⚠️ Chỉ cơ thủ trong trận hoặc Admin mới có quyền chọn đội thắng!');
+
+                return;
+            }
+
+            $isDoubles = $challenge->isDoubles();
+            $now = now();
+
+            if ($isDoubles) {
+                $winnerId = ($winningTeam === 1) ? $challenge->challenger_id : $challenge->opponent_id;
+                $winnerPartnerId = ($winningTeam === 1) ? $challenge->challenger_partner_id : $challenge->opponent_partner_id;
+                $loserId = ($winningTeam === 1) ? $challenge->opponent_id : $challenge->challenger_id;
+                $loserPartnerId = ($winningTeam === 1) ? $challenge->opponent_partner_id : $challenge->challenger_partner_id;
+
+                $winner = User::findOrFail($winnerId);
+                $winnerPartner = $winnerPartnerId ? User::find($winnerPartnerId) : null;
+                $loser = User::findOrFail($loserId);
+                $loserPartner = $loserPartnerId ? User::find($loserPartnerId) : null;
+
+                $winnerNames = $winnerPartner ? "{$winner->name} & {$winnerPartner->name}" : $winner->name;
+                $loserNames = $loserPartner ? "{$loser->name} & {$loserPartner->name}" : $loser->name;
+
+                $match = BilliardMatch::create([
+                    'creator_id' => $user->id,
+                    'match_type' => 'doubles',
+                    'player1_id' => $challenge->challenger_id,
+                    'player1_partner_id' => $challenge->challenger_partner_id,
+                    'player2_id' => $challenge->opponent_id,
+                    'player2_partner_id' => $challenge->opponent_partner_id,
+                    'winner_id' => $winnerId,
+                    'winner_partner_id' => $winnerPartnerId,
+                    'loser_id' => $loserId,
+                    'loser_partner_id' => $loserPartnerId,
+                    'played_at' => $now,
+                    'prize' => $challenge->prize,
+                    'prize_status' => 'unpaid',
+                    'prize_partner_status' => 'unpaid',
+                    'notes' => 'Trận khiêu chiến đôi 2vs2 (chốt qua Telegram): '.($challenge->message ?: 'Đã phân định thắng bại'),
+                    'status' => 'confirmed',
+                    'confirmed_at' => $now,
+                    'confirmed_by' => $user->isAdmin() ? 'admin' : ($challenge->isOpponentTeam($user) ? 'loser' : 'winner'),
+                    'created_from' => 'challenge',
+                ]);
+
+                MatchHistory::create([
+                    'billiard_match_id' => $match->id,
+                    'user_id' => $user->id,
+                    'action' => 'confirmed',
+                    'note' => "Trận khiêu chiến đôi hoàn tất qua Telegram. Đội thắng: {$winnerNames}, Đội thua: {$loserNames}",
+                    'metadata' => [
+                        'winner_id' => $winnerId,
+                        'winner_partner_id' => $winnerPartnerId,
+                        'loser_id' => $loserId,
+                        'loser_partner_id' => $loserPartnerId,
+                        'prize' => $challenge->prize,
+                        'resolved_by' => $user->id,
+                    ],
+                ]);
+            } else {
+                $winnerId = ($winningTeam === 1) ? $challenge->challenger_id : $challenge->opponent_id;
+                $loserId = ($winningTeam === 1) ? $challenge->opponent_id : $challenge->challenger_id;
+
+                $winner = User::findOrFail($winnerId);
+                $loser = User::findOrFail($loserId);
+                $winnerNames = $winner->name;
+                $loserNames = $loser->name;
+
+                $match = BilliardMatch::create([
+                    'creator_id' => $user->id,
+                    'match_type' => 'singles',
+                    'player1_id' => $winnerId,
+                    'player2_id' => $loserId,
+                    'winner_id' => $winnerId,
+                    'loser_id' => $loserId,
+                    'played_at' => $now,
+                    'prize' => $challenge->prize,
+                    'prize_status' => 'unpaid',
+                    'notes' => 'Trận khiêu chiến solo (chốt qua Telegram): '.($challenge->message ?: 'Đã phân định thắng bại'),
+                    'status' => 'confirmed',
+                    'confirmed_at' => $now,
+                    'confirmed_by' => $user->isAdmin() ? 'admin' : ($challenge->opponent_id === $user->id ? 'loser' : 'winner'),
+                    'created_from' => 'challenge',
+                ]);
+
+                MatchHistory::create([
+                    'billiard_match_id' => $match->id,
+                    'user_id' => $user->id,
+                    'action' => 'confirmed',
+                    'note' => "Trận khiêu chiến hoàn tất qua Telegram. Người thắng: {$winnerNames}, Người thua: {$loserNames}",
+                    'metadata' => [
+                        'winner_id' => $winnerId,
+                        'loser_id' => $loserId,
+                        'prize' => $challenge->prize,
+                        'resolved_by' => $user->id,
+                    ],
+                ]);
+            }
+
+            $challenge->update([
+                'status' => 'completed',
+                'match_id' => $match->id,
+            ]);
+
+            $this->answerCallbackQuery($callbackId, "🏆 Đã chốt kết quả: {$winnerNames} chiến thắng!");
+            $this->sendMessage($chatId, "🎉 <b>ĐÃ CẬP NHẬT KẾT QUẢ THÀNH CÔNG!</b>\n🏆 Chiến thắng thuộc về: <b>{$winnerNames}</b>\n🎁 Kèo: <b>{$challenge->prize}</b>");
+            $this->sendDuelCompletedNotification($challenge, $match, $winner, $loser);
 
             return;
         }
@@ -1249,9 +1420,11 @@ class TelegramBotService
             $helpText .= "➡️ <i>Đội nào thua thì người viết trước trả cho người viết trước, người viết sau trả cho người viết sau! (Muốn đổi người trả chỉ cần đổi thứ tự khi gõ: VD <code>/an thanh vs dat tho</code>).</i>\n\n";
             $helpText .= "⚔️ <b>Khiêu chiến / Thách đấu:</b>\n";
             $helpText .= "• Solo 1vs1: <code>/duel [username] [kèo]</code>\n";
-            $helpText .= "• Đôi 2vs2: <code>/duel [đồng_đội] vs [đối_thủ_1] [đối_thủ_2] [kèo]</code>\n\n";
+            $helpText .= "• Đôi 2vs2: <code>/duel [đồng_đội] vs [đối_thủ_1] [đối_thủ_2] [kèo]</code>\n";
+            $helpText .= "• Cập nhật đội thắng: Khi đối thủ bấm [⚔️ Tiếp chiêu], Bot sẽ hiện ngay nút chọn đội thắng trên Telegram! Hoặc gõ <code>/upcoming</code> để chọn bất kỳ lúc nào.\n\n";
             $helpText .= "3️⃣ <b>Xác nhận kết quả:</b>\nĐối thủ nhận thông báo kèm nút [✅ Chấp nhận] và [❌ Khiếu nại] (Hạn chốt 24h).\n\n";
             $helpText .= "4️⃣ <b>Các lệnh tra cứu & quản lý nhóm:</b>\n";
+            $helpText .= "• <code>/upcoming</code> : Danh sách trận thách đấu sắp diễn ra & nút chọn đội thắng\n";
             $helpText .= "• <code>/report</code> : Báo cáo tình hình & danh sách nợ kèo\n";
             $helpText .= "• <code>/id</code> : Lấy Chat ID của nhóm hoặc cá nhân\n";
             $helpText .= "• <code>/setgroup</code> : Gán nhóm này làm nhóm thông báo chính thức\n";
@@ -1366,7 +1539,50 @@ class TelegramBotService
             return;
         }
 
-        // 8. Command /history
+        // 8. Command /upcoming or /thachdau (List accepted challenges waiting for winner resolution)
+        if ($rawCommand === '/upcoming' || $rawCommand === '/thachdau') {
+            $challenges = BilliardChallenge::where('status', 'accepted')
+                ->with(['challenger', 'challengerPartner', 'opponent', 'opponentPartner'])
+                ->orderByDesc('accepted_at')
+                ->take(5)
+                ->get();
+
+            if ($challenges->isEmpty()) {
+                $this->sendMessage($chatId, "📅 <b>TRẬN ĐẤU SẮP DIỄN RA</b>\n\nHiện tại không có trận khiêu chiến nào đang chờ thi đấu.");
+
+                return;
+            }
+
+            $this->sendMessage($chatId, '📅 <b>DANH SÁCH TRẬN KHIÊU CHIẾN SẮP DIỄN RA ('.count($challenges)." trận)</b>\n👇 Sau khi thi đấu xong, bấm nút chọn đội thắng ngay tại đây:");
+
+            foreach ($challenges as $ch) {
+                $team1 = $ch->isDoubles() ? "{$ch->challenger->name} & {$ch->challengerPartner?->name}" : $ch->challenger->name;
+                $team2 = $ch->isDoubles() ? "{$ch->opponent->name} & {$ch->opponentPartner?->name}" : $ch->opponent->name;
+
+                $msg = "⚔️ <b>Trận #{$ch->id}: {$team1} vs {$team2}</b>\n🎁 Kèo: <b>{$ch->prize}</b>";
+
+                $btn1 = $ch->isDoubles() ? "🏆 Đội {$ch->challenger->name} Thắng" : "🏆 {$ch->challenger->name} Thắng";
+                $btn2 = $ch->isDoubles() ? "🏆 Đội {$ch->opponent->name} Thắng" : "🏆 {$ch->opponent->name} Thắng";
+
+                $markup = [
+                    'inline_keyboard' => [
+                        [
+                            ['text' => $btn1, 'callback_data' => "resolve_challenge_{$ch->id}_1"],
+                            ['text' => $btn2, 'callback_data' => "resolve_challenge_{$ch->id}_2"],
+                        ],
+                        [
+                            ['text' => '🌐 Xem Trên Web', 'url' => url('/calendar?tab=upcoming')],
+                        ],
+                    ],
+                ];
+
+                $this->sendMessage($chatId, $msg, $markup);
+            }
+
+            return;
+        }
+
+        // 9. Command /history
         if ($rawCommand === '/history') {
             $matches = $user->allMatches()
                 ->with(['player1', 'player2', 'winner', 'loser'])
