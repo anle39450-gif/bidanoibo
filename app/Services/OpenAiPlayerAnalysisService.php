@@ -163,7 +163,8 @@ class OpenAiPlayerAnalysisService
                 ."- Kèo đối thủ đang nợ bạn: {$metrics['unpaid_receivables_count']} kèo\n\n"
                 .'Hãy phân tích và trả về đúng JSON theo yêu cầu.';
 
-            $response = Http::timeout(10)
+            $response = Http::withoutVerifying()
+                ->timeout(15)
                 ->withHeaders([
                     'Authorization' => "Bearer {$this->apiKey}",
                     'Content-Type' => 'application/json',
