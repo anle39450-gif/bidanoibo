@@ -66,14 +66,14 @@ class SideBetController extends Controller
         UserNotification::create([
             'user_id' => $targetUser->id,
             'type' => 'side_bet_invite',
-            'title' => '🎲 BẠN ĐƯỢC RỦ VÀO KÈO NGOÀI!',
+            'title' => '🎯 BẠN ĐƯỢC RỦ VÀO KÈO NGOÀI!',
             'message' => "{$user->name} rủ bạn vào kèo ngoài trận {$challenge->challenger_team_names} vs {$challenge->opponent_team_names}: {$user->name} bắt {$creatorTeam}, bạn bắt {$targetTeam}. Kèo: {$sideBet->prize}!",
             'link' => route('calendar', ['tab' => 'upcoming']),
         ]);
 
         // Telegram DM notification for target if connected
         if ($targetUser->telegram_id) {
-            $msg = "🎲 <b>KÈO NGOÀI BÊN LỀ!</b>\n\n"
+            $msg = "🎯 <b>KÈO NGOÀI BÊN LỀ!</b>\n\n"
                 ."<b>{$user->name}</b> vừa rủ bạn vào kèo ngoài trận <b>{$challenge->challenger_team_names}</b> vs <b>{$challenge->opponent_team_names}</b>:\n"
                 ."• {$user->name} bắt: <b>{$creatorTeam}</b>\n"
                 ."• Bạn bắt: <b>{$targetTeam}</b>\n"

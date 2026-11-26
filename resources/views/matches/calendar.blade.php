@@ -282,6 +282,11 @@
                 @php
                     $isDoubles = $c->isDoubles();
                     $canInteract = auth()->check() && ($c->isParticipant(auth()->user()) || auth()->user()->isAdmin());
+                    $matchup = $c->getMatchupAnalysis();
+                    $t1 = $matchup['challenger'];
+                    $t2 = $matchup['opponent'];
+                    $pred = $matchup['prediction'];
+                    $h2h = $matchup['h2h'];
                 @endphp
                 <div id="upcoming_challenge_card_{{ $c->id }}"
                     class="bg-white border border-gray-200 rounded-xl shadow-xs p-5 hover:border-red-300 hover:shadow-md transition space-y-4">
@@ -327,7 +332,15 @@
                                 <div class="text-xs text-gray-400 truncate">
                                     @<span>{{ $c->challenger->username }}</span>{{ ($isDoubles && $c->challengerPartner) ? ', @'.$c->challengerPartner->username : '' }}
                                 </div>
-                                <span class="inline-block mt-0.5 text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.2 rounded">Thách đấu</span>
+                                <div class="flex items-center gap-1 mt-0.5 flex-wrap">
+                                    <span class="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.2 rounded">Thách đấu</span>
+                                    <span class="text-[10px] font-semibold text-gray-500">{{ $t1['win_rate'] }}% WR ({{ $t1['wins'] }}W-{{ $t1['losses'] }}L)</span>
+                                    @if($t1['streak']['count'] > 1)
+                                        <span class="text-[10px] font-bold {{ $t1['streak']['type'] === 'win' ? 'text-green-600' : 'text-red-500' }}">
+                                            {{ $t1['streak']['type'] === 'win' ? '🔥' : '❄️' }}{{ $t1['streak']['count'] }}{{ $t1['streak']['type'] === 'win' ? 'W' : 'L' }}
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
 
@@ -346,7 +359,15 @@
                                 <div class="text-xs text-gray-400 truncate">
                                     @<span>{{ $c->opponent->username }}</span>{{ ($isDoubles && $c->opponentPartner) ? ', @'.$c->opponentPartner->username : '' }}
                                 </div>
-                                <span class="inline-block mt-0.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded">Tiếp chiêu</span>
+                                <div class="flex items-center justify-end gap-1 mt-0.5 flex-wrap">
+                                    @if($t2['streak']['count'] > 1)
+                                        <span class="text-[10px] font-bold {{ $t2['streak']['type'] === 'win' ? 'text-green-600' : 'text-red-500' }}">
+                                            {{ $t2['streak']['type'] === 'win' ? '🔥' : '❄️' }}{{ $t2['streak']['count'] }}{{ $t2['streak']['type'] === 'win' ? 'W' : 'L' }}
+                                        </span>
+                                    @endif
+                                    <span class="text-[10px] font-semibold text-gray-500">{{ $t2['win_rate'] }}% WR ({{ $t2['wins'] }}W-{{ $t2['losses'] }}L)</span>
+                                    <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded">Tiếp chiêu</span>
+                                </div>
                             </div>
                             <div class="flex -space-x-2 shrink-0">
                                 @if($isDoubles && $c->opponentPartner)
@@ -356,6 +377,42 @@
                                 <img src="{{ $c->opponent->avatar_url }}" alt="{{ $c->opponent->name }}"
                                     class="w-10 h-10 rounded-full border-2 border-white object-cover shadow-2xs">
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Matchup Win Prediction Gauge (Chỉ số & Đánh giá % Win Dự Đoán) -->
+                    <div class="bg-gray-50/90 rounded-xl p-3 border border-gray-200/80 space-y-2">
+                        <div class="flex items-center justify-between text-xs font-bold">
+                            <span class="text-rose-700 flex items-center gap-1 font-black">
+                                <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                                <span>{{ $pred['challenger_pct'] }}%</span>
+                            </span>
+                            <span class="text-[10px] uppercase tracking-wider text-gray-500 font-extrabold flex items-center gap-1">
+                                <span>📊</span>
+                                <span>Dự Đoán % Win</span>
+                            </span>
+                            <span class="text-emerald-700 flex items-center gap-1 font-black">
+                                <span>{{ $pred['opponent_pct'] }}%</span>
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            </span>
+                        </div>
+
+                        <!-- Dual Progress Bar -->
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 flex overflow-hidden shadow-2xs">
+                            <div class="bg-rose-500 h-full transition-all duration-700" style="width: {{ $pred['challenger_pct'] }}%;" title="{{ $c->challenger_team_names }}: {{ $pred['challenger_pct'] }}%"></div>
+                            <div class="bg-emerald-500 h-full transition-all duration-700" style="width: {{ $pred['opponent_pct'] }}%;" title="{{ $c->opponent_team_names }}: {{ $pred['opponent_pct'] }}%"></div>
+                        </div>
+
+                        <!-- Evaluation text & H2H note -->
+                        <div class="flex items-center justify-between text-[11px] pt-0.5">
+                            <span class="font-medium text-gray-700">{{ $pred['eval_text'] }}</span>
+                            @if($h2h['total'] > 0)
+                                <span class="text-[10px] font-bold text-gray-500 bg-white border border-gray-200 px-1.5 py-0.5 rounded shadow-2xs shrink-0 ml-2" title="Lịch sử đối đầu trực tiếp">
+                                    Đối đầu: {{ $h2h['challenger_wins'] }} - {{ $h2h['opponent_wins'] }}
+                                </span>
+                            @else
+                                <span class="text-[10px] text-gray-400 shrink-0 ml-2">Chưa có đối đầu</span>
+                            @endif
                         </div>
                     </div>
 
@@ -376,7 +433,7 @@
                     <div class="border border-purple-100 bg-purple-50/40 rounded-xl p-3.5 space-y-3">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-1.5">
-                                <span class="text-sm">🎲</span>
+                                <span class="text-sm">🎯</span>
                                 <span class="text-xs font-black uppercase tracking-wider text-purple-900">Kèo Ngoài Bên Lề</span>
                                 @if($c->sideBets->count() > 0)
                                     <span class="bg-purple-100 text-purple-800 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">

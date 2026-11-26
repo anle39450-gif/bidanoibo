@@ -197,12 +197,146 @@
 
                 </div>
 
+                <!-- AI Coach Performance Analysis (Nhận định phong độ từ AI ChatGPT) -->
+                @if(isset($myAiAnalysis))
+                    <div id="ai_coach_box" class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-5 sm:p-6 shadow-xl border border-indigo-800/40 space-y-4 relative overflow-hidden">
+                        <!-- Background glow effect -->
+                        <div class="absolute -top-24 -right-24 w-60 h-60 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                        <div class="absolute -bottom-24 -left-24 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-800/40 pb-3 relative z-10">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 text-white flex items-center justify-center font-black shadow-md text-base">
+                                    🤖
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="text-sm sm:text-base font-extrabold text-white tracking-wide">
+                                            AI Billiards Coach • Nhận Định Phong Độ
+                                        </h3>
+                                        <span class="bg-indigo-500/20 text-cyan-300 border border-indigo-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                            GPT-4o Mini
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-indigo-300/80 mt-0.5">
+                                        Phân tích thời gian thực dựa trên toàn bộ chỉ số thi đấu của bạn
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <span id="ai_generated_time" class="text-[11px] text-indigo-300/70 font-mono">
+                                    Cập nhật: {{ $myAiAnalysis['generated_at'] }}
+                                </span>
+                                <button type="button" onclick="refreshPlayerAiAnalysis()" id="btn_refresh_ai"
+                                    class="bg-indigo-600/60 hover:bg-indigo-600 text-indigo-100 hover:text-white border border-indigo-500/30 font-semibold text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-sm">
+                                    <span id="ai_refresh_icon">🔄</span>
+                                    <span>Làm mới</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Content Area -->
+                        <div class="space-y-4 relative z-10">
+                            <!-- Title Badge & General Assessment -->
+                            <div class="space-y-2">
+                                <div class="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-400 to-orange-400 text-gray-950 font-black text-xs px-3 py-1 rounded-full shadow-sm">
+                                    <span>🎯</span>
+                                    <span id="ai_title_text">{{ $myAiAnalysis['title'] }}</span>
+                                </div>
+                                <p id="ai_assessment_text" class="text-sm text-indigo-100 leading-relaxed font-normal">
+                                    {{ $myAiAnalysis['assessment'] }}
+                                </p>
+                            </div>
+
+                            <!-- 3 Insight Cards Grid -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                                <!-- Card 1: Strengths -->
+                                <div class="bg-white/5 border border-white/10 rounded-xl p-3.5 space-y-1 backdrop-blur-xs">
+                                    <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                                        <span>💎</span>
+                                        <span>Điểm mạnh nổi bật</span>
+                                    </div>
+                                    <p id="ai_strengths_text" class="text-xs text-gray-300 leading-relaxed">
+                                        {{ $myAiAnalysis['strengths'] }}
+                                    </p>
+                                </div>
+
+                                <!-- Card 2: Tactical Advice -->
+                                <div class="bg-white/5 border border-white/10 rounded-xl p-3.5 space-y-1 backdrop-blur-xs">
+                                    <div class="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                                        <span>💡</span>
+                                        <span>Chiến thuật & Tâm lý</span>
+                                    </div>
+                                    <p id="ai_advice_text" class="text-xs text-gray-300 leading-relaxed">
+                                        {{ $myAiAnalysis['advice'] }}
+                                    </p>
+                                </div>
+
+                                <!-- Card 3: Prediction -->
+                                <div class="bg-white/5 border border-white/10 rounded-xl p-3.5 space-y-1 backdrop-blur-xs">
+                                    <div class="flex items-center gap-1.5 text-xs font-bold text-cyan-300">
+                                        <span>🔮</span>
+                                        <span>Dự báo trận tới</span>
+                                    </div>
+                                    <p id="ai_prediction_text" class="text-xs text-gray-300 leading-relaxed">
+                                        {{ $myAiAnalysis['prediction'] }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Client-side script to refresh AI analysis via AJAX -->
+                    <script>
+                        async function refreshPlayerAiAnalysis() {
+                            const btn = document.getElementById('btn_refresh_ai');
+                            const icon = document.getElementById('ai_refresh_icon');
+                            if (!btn) return;
+
+                            btn.disabled = true;
+                            if (icon) icon.classList.add('animate-spin');
+
+                            try {
+                                const res = await fetch('{{ route("dashboard.ai-analysis.refresh") }}', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                        'Accept': 'application/json'
+                                    }
+                                });
+
+                                const data = await res.json();
+                                if (data.success && data.analysis) {
+                                    const a = data.analysis;
+                                    document.getElementById('ai_title_text').textContent = a.title;
+                                    document.getElementById('ai_assessment_text').textContent = a.assessment;
+                                    document.getElementById('ai_strengths_text').textContent = a.strengths;
+                                    document.getElementById('ai_advice_text').textContent = a.advice;
+                                    document.getElementById('ai_prediction_text').textContent = a.prediction;
+                                    document.getElementById('ai_generated_time').textContent = 'Cập nhật: ' + a.generated_at;
+                                } else {
+                                    alert(data.message || 'Không thể làm mới nhận định AI.');
+                                }
+                            } catch (e) {
+                                console.error('Error refreshing AI analysis', e);
+                                alert('Lỗi kết nối khi làm mới nhận định AI.');
+                            } finally {
+                                btn.disabled = false;
+                                if (icon) icon.classList.remove('animate-spin');
+                            }
+                        }
+                    </script>
+                @endif
+
                 <!-- Lời rủ bắt kèo ngoài đang chờ bạn phản hồi -->
                 @if(isset($myPendingSideBetInvites) && $myPendingSideBetInvites->isNotEmpty())
                     <div class="bg-purple-50/80 border border-purple-200 rounded-xl p-4 mt-2 shadow-2xs space-y-3">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
-                                <span class="text-base">🎲</span>
+                                <span class="text-base">🎯</span>
                                 <span class="text-sm font-black text-purple-900">
                                     Lời rủ vào kèo ngoài đang chờ bạn chốt ({{ $myPendingSideBetInvites->count() }} kèo)
                                 </span>
@@ -324,7 +458,7 @@
                     <div class="bg-amber-50/60 border border-amber-200 rounded-lg p-4 mt-2">
                         <div class="text-sm font-bold text-amber-900 flex items-center justify-between mb-2.5">
                             <span class="flex items-center gap-1.5">
-                                <span>🎲</span>
+                                <span>🎯</span>
                                 <span>Kèo ngoài bạn thua chưa trả ({{ $myUnpaidSideBets->count() }} kèo)</span>
                             </span>
                             <span class="text-xs text-amber-700 font-normal">Bấm "Đã trả kèo" sau khi thanh toán</span>
@@ -442,7 +576,7 @@
                     <div class="bg-blue-50/60 border border-blue-200 rounded-lg p-4 mt-2">
                         <div class="text-sm font-bold text-blue-900 flex items-center justify-between mb-2.5">
                             <span class="flex items-center gap-1.5">
-                                <span>🎲</span>
+                                <span>🎯</span>
                                 <span>Kèo ngoài đối thủ chưa trả cho bạn ({{ $myUnpaidSideBetReceivables->count() }} kèo)</span>
                             </span>
                             <span class="text-xs text-blue-700 font-normal">Kèo ngoài bạn thắng chờ nhận</span>

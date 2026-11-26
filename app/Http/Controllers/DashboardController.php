@@ -7,7 +7,9 @@ use App\Models\BilliardSideBet;
 use App\Models\User;
 use App\Services\BilliardMatchService;
 use App\Services\BilliardStatsService;
+use App\Services\OpenAiPlayerAnalysisService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -15,7 +17,8 @@ class DashboardController extends Controller
 {
     public function __construct(
         protected BilliardStatsService $statsService,
-        protected BilliardMatchService $matchService
+        protected BilliardMatchService $matchService,
+        protected OpenAiPlayerAnalysisService $aiAnalysisService
     ) {}
 
     public function index(): View
@@ -37,6 +40,7 @@ class DashboardController extends Controller
 
         // 3. Current User Personal Stats & Debts
         $myStats = $currentUser ? $this->statsService->getPlayerStats($currentUser) : null;
+        $myAiAnalysis = $currentUser ? $this->aiAnalysisService->getAnalysisForUser($currentUser) : null;
         $myUnpaidDebtsCount = 0;
         $myPaidDebtsCount = 0;
         $myUnpaidReceivablesCount = 0;
@@ -165,6 +169,7 @@ class DashboardController extends Controller
             'topPlayer',
             'loserOfMonth',
             'myStats',
+            'myAiAnalysis',
             'myUnpaidDebtsCount',
             'myPaidDebtsCount',
             'myUnpaidReceivablesCount',
@@ -180,5 +185,25 @@ class DashboardController extends Controller
             'max7DaysCount',
             'statusDistribution'
         ));
+    }
+
+    /**
+     * Refresh AI analysis for current player via AJAX.
+     */
+    public function refreshAiAnalysis(OpenAiPlayerAnalysisService $aiService): JsonResponse
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Vui lòng đăng nhập!'], 401);
+        }
+
+        $analysis = $aiService->getAnalysisForUser($user, forceRefresh: true);
+
+        return response()->json([
+            'success' => true,
+            'analysis' => $analysis,
+            'message' => 'Đã làm mới nhận định AI thành công!',
+        ]);
     }
 }

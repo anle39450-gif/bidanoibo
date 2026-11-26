@@ -14,7 +14,7 @@
         <div class="flex items-center justify-between border-b border-gray-100 pb-3">
             <div class="flex items-center gap-2">
                 <div class="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg font-black">
-                    🎲
+                    🎯
                 </div>
                 <div>
                     <h3 id="sidebet_modal_title" class="text-base sm:text-lg font-black text-gray-900 leading-tight">
@@ -126,7 +126,7 @@
                 </button>
                 <button type="submit" id="btn_submit_sidebet"
                     class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition flex items-center gap-1.5 cursor-pointer">
-                    <span>🎲 Phát Lệnh Vào Kèo</span>
+                    <span>🎯 Xác Nhận Vào Kèo</span>
                 </button>
             </div>
         </form>

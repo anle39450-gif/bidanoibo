@@ -212,4 +212,211 @@ class BilliardChallenge extends Model
 
         return $resolvedBets;
     }
+
+    /**
+     * Get head-to-head, team stats, and AI/statistical predicted win probability for both sides
+     *
+     * @return array<string, mixed>
+     */
+    public function getMatchupAnalysis(): array
+    {
+        $isDoubles = $this->isDoubles();
+
+        // 1. Team 1 Stats (Challenger side)
+        $p1 = $this->challenger;
+        $p1Partner = $isDoubles ? $this->challengerPartner : null;
+
+        $p1Wins = $p1?->wins_count ?? 0;
+        $p1Losses = $p1?->losses_count ?? 0;
+        $p1Total = $p1Wins + $p1Losses;
+        $p1Rate = $p1?->win_rate ?? 0.0;
+        $p1Streak = $this->calculateUserStreak($p1);
+
+        if ($isDoubles && $p1Partner) {
+            $p1pWins = $p1Partner->wins_count;
+            $p1pLosses = $p1Partner->losses_count;
+            $team1Wins = $p1Wins + $p1pWins;
+            $team1Losses = $p1Losses + $p1pLosses;
+            $team1Total = $team1Wins + $team1Losses;
+            $team1Rate = $team1Total > 0 ? round(($team1Wins / $team1Total) * 100, 1) : 0.0;
+            $team1Streak = $p1Streak; // primary streak
+        } else {
+            $team1Wins = $p1Wins;
+            $team1Losses = $p1Losses;
+            $team1Total = $p1Total;
+            $team1Rate = $p1Rate;
+            $team1Streak = $p1Streak;
+        }
+
+        // 2. Team 2 Stats (Opponent side)
+        $p2 = $this->opponent;
+        $p2Partner = $isDoubles ? $this->opponentPartner : null;
+
+        $p2Wins = $p2?->wins_count ?? 0;
+        $p2Losses = $p2?->losses_count ?? 0;
+        $p2Total = $p2Wins + $p2Losses;
+        $p2Rate = $p2?->win_rate ?? 0.0;
+        $p2Streak = $this->calculateUserStreak($p2);
+
+        if ($isDoubles && $p2Partner) {
+            $p2pWins = $p2Partner->wins_count;
+            $p2pLosses = $p2Partner->losses_count;
+            $team2Wins = $p2Wins + $p2pWins;
+            $team2Losses = $p2Losses + $p2pLosses;
+            $team2Total = $team2Wins + $team2Losses;
+            $team2Rate = $team2Total > 0 ? round(($team2Wins / $team2Total) * 100, 1) : 0.0;
+            $team2Streak = $p2Streak;
+        } else {
+            $team2Wins = $p2Wins;
+            $team2Losses = $p2Losses;
+            $team2Total = $p2Total;
+            $team2Rate = $p2Rate;
+            $team2Streak = $p2Streak;
+        }
+
+        // 3. Head-to-Head (H2H) between primary players or teams
+        $h2hChallengerWins = 0;
+        $h2hOpponentWins = 0;
+
+        if ($p1 && $p2) {
+            $h2hMatches = BilliardMatch::confirmed()
+                ->where(function ($q) use ($p1, $p2) {
+                    $q->where(function ($sub) use ($p1, $p2) {
+                        $sub->where(function ($w) use ($p1) {
+                            $w->where('winner_id', $p1->id)->orWhere('winner_partner_id', $p1->id);
+                        })->where(function ($l) use ($p2) {
+                            $l->where('loser_id', $p2->id)->orWhere('loser_partner_id', $p2->id);
+                        });
+                    })->orWhere(function ($sub) use ($p1, $p2) {
+                        $sub->where(function ($w) use ($p2) {
+                            $w->where('winner_id', $p2->id)->orWhere('winner_partner_id', $p2->id);
+                        })->where(function ($l) use ($p1) {
+                            $l->where('loser_id', $p1->id)->orWhere('loser_partner_id', $p1->id);
+                        });
+                    });
+                })
+                ->get();
+
+            foreach ($h2hMatches as $hm) {
+                if ($hm->winner_id === $p1->id || $hm->winner_partner_id === $p1->id) {
+                    $h2hChallengerWins++;
+                } else {
+                    $h2hOpponentWins++;
+                }
+            }
+        }
+
+        $h2hTotal = $h2hChallengerWins + $h2hOpponentWins;
+
+        // 4. Statistical Prediction Formula (Bayesian smoothing + Streak + H2H)
+        $score1 = (($team1Wins + 3) / (max($team1Total, 0) + 6)) * 100;
+        $score2 = (($team2Wins + 3) / (max($team2Total, 0) + 6)) * 100;
+
+        // Streak weight (+/- 2.5% per consecutive result, max 10%)
+        if ($team1Streak['type'] === 'win') {
+            $score1 += min($team1Streak['count'], 4) * 2.5;
+        } elseif ($team1Streak['type'] === 'loss') {
+            $score1 -= min($team1Streak['count'], 4) * 2.5;
+        }
+
+        if ($team2Streak['type'] === 'win') {
+            $score2 += min($team2Streak['count'], 4) * 2.5;
+        } elseif ($team2Streak['type'] === 'loss') {
+            $score2 -= min($team2Streak['count'], 4) * 2.5;
+        }
+
+        // H2H weight (+/- 3% per H2H diff, max 12%)
+        if ($h2hTotal > 0) {
+            $h2hDiff = $h2hChallengerWins - $h2hOpponentWins;
+            $h2hBonus = max(min($h2hDiff * 3, 12), -12);
+            $score1 += $h2hBonus;
+            $score2 -= $h2hBonus;
+        }
+
+        $score1 = max($score1, 15);
+        $score2 = max($score2, 15);
+        $totalScore = $score1 + $score2;
+
+        $challengerPct = (int) round(($score1 / $totalScore) * 100);
+        $challengerPct = max(min($challengerPct, 82), 18);
+        $opponentPct = 100 - $challengerPct;
+
+        if ($challengerPct >= 58) {
+            $evalText = "⭐ Đội {$this->challenger_team_names} được đánh giá cao hơn ({$challengerPct}%)";
+        } elseif ($opponentPct >= 58) {
+            $evalText = "⭐ Đội {$this->opponent_team_names} nắm lợi thế nhỉnh hơn ({$opponentPct}%)";
+        } else {
+            $evalText = '⚖️ Kèo đấu rất cân tài cân sức (50-50)';
+        }
+
+        return [
+            'challenger' => [
+                'name' => $this->challenger_team_names,
+                'win_rate' => $team1Rate,
+                'wins' => $team1Wins,
+                'losses' => $team1Losses,
+                'total_matches' => $team1Total,
+                'streak' => $team1Streak,
+            ],
+            'opponent' => [
+                'name' => $this->opponent_team_names,
+                'win_rate' => $team2Rate,
+                'wins' => $team2Wins,
+                'losses' => $team2Losses,
+                'total_matches' => $team2Total,
+                'streak' => $team2Streak,
+            ],
+            'h2h' => [
+                'total' => $h2hTotal,
+                'challenger_wins' => $h2hChallengerWins,
+                'opponent_wins' => $h2hOpponentWins,
+            ],
+            'prediction' => [
+                'challenger_pct' => $challengerPct,
+                'opponent_pct' => $opponentPct,
+                'eval_text' => $evalText,
+            ],
+        ];
+    }
+
+    /**
+     * @return array{type: ?string, count: int}
+     */
+    protected function calculateUserStreak(?User $user): array
+    {
+        if (! $user) {
+            return ['type' => null, 'count' => 0];
+        }
+
+        $recentMatches = BilliardMatch::confirmed()
+            ->where(function ($q) use ($user) {
+                $q->where('player1_id', $user->id)
+                    ->orWhere('player2_id', $user->id)
+                    ->orWhere('player1_partner_id', $user->id)
+                    ->orWhere('player2_partner_id', $user->id);
+            })
+            ->orderBy('played_at', 'desc')
+            ->take(10)
+            ->get();
+
+        if ($recentMatches->isEmpty()) {
+            return ['type' => null, 'count' => 0];
+        }
+
+        $firstMatch = $recentMatches->first();
+        $isFirstWin = ($firstMatch->winner_id === $user->id || $firstMatch->winner_partner_id === $user->id);
+        $type = $isFirstWin ? 'win' : 'loss';
+        $count = 0;
+
+        foreach ($recentMatches as $m) {
+            $isWin = ($m->winner_id === $user->id || $m->winner_partner_id === $user->id);
+            if (($type === 'win' && $isWin) || ($type === 'loss' && ! $isWin)) {
+                $count++;
+            } else {
+                break;
+            }
+        }
+
+        return ['type' => $type, 'count' => $count];
+    }
 }

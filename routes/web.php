@@ -31,6 +31,7 @@ Route::middleware('auth')->group(function () {
 
     // Internal Dashboard & Matches
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/dashboard/ai-analysis/refresh', [DashboardController::class, 'refreshAiAnalysis'])->name('dashboard.ai-analysis.refresh');
     Route::get('/matches', [MatchController::class, 'index'])->name('matches.index');
     Route::get('/matches/{match}', [MatchController::class, 'show'])->name('matches.show')->withTrashed();
     Route::post('/matches', [MatchController::class, 'store'])->name('matches.store');

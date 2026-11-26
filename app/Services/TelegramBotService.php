@@ -209,7 +209,7 @@ class TelegramBotService
         // Liệt kê kết quả các kèo ngoài bên lề (nếu có)
         $sideBets = $challenge->sideBets()->where('status', 'resolved')->with(['winner', 'loser'])->get();
         if ($sideBets->isNotEmpty()) {
-            $text .= "\n\n🎲 <b>KẾT QUẢ KÈO NGOÀI BÊN LỀ:</b>\n";
+            $text .= "\n\n🎯 <b>KẾT QUẢ KÈO NGOÀI BÊN LỀ:</b>\n";
             foreach ($sideBets as $idx => $sb) {
                 $num = $idx + 1;
                 $text .= "• <b>Kèo {$num}:</b> <b>{$sb->winner->name}</b> 🏆 thắng <b>{$sb->loser->name}</b> ({$sb->prize})\n";

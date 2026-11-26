@@ -41,4 +41,9 @@ return [
         'group_chat_id' => env('TELEGRAM_GROUP_CHAT_ID'),
     ],
 
+    'openai' => [
+        'api_key' => env('API_KEY') ?: env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+    ],
+
 ];
