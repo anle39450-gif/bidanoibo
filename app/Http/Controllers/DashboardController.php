@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BilliardMatch;
+use App\Models\BilliardSideBet;
 use App\Models\User;
 use App\Services\BilliardMatchService;
 use App\Services\BilliardStatsService;
@@ -41,6 +42,9 @@ class DashboardController extends Controller
         $myUnpaidReceivablesCount = 0;
         $myUnpaidMatches = collect();
         $myUnpaidReceivables = collect();
+        $myUnpaidSideBets = collect();
+        $myUnpaidSideBetReceivables = collect();
+        $myPendingSideBetInvites = collect();
 
         if ($currentUser) {
             $myUnpaidDebtsCount = $currentUser->unpaid_debts_count;
@@ -74,6 +78,32 @@ class DashboardController extends Controller
                 })
                 ->with(['winner', 'winnerPartner', 'loser', 'loserPartner', 'prizePaidBy', 'prizeConfirmedBy', 'prizePartnerPaidBy', 'prizePartnerConfirmedBy'])
                 ->orderBy('played_at', 'desc')
+                ->take(6)
+                ->get();
+
+            // Side bets debts (unpaid side bets where current user lost)
+            $myUnpaidSideBets = BilliardSideBet::where('loser_id', $currentUser->id)
+                ->where('status', 'resolved')
+                ->whereNotIn('prize_status', ['confirmed'])
+                ->with(['challenge.challenger', 'challenge.opponent', 'winner', 'loser', 'creator', 'target'])
+                ->orderByDesc('updated_at')
+                ->take(6)
+                ->get();
+
+            // Side bets receivables (side bets won by current user waiting for payment/confirmation)
+            $myUnpaidSideBetReceivables = BilliardSideBet::where('winner_id', $currentUser->id)
+                ->where('status', 'resolved')
+                ->whereNotIn('prize_status', ['confirmed'])
+                ->with(['challenge.challenger', 'challenge.opponent', 'winner', 'loser', 'creator', 'target'])
+                ->orderByDesc('updated_at')
+                ->take(6)
+                ->get();
+
+            // Pending side bet invitations directed to current user
+            $myPendingSideBetInvites = BilliardSideBet::where('target_id', $currentUser->id)
+                ->where('status', 'pending')
+                ->with(['challenge.challenger', 'challenge.opponent', 'creator', 'target'])
+                ->orderByDesc('created_at')
                 ->take(6)
                 ->get();
         }
@@ -140,6 +170,9 @@ class DashboardController extends Controller
             'myUnpaidReceivablesCount',
             'myUnpaidMatches',
             'myUnpaidReceivables',
+            'myUnpaidSideBets',
+            'myUnpaidSideBetReceivables',
+            'myPendingSideBetInvites',
             'myPendingMatches',
             'recentMatches',
             'miniLeaderboard',

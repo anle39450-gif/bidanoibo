@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BilliardChallenge;
 use App\Models\BilliardMatch;
+use App\Models\BilliardSideBet;
 use App\Models\MatchHistory;
 use App\Models\TelegramBotConfig;
 use App\Models\User;
@@ -203,6 +204,16 @@ class TelegramBotService
             $text .= "🎁 <b>Kèo thách thức:</b> <b>{$challenge->prize}</b>\n";
             $text .= "💀 <b>Nợ kèo:</b> <b>{$loser->name}</b> nợ <b>{$winner->name}</b> 1 {$challenge->prize}\n\n";
             $text .= "🎉 Chúc mừng <b>{$winner->name}</b> đã xuất sắc giành chiến thắng!";
+        }
+
+        // Liệt kê kết quả các kèo ngoài bên lề (nếu có)
+        $sideBets = $challenge->sideBets()->where('status', 'resolved')->with(['winner', 'loser'])->get();
+        if ($sideBets->isNotEmpty()) {
+            $text .= "\n\n🎲 <b>KẾT QUẢ KÈO NGOÀI BÊN LỀ:</b>\n";
+            foreach ($sideBets as $idx => $sb) {
+                $num = $idx + 1;
+                $text .= "• <b>Kèo {$num}:</b> <b>{$sb->winner->name}</b> 🏆 thắng <b>{$sb->loser->name}</b> ({$sb->prize})\n";
+            }
         }
 
         $siteUrl = url('/matches/'.$match->id);
@@ -1007,9 +1018,80 @@ class TelegramBotService
                 'match_id' => $match->id,
             ]);
 
+            // Tự động phân định thắng thua các kèo ngoài bên lề
+            $challenge->resolveSideBets($winningTeam === 1 ? 'challenger' : 'opponent', $this);
+
             $this->answerCallbackQuery($callbackId, "🏆 Đã chốt kết quả: {$winnerNames} chiến thắng!");
             $this->sendMessage($chatId, "🎉 <b>ĐÃ CẬP NHẬT KẾT QUẢ THÀNH CÔNG!</b>\n🏆 Chiến thắng thuộc về: <b>{$winnerNames}</b>\n🎁 Kèo: <b>{$challenge->prize}</b>");
             $this->sendDuelCompletedNotification($challenge, $match, $winner, $loser);
+
+            return;
+        }
+
+        if (str_starts_with($data, 'sidebet_accept_')) {
+            $sideBetId = (int) substr($data, 15);
+            $sideBet = BilliardSideBet::find($sideBetId);
+
+            if (! $sideBet) {
+                $this->answerCallbackQuery($callbackId, '❌ Kèo ngoài không tồn tại hoặc đã kết thúc!');
+
+                return;
+            }
+
+            if ($sideBet->target_id !== $user->id) {
+                $this->answerCallbackQuery($callbackId, '⚠️ Bạn không phải người được mời nhận kèo này!');
+
+                return;
+            }
+
+            if ($sideBet->status !== 'pending') {
+                $this->answerCallbackQuery($callbackId, "Kèo ngoài đã ở trạng thái: {$sideBet->status}");
+
+                return;
+            }
+
+            $sideBet->update(['status' => 'accepted']);
+
+            $this->answerCallbackQuery($callbackId, '⚔️ Bạn đã nhận kèo ngoài thành công!');
+            $this->sendMessage($chatId, "⚔️ <b>ĐÃ NHẬN KÈO NGOÀI THÀNH CÔNG!</b>\nBạn đã nhận kèo món <b>{$sideBet->prize}</b> với <b>{$sideBet->creator->name}</b>. Cùng chờ đón kết quả trận đấu!");
+
+            if ($sideBet->creator && $sideBet->creator->telegram_id) {
+                $this->sendMessage($sideBet->creator->telegram_id, "⚔️ <b>{$user->name} ĐÃ NHẬN KÈO NGOÀI!</b>\nĐối phương đã đồng ý nhận kèo món <b>{$sideBet->prize}</b> với bạn. Sẵn sàng chiến!");
+            }
+
+            return;
+        }
+
+        if (str_starts_with($data, 'sidebet_decline_')) {
+            $sideBetId = (int) substr($data, 16);
+            $sideBet = BilliardSideBet::find($sideBetId);
+
+            if (! $sideBet) {
+                $this->answerCallbackQuery($callbackId, '❌ Kèo ngoài không tồn tại!');
+
+                return;
+            }
+
+            if ($sideBet->target_id !== $user->id) {
+                $this->answerCallbackQuery($callbackId, '⚠️ Bạn không phải người được mời nhận kèo này!');
+
+                return;
+            }
+
+            if ($sideBet->status !== 'pending') {
+                $this->answerCallbackQuery($callbackId, "Kèo ngoài đã ở trạng thái: {$sideBet->status}");
+
+                return;
+            }
+
+            $sideBet->update(['status' => 'declined']);
+
+            $this->answerCallbackQuery($callbackId, '🏳️ Bạn đã từ chối kèo ngoài!');
+            $this->sendMessage($chatId, "🏳️ Bạn đã từ chối kèo ngoài món <i>{$sideBet->prize}</i> với <b>{$sideBet->creator->name}</b>.");
+
+            if ($sideBet->creator && $sideBet->creator->telegram_id) {
+                $this->sendMessage($sideBet->creator->telegram_id, "🏳️ <b>{$user->name} ĐÃ TỪ CHỐI KÈO NGOÀI!</b>\nĐối phương đã từ chối kèo ngoài món <i>{$sideBet->prize}</i> của bạn.");
+            }
 
             return;
         }

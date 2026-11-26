@@ -197,6 +197,55 @@
 
                 </div>
 
+                <!-- Lời rủ bắt kèo ngoài đang chờ bạn phản hồi -->
+                @if(isset($myPendingSideBetInvites) && $myPendingSideBetInvites->isNotEmpty())
+                    <div class="bg-purple-50/80 border border-purple-200 rounded-xl p-4 mt-2 shadow-2xs space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-base">🎲</span>
+                                <span class="text-sm font-black text-purple-900">
+                                    Lời rủ vào kèo ngoài đang chờ bạn chốt ({{ $myPendingSideBetInvites->count() }} kèo)
+                                </span>
+                            </div>
+                            <span class="text-xs text-purple-700 font-medium">Bấm nhận kèo hoặc từ chối</span>
+                        </div>
+
+                        <div class="divide-y divide-purple-100 space-y-2">
+                            @foreach($myPendingSideBetInvites as $invite)
+                                <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+                                    <div class="space-y-1">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="font-extrabold text-gray-900">{{ $invite->creator->name }}</span>
+                                            <span class="text-gray-500 text-xs">rủ bạn bắt kèo trận:</span>
+                                            <span class="font-bold text-gray-800 bg-white px-2 py-0.5 rounded border border-purple-200 text-xs">
+                                                {{ $invite->challenge->challenger_team_names }} vs {{ $invite->challenge->opponent_team_names }}
+                                            </span>
+                                        </div>
+                                        <div class="text-xs text-purple-900 flex items-center gap-2 flex-wrap">
+                                            <span>👉 {{ $invite->creator->name }} bắt <b class="text-rose-700">{{ $invite->creator_team_name }}</b></span>
+                                            <span>• Bạn nhận phe: <b class="text-emerald-700">{{ $invite->target_team_name }}</b></span>
+                                            <span>• Món kèo: <b class="bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded border border-amber-200">{{ $invite->prize }}</b></span>
+                                            @if($invite->notes)
+                                                <span class="text-gray-500 italic">"{{ $invite->notes }}"</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        <button type="button" onclick="handleAcceptSideBet({{ $invite->id }})"
+                                            class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-2xs transition cursor-pointer">
+                                            ✓ Nhận kèo
+                                        </button>
+                                        <button type="button" onclick="handleDeclineSideBet({{ $invite->id }})"
+                                            class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs px-3 py-1.5 rounded-lg transition cursor-pointer">
+                                            ✕ Từ chối
+                                        </button>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 <!-- If there are unpaid debts, show list with Quick Pay button! -->
                 @if($myUnpaidMatches->isNotEmpty())
                     <div class="bg-amber-50/60 border border-amber-200 rounded-lg p-4 mt-2">
@@ -263,6 +312,50 @@
                                         <a href="{{ route('matches.show', $debtMatch->id) }}" class="text-xs text-blue-600 hover:underline font-medium">
                                             Chi tiết →
                                         </a>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Kèo ngoài bạn thua chưa trả -->
+                @if(isset($myUnpaidSideBets) && $myUnpaidSideBets->isNotEmpty())
+                    <div class="bg-amber-50/60 border border-amber-200 rounded-lg p-4 mt-2">
+                        <div class="text-sm font-bold text-amber-900 flex items-center justify-between mb-2.5">
+                            <span class="flex items-center gap-1.5">
+                                <span>🎲</span>
+                                <span>Kèo ngoài bạn thua chưa trả ({{ $myUnpaidSideBets->count() }} kèo)</span>
+                            </span>
+                            <span class="text-xs text-amber-700 font-normal">Bấm "Đã trả kèo" sau khi thanh toán</span>
+                        </div>
+                        <div class="divide-y divide-amber-200/60 space-y-2">
+                            @foreach($myUnpaidSideBets as $sb)
+                                <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+                                    <div>
+                                        <div class="font-bold text-gray-900 flex items-center flex-wrap gap-2">
+                                            <span>Thua kèo ngoài trước: <b class="text-blue-700 font-black">{{ $sb->winner?->name }}</b></span>
+                                            @if($sb->prize_status === 'paid')
+                                                <span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-bold">Đã trả (Chờ đối thủ xác nhận)</span>
+                                            @else
+                                                <span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded font-bold">Chưa trả</span>
+                                            @endif
+                                        </div>
+                                        <div class="text-xs text-gray-600 mt-0.5">
+                                            Trận: <span class="text-gray-700 font-medium">{{ $sb->challenge->challenger_team_names }} vs {{ $sb->challenge->opponent_team_names }}</span> •
+                                            Món kèo: <b class="text-amber-900 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded">{{ $sb->prize }}</b>
+                                            @if($sb->notes)
+                                                <span class="text-gray-500 italic ml-1">"{{ $sb->notes }}"</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        @if($sb->prize_status === 'unpaid')
+                                            <button type="button" onclick="handlePaySideBet({{ $sb->id }})"
+                                                class="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs px-3.5 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
+                                                Đã trả kèo
+                                            </button>
+                                        @endif
                                     </div>
                                 </div>
                             @endforeach
@@ -337,6 +430,50 @@
                                         <a href="{{ route('matches.show', $recMatch->id) }}" class="text-xs text-blue-600 hover:underline font-medium">
                                             Xem chi tiết →
                                         </a>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Kèo ngoài đối thủ nợ bạn -->
+                @if(isset($myUnpaidSideBetReceivables) && $myUnpaidSideBetReceivables->isNotEmpty())
+                    <div class="bg-blue-50/60 border border-blue-200 rounded-lg p-4 mt-2">
+                        <div class="text-sm font-bold text-blue-900 flex items-center justify-between mb-2.5">
+                            <span class="flex items-center gap-1.5">
+                                <span>🎲</span>
+                                <span>Kèo ngoài đối thủ chưa trả cho bạn ({{ $myUnpaidSideBetReceivables->count() }} kèo)</span>
+                            </span>
+                            <span class="text-xs text-blue-700 font-normal">Kèo ngoài bạn thắng chờ nhận</span>
+                        </div>
+                        <div class="divide-y divide-blue-200/60 space-y-2">
+                            @foreach($myUnpaidSideBetReceivables as $sb)
+                                <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+                                    <div>
+                                        <div class="font-bold text-gray-900 flex items-center flex-wrap gap-2">
+                                            <span><b class="text-red-600 font-black">{{ $sb->loser?->name }}</b> nợ bạn</span>
+                                            @if($sb->prize_status === 'paid')
+                                                <span class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded font-bold">Đối thủ báo đã trả (Cần bạn xác nhận)</span>
+                                            @else
+                                                <span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded font-bold">Chưa trả</span>
+                                            @endif
+                                        </div>
+                                        <div class="text-xs text-gray-600 mt-0.5">
+                                            Trận: <span class="text-gray-700 font-medium">{{ $sb->challenge->challenger_team_names }} vs {{ $sb->challenge->opponent_team_names }}</span> •
+                                            Món kèo: <b class="text-blue-900 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded">{{ $sb->prize }}</b>
+                                            @if($sb->notes)
+                                                <span class="text-gray-500 italic ml-1">"{{ $sb->notes }}"</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        @if($sb->prize_status === 'paid')
+                                            <button type="button" onclick="handleConfirmSideBet({{ $sb->id }})"
+                                                class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg shadow-xs transition cursor-pointer">
+                                                Xác nhận đã nhận OK
+                                            </button>
+                                        @endif
                                     </div>
                                 </div>
                             @endforeach

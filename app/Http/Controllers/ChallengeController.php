@@ -361,6 +361,9 @@ class ChallengeController extends Controller
                 'match_id' => $match->id,
             ]);
 
+            // Tự động phân định thắng thua các kèo ngoài bên lề
+            $challenge->resolveSideBets($isChallengerTeamWon ? 'challenger' : 'opponent', $telegramBot);
+
             // Notify winners
             foreach (array_filter([$winner, $winnerPartner]) as $w) {
                 UserNotification::create([
@@ -444,6 +447,10 @@ class ChallengeController extends Controller
             'status' => 'completed',
             'match_id' => $match->id,
         ]);
+
+        // Tự động phân định thắng thua các kèo ngoài bên lề
+        $isChallengerWon = ($winnerId === $challenge->challenger_id);
+        $challenge->resolveSideBets($isChallengerWon ? 'challenger' : 'opponent', $telegramBot);
 
         // Thông báo in-app
         UserNotification::create([

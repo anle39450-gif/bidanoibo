@@ -449,6 +449,7 @@
 
     @auth
         @include('partials.ajax-duel-challenge')
+        @include('partials.ajax-side-bet-modal')
     @endauth
 
     @include('partials.wifi-restriction')

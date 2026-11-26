@@ -372,6 +372,139 @@
                         @endif
                     </div>
 
+                    <!-- Side Bets (Kèo Ngoài Bên Lề) -->
+                    <div class="border border-purple-100 bg-purple-50/40 rounded-xl p-3.5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-sm">🎲</span>
+                                <span class="text-xs font-black uppercase tracking-wider text-purple-900">Kèo Ngoài Bên Lề</span>
+                                @if($c->sideBets->count() > 0)
+                                    <span class="bg-purple-100 text-purple-800 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">
+                                        {{ $c->sideBets->count() }}
+                                    </span>
+                                @endif
+                            </div>
+                            @auth
+                                <button type="button"
+                                    onclick="openSideBetModal({{ $c->id }}, '{{ addslashes($c->challenger_team_names) }}', '{{ addslashes($c->opponent_team_names) }}', {{ $isDoubles ? 'true' : 'false' }})"
+                                    class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-lg shadow-2xs transition flex items-center gap-1 cursor-pointer">
+                                    <span>+ Vào Kèo</span>
+                                </button>
+                            @endauth
+                        </div>
+
+                        <!-- Side Bets List -->
+                        @if($c->sideBets->count() > 0)
+                            <div class="space-y-2">
+                                @foreach($c->sideBets as $sb)
+                                    <div class="bg-white border border-gray-200/80 rounded-lg p-2.5 text-xs shadow-2xs space-y-2">
+                                        <div class="flex items-start justify-between gap-2">
+                                            <div class="space-y-1">
+                                                <div class="flex items-center gap-1.5 flex-wrap">
+                                                    <span class="font-extrabold text-gray-900">{{ $sb->creator->name }}</span>
+                                                    <span class="text-gray-400 text-[11px]">bắt</span>
+                                                    <span class="bg-rose-50 text-rose-700 border border-rose-200 font-bold px-1.5 py-0.2 rounded text-[11px]">{{ $sb->creator_team_name }}</span>
+                                                    <span class="text-gray-300 font-bold">⚔️</span>
+                                                    <span class="font-extrabold text-gray-900">{{ $sb->target->name }}</span>
+                                                    <span class="text-gray-400 text-[11px]">nhận</span>
+                                                    <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-1.5 py-0.2 rounded text-[11px]">{{ $sb->target_team_name }}</span>
+                                                </div>
+                                                <div class="flex items-center gap-2 text-[11px] text-gray-600">
+                                                    <span>🎁 Món kèo: <b class="text-purple-700">{{ $sb->prize }}</b></span>
+                                                    @if($sb->notes)
+                                                        <span class="text-gray-400 italic">"{{ $sb->notes }}"</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+
+                                            <!-- Status Badge -->
+                                            <div class="shrink-0 text-right">
+                                                @if($sb->status === 'pending')
+                                                    <span class="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full inline-block">
+                                                        Chờ {{ $sb->target->name }} nhận
+                                                    </span>
+                                                @elseif($sb->status === 'accepted')
+                                                    <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full inline-block">
+                                                        Đã chốt kèo 🤝
+                                                    </span>
+                                                @elseif($sb->status === 'declined')
+                                                    <span class="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-full inline-block">
+                                                        Từ chối ✕
+                                                    </span>
+                                                @elseif($sb->status === 'cancelled')
+                                                    <span class="bg-gray-100 text-gray-400 text-[10px] font-bold px-2 py-0.5 rounded-full inline-block">
+                                                        Đã hủy
+                                                    </span>
+                                                @elseif($sb->status === 'resolved')
+                                                    <span class="bg-purple-100 text-purple-800 text-[10px] font-black px-2 py-0.5 rounded-full inline-block">
+                                                        🏆 {{ $sb->winner?->name }} thắng
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        <!-- Interactive actions for this specific side bet -->
+                                        @auth
+                                            @php
+                                                $myId = auth()->id();
+                                            @endphp
+                                            @if($sb->status === 'pending')
+                                                <div class="flex items-center justify-end gap-1.5 pt-1.5 border-t border-gray-100">
+                                                    @if($sb->target_id === $myId)
+                                                        <button type="button" onclick="handleAcceptSideBet({{ $sb->id }})"
+                                                            class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-md transition shadow-2xs cursor-pointer">
+                                                            ✓ Nhận kèo
+                                                        </button>
+                                                        <button type="button" onclick="handleDeclineSideBet({{ $sb->id }})"
+                                                            class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-[11px] px-2 py-1 rounded-md transition cursor-pointer">
+                                                            ✕ Từ chối
+                                                        </button>
+                                                    @elseif($sb->creator_id === $myId)
+                                                        <button type="button" onclick="handleCancelSideBet({{ $sb->id }})"
+                                                            class="text-gray-400 hover:text-red-600 font-semibold text-[11px] transition cursor-pointer">
+                                                            Hủy kèo
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                            @elseif($sb->status === 'resolved')
+                                                <!-- Settlement actions -->
+                                                <div class="flex items-center justify-between pt-1.5 border-t border-gray-100 text-[11px]">
+                                                    <div class="text-gray-500">
+                                                        @if($sb->prize_status === 'unpaid')
+                                                            <span class="text-red-600 font-bold">Chưa trả kèo</span>
+                                                        @elseif($sb->prize_status === 'paid')
+                                                            <span class="text-amber-700 font-bold">Đã trả (chờ xác nhận)</span>
+                                                        @elseif($sb->prize_status === 'confirmed')
+                                                            <span class="text-emerald-700 font-bold">Hoàn tất ✓</span>
+                                                        @endif
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.5">
+                                                        @if($sb->prize_status === 'unpaid' && $sb->loser_id === $myId)
+                                                            <button type="button" onclick="handlePaySideBet({{ $sb->id }})"
+                                                                class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-md transition shadow-2xs cursor-pointer">
+                                                                Đã trả kèo
+                                                            </button>
+                                                        @elseif($sb->prize_status === 'paid' && $sb->winner_id === $myId)
+                                                            <button type="button" onclick="handleConfirmSideBet({{ $sb->id }})"
+                                                                class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] px-2.5 py-1 rounded-md transition shadow-2xs cursor-pointer">
+                                                                Xác nhận đã nhận
+                                                            </button>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        @endauth
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="text-center py-2 text-xs text-purple-700/70 italic bg-white/60 rounded-lg border border-purple-100">
+                                Chưa có kèo ngoài nào. Bấm <b>+ Vào Kèo</b> để bắt độ đồng nghiệp nhé!
+                            </div>
+                        @endif
+                    </div>
+
                     <!-- Interactive Action Area (Winner selection by participants or Admin) -->
                     @if($canInteract)
                         <div class="pt-2 border-t border-gray-100 space-y-2">

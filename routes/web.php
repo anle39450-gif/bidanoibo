@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\MatchController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\SideBetController;
 use App\Http\Controllers\TelegramWebhookController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Http\Request;
@@ -51,6 +52,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/challenges/{challenge}/accept', [ChallengeController::class, 'accept'])->name('challenges.accept');
     Route::post('/challenges/{challenge}/decline', [ChallengeController::class, 'decline'])->name('challenges.decline');
     Route::post('/challenges/{challenge}/resolve', [ChallengeController::class, 'resolve'])->name('challenges.resolve');
+
+    // Side Bets / Kèo Ngoài Bên Lề (Pure AJAX)
+    Route::post('/challenges/{challenge}/side-bets', [SideBetController::class, 'store'])->name('side-bets.store');
+    Route::post('/side-bets/{sideBet}/accept', [SideBetController::class, 'accept'])->name('side-bets.accept');
+    Route::post('/side-bets/{sideBet}/decline', [SideBetController::class, 'decline'])->name('side-bets.decline');
+    Route::post('/side-bets/{sideBet}/cancel', [SideBetController::class, 'cancel'])->name('side-bets.cancel');
+    Route::post('/side-bets/{sideBet}/pay', [SideBetController::class, 'pay'])->name('side-bets.pay');
+    Route::post('/side-bets/{sideBet}/confirm', [SideBetController::class, 'confirm'])->name('side-bets.confirm');
 
     // Realtime Notifications (Pure AJAX)
     Route::get('/notifications', [ChallengeController::class, 'notifications'])->name('notifications.index');

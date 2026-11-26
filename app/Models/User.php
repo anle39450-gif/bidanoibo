@@ -193,7 +193,7 @@ class User extends Authenticatable
             return $this->memoizedUnpaidDebtsCount;
         }
 
-        return $this->memoizedUnpaidDebtsCount = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
+        $matchDebts = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
             ->where(function (Builder $query) {
                 $query->where(function (Builder $q) {
                     $q->where('loser_id', $this->id)
@@ -204,6 +204,13 @@ class User extends Authenticatable
                 });
             })
             ->count();
+
+        $sideBetDebts = BilliardSideBet::where('loser_id', $this->id)
+            ->where('status', 'resolved')
+            ->whereNotIn('prize_status', ['paid', 'confirmed'])
+            ->count();
+
+        return $this->memoizedUnpaidDebtsCount = $matchDebts + $sideBetDebts;
     }
 
     public function getPaidDebtsCountAttribute(): int
@@ -212,7 +219,7 @@ class User extends Authenticatable
             return $this->memoizedPaidDebtsCount;
         }
 
-        return $this->memoizedPaidDebtsCount = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
+        $matchPaid = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
             ->where(function (Builder $query) {
                 $query->where(function (Builder $q) {
                     $q->where('loser_id', $this->id)
@@ -223,6 +230,13 @@ class User extends Authenticatable
                 });
             })
             ->count();
+
+        $sideBetPaid = BilliardSideBet::where('loser_id', $this->id)
+            ->where('status', 'resolved')
+            ->whereIn('prize_status', ['paid', 'confirmed'])
+            ->count();
+
+        return $this->memoizedPaidDebtsCount = $matchPaid + $sideBetPaid;
     }
 
     protected ?int $memoizedUnpaidReceivablesCount = null;
@@ -233,7 +247,7 @@ class User extends Authenticatable
             return $this->memoizedUnpaidReceivablesCount;
         }
 
-        return $this->memoizedUnpaidReceivablesCount = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
+        $matchReceivables = BilliardMatch::whereIn('status', ['confirmed', 'resolved'])
             ->where(function (Builder $query) {
                 $query->where(function (Builder $q) {
                     $q->where('winner_id', $this->id)
@@ -244,6 +258,13 @@ class User extends Authenticatable
                 });
             })
             ->count();
+
+        $sideBetReceivables = BilliardSideBet::where('winner_id', $this->id)
+            ->where('status', 'resolved')
+            ->whereNotIn('prize_status', ['confirmed'])
+            ->count();
+
+        return $this->memoizedUnpaidReceivablesCount = $matchReceivables + $sideBetReceivables;
     }
 
     public function refresh()

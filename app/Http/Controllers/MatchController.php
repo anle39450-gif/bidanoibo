@@ -263,7 +263,10 @@ class MatchController extends Controller
         $totalMonthMatches = $matches->filter(fn ($m) => $m->played_at->gte($startOfMonth) && $m->played_at->lte($endOfMonth))->count();
 
         $upcomingChallenges = BilliardChallenge::where('status', 'accepted')
-            ->with(['challenger', 'challengerPartner', 'opponent', 'opponentPartner'])
+            ->with([
+                'challenger', 'challengerPartner', 'opponent', 'opponentPartner',
+                'sideBets.creator', 'sideBets.target', 'sideBets.winner', 'sideBets.loser',
+            ])
             ->orderByDesc('accepted_at')
             ->orderByDesc('created_at')
             ->get();
