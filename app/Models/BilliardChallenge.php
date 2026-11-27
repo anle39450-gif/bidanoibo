@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -147,6 +148,27 @@ class BilliardChallenge extends Model
         return $this->status === 'pending' && ($this->expires_at === null || $this->expires_at->isFuture());
     }
 
+    public function scopeAwaitingResponse(Builder $query): Builder
+    {
+        return $query->where('status', 'pending')
+            ->where(fn (Builder $query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()));
+    }
+
+    public function recordResponse(bool $accepted): bool
+    {
+        $changes = $accepted
+            ? ['status' => 'accepted', 'accepted_at' => now()]
+            : ['status' => 'declined', 'declined_at' => now()];
+
+        if (! self::query()->whereKey($this->getKey())->awaitingResponse()->update($changes)) {
+            return false;
+        }
+
+        $this->forceFill($changes)->syncOriginal();
+
+        return true;
+    }
+
     public function isExpired(): bool
     {
         return $this->status === 'pending' && $this->expires_at !== null && $this->expires_at->isPast();
@@ -274,38 +296,7 @@ class BilliardChallenge extends Model
             $team2Streak = $p2Streak;
         }
 
-        // 3. Head-to-Head (H2H) between primary players or teams
-        $h2hChallengerWins = 0;
-        $h2hOpponentWins = 0;
-
-        if ($p1 && $p2) {
-            $h2hMatches = BilliardMatch::confirmed()
-                ->where(function ($q) use ($p1, $p2) {
-                    $q->where(function ($sub) use ($p1, $p2) {
-                        $sub->where(function ($w) use ($p1) {
-                            $w->where('winner_id', $p1->id)->orWhere('winner_partner_id', $p1->id);
-                        })->where(function ($l) use ($p2) {
-                            $l->where('loser_id', $p2->id)->orWhere('loser_partner_id', $p2->id);
-                        });
-                    })->orWhere(function ($sub) use ($p1, $p2) {
-                        $sub->where(function ($w) use ($p2) {
-                            $w->where('winner_id', $p2->id)->orWhere('winner_partner_id', $p2->id);
-                        })->where(function ($l) use ($p1) {
-                            $l->where('loser_id', $p1->id)->orWhere('loser_partner_id', $p1->id);
-                        });
-                    });
-                })
-                ->get();
-
-            foreach ($h2hMatches as $hm) {
-                if ($hm->winner_id === $p1->id || $hm->winner_partner_id === $p1->id) {
-                    $h2hChallengerWins++;
-                } else {
-                    $h2hOpponentWins++;
-                }
-            }
-        }
-
+        [$h2hChallengerWins, $h2hOpponentWins] = $this->getHeadToHeadWins();
         $h2hTotal = $h2hChallengerWins + $h2hOpponentWins;
 
         // 4. Statistical Prediction Formula (Bayesian smoothing + Streak + H2H)
@@ -376,6 +367,50 @@ class BilliardChallenge extends Model
                 'opponent_pct' => $opponentPct,
                 'eval_text' => $evalText,
             ],
+        ];
+    }
+
+    /** @return array{int, int} */
+    protected function getHeadToHeadWins(): array
+    {
+        $matches = BilliardMatch::confirmed();
+        $challengerTeam = [$this->challenger_id];
+        $opponentTeam = [$this->opponent_id];
+
+        if ($this->isDoubles()) {
+            if (! $this->challenger_partner_id || ! $this->opponent_partner_id) {
+                return [0, 0];
+            }
+
+            $challengerTeam[] = $this->challenger_partner_id;
+            $opponentTeam[] = $this->opponent_partner_id;
+
+            $matches->where('match_type', 'doubles')
+                ->whereColumn('winner_id', '!=', 'winner_partner_id')
+                ->whereColumn('loser_id', '!=', 'loser_partner_id')
+                ->where(fn (Builder $query): Builder => $query
+                    ->where(fn (Builder $result): Builder => $result
+                        ->whereIn('winner_id', $challengerTeam)->whereIn('winner_partner_id', $challengerTeam)
+                        ->whereIn('loser_id', $opponentTeam)->whereIn('loser_partner_id', $opponentTeam))
+                    ->orWhere(fn (Builder $result): Builder => $result
+                        ->whereIn('winner_id', $opponentTeam)->whereIn('winner_partner_id', $opponentTeam)
+                        ->whereIn('loser_id', $challengerTeam)->whereIn('loser_partner_id', $challengerTeam)));
+        } else {
+            $players = [$this->challenger_id, $this->opponent_id];
+            $matches->where('match_type', 'singles')
+                ->whereIn('winner_id', $players)
+                ->whereIn('loser_id', $players)
+                ->whereColumn('winner_id', '!=', 'loser_id');
+        }
+
+        $winsByPlayer = $matches->toBase()
+            ->selectRaw('winner_id, count(*) as wins')
+            ->groupBy('winner_id')
+            ->pluck('wins', 'winner_id');
+
+        return [
+            (int) $winsByPlayer->only($challengerTeam)->sum(),
+            (int) $winsByPlayer->only($opponentTeam)->sum(),
         ];
     }
 

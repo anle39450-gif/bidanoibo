@@ -37,19 +37,14 @@ class MemberController extends Controller
         $stats = $this->statsService->getPlayerStats($member);
 
         $recentMatches = $member->allMatches()
-            ->with(['creator', 'player1', 'player2', 'winner', 'loser'])
+            ->with(['player1', 'player2', 'player1Partner', 'player2Partner'])
             ->orderBy('played_at', 'desc')
             ->take(10)
             ->get();
 
-        $allOtherMembers = User::where('id', '!=', $member->id)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
-
         $botConfig = TelegramBotConfig::current();
 
-        return view('members.show', compact('member', 'stats', 'recentMatches', 'allOtherMembers', 'botConfig'));
+        return view('members.show', compact('member', 'stats', 'recentMatches', 'botConfig'));
     }
 
     public function generateTelegramCode(User $user): RedirectResponse

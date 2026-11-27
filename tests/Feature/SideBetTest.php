@@ -359,7 +359,7 @@ test('side bets work with doubles challenge and calendar view', function () {
     // Check calendar page renders the challenge with side bet
     $response = $this->actingAs($spectator1)->get('/calendar?tab=upcoming');
     $response->assertStatus(200);
-    $response->assertSee('Kèo Ngoài Bên Lề');
+    $response->assertSeeText('Kèo ngoài');
     $response->assertSee('1 bát phở');
 
     // Check dashboard page renders pending invite for spectator2

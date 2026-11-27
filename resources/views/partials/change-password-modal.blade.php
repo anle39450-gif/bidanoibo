@@ -15,7 +15,7 @@
             <!-- Header -->
             <div class="bg-gray-50/80 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <div class="w-8 h-8 rounded-lg bg-primary-soft text-primary flex items-center justify-center shrink-0">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
                         </svg>
@@ -65,7 +65,7 @@
                             id="current_password" 
                             required 
                             placeholder="Nhập mật khẩu hiện tại"
-                            class="w-full text-sm rounded-lg border border-gray-300 px-3.5 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition pr-10"
+                            class="w-full text-sm rounded-lg border border-gray-300 px-3.5 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none transition pr-10"
                         >
                         <button 
                             type="button" 
@@ -91,7 +91,7 @@
                             required 
                             minlength="6"
                             placeholder="Tối thiểu 6 ký tự"
-                            class="w-full text-sm rounded-lg border border-gray-300 px-3.5 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition pr-10"
+                            class="w-full text-sm rounded-lg border border-gray-300 px-3.5 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none transition pr-10"
                         >
                         <button 
                             type="button" 
@@ -117,7 +117,7 @@
                             required 
                             minlength="6"
                             placeholder="Nhập lại mật khẩu mới"
-                            class="w-full text-sm rounded-lg border border-gray-300 px-3.5 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition pr-10"
+                            class="w-full text-sm rounded-lg border border-gray-300 px-3.5 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none transition pr-10"
                         >
                         <button 
                             type="button" 
@@ -141,7 +141,7 @@
                     </button>
                     <button 
                         type="submit" 
-                        class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition cursor-pointer"
+                        class="px-5 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition cursor-pointer"
                     >
                         Cập nhật mật khẩu
                     </button>
@@ -174,10 +174,10 @@
         if (!input) return;
         if (input.type === 'password') {
             input.type = 'text';
-            btn.classList.add('text-blue-600');
+            btn.classList.add('text-primary');
         } else {
             input.type = 'password';
-            btn.classList.remove('text-blue-600');
+            btn.classList.remove('text-primary');
         }
     }
 

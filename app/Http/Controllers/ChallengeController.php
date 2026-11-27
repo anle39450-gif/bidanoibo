@@ -87,14 +87,14 @@ class ChallengeController extends Controller
         $challengerPartner = $challengeType === 'doubles' ? User::find($validated['challenger_partner_id']) : null;
 
         if ($challengeType === 'doubles') {
-            $msgForOpponents = "Đội {$user->name} & {$challengerPartner?->name} vừa phát lệnh khiêu chiến ĐÔI 2VS2 tới đội của bạn ({$opponent?->name} & {$opponentPartner?->name}) với kèo: {$challenge->prize}!";
+            $msgForOpponents = "Đội {$user->name} & {$challengerPartner?->name} mời đội bạn đánh đôi. Món kèo: {$challenge->prize}.";
 
             // Opponent 1
             if ($opponent) {
                 UserNotification::create([
                     'user_id' => $opponent->id,
                     'type' => 'duel_challenge',
-                    'title' => '🚨 BÁO ĐỘNG KHIÊU CHIẾN ĐÔI 2VS2!',
+                    'title' => 'Lời khiêu chiến đánh đôi',
                     'message' => $msgForOpponents,
                     'link' => route('calendar'),
                 ]);
@@ -105,7 +105,7 @@ class ChallengeController extends Controller
                 UserNotification::create([
                     'user_id' => $opponentPartner->id,
                     'type' => 'duel_challenge',
-                    'title' => '🚨 BÁO ĐỘNG KHIÊU CHIẾN ĐÔI 2VS2!',
+                    'title' => 'Lời khiêu chiến đánh đôi',
                     'message' => $msgForOpponents,
                     'link' => route('calendar'),
                 ]);
@@ -126,8 +126,8 @@ class ChallengeController extends Controller
                 UserNotification::create([
                     'user_id' => $opponent->id,
                     'type' => 'duel_challenge',
-                    'title' => '🚨 BÁO ĐỘNG KHIÊU CHIẾN!',
-                    'message' => "{$user->name} vừa gửi tối hậu thư thách đấu bạn với kèo: {$challenge->prize}!",
+                    'title' => 'Lời khiêu chiến đánh đơn',
+                    'message' => "{$user->name} mời bạn đánh đơn. Món kèo: {$challenge->prize}.",
                     'link' => route('calendar'),
                 ]);
             }
@@ -141,7 +141,7 @@ class ChallengeController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Đã phát lệnh khiêu chiến tới {$targetNames}! Màn hình đối thủ sẽ nháy đỏ SOS!",
+            'message' => "Đã gửi lời khiêu chiến tới {$targetNames}.",
             'challenge' => $challenge,
         ]);
     }
@@ -157,10 +157,7 @@ class ChallengeController extends Controller
             $q->where('opponent_id', $user->id)
                 ->orWhere('opponent_partner_id', $user->id);
         })
-            ->where('status', 'pending')
-            ->where(function ($q) {
-                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
-            })
+            ->awaitingResponse()
             ->with(['challenger', 'challengerPartner', 'opponent', 'opponentPartner'])
             ->latest()
             ->first();
@@ -191,6 +188,9 @@ class ChallengeController extends Controller
                 'prize' => $challenge->prize,
                 'message' => $challenge->message,
                 'created_at' => $challenge->created_at->diffForHumans(),
+                'reply_deadline' => $challenge->expires_at?->format('H:i d/m'),
+                'accept_url' => route('challenges.accept', $challenge),
+                'decline_url' => route('challenges.decline', $challenge),
             ],
         ]);
     }
@@ -207,17 +207,12 @@ class ChallengeController extends Controller
             ], 403);
         }
 
-        if ($challenge->status !== 'pending') {
+        if (! $challenge->recordResponse(accepted: true)) {
             return response()->json([
                 'success' => false,
-                'message' => "Lời khiêu chiến đã ở trạng thái {$challenge->status}!",
-            ], 400);
+                'message' => 'Lời khiêu chiến đã hết hạn hoặc đã được phản hồi.',
+            ], 409);
         }
-
-        $challenge->update([
-            'status' => 'accepted',
-            'accepted_at' => now(),
-        ]);
 
         $challenger = $challenge->challenger;
         $challengerPartner = $challenge->challengerPartner;
@@ -492,17 +487,12 @@ class ChallengeController extends Controller
             ], 403);
         }
 
-        if ($challenge->status !== 'pending') {
+        if (! $challenge->recordResponse(accepted: false)) {
             return response()->json([
                 'success' => false,
-                'message' => "Lời khiêu chiến đã ở trạng thái {$challenge->status}!",
-            ], 400);
+                'message' => 'Lời khiêu chiến đã hết hạn hoặc đã được phản hồi.',
+            ], 409);
         }
-
-        $challenge->update([
-            'status' => 'declined',
-            'declined_at' => now(),
-        ]);
 
         $challenger = $challenge->challenger;
         $challengerPartner = $challenge->challengerPartner;
@@ -555,7 +545,9 @@ class ChallengeController extends Controller
         }
 
         $unreadCount = UserNotification::where('user_id', $user->id)->where('is_read', false)->count();
-        $notifications = UserNotification::where('user_id', $user->id)->latest()->take(10)->get();
+        $notifications = UserNotification::where('user_id', $user->id)
+            ->with(['match.winner', 'match.winnerPartner'])
+            ->latest()->orderByDesc('id')->take(10)->get();
 
         $pendingActionMatches = BilliardMatch::where('status', 'pending')
             ->where('creator_id', '!=', $user->id)
@@ -579,16 +571,41 @@ class ChallengeController extends Controller
 
         return response()->json([
             'unreadCount' => $unreadCount,
-            'notifications' => $notifications->map(fn ($n) => [
-                'id' => $n->id,
-                'title' => $n->title,
-                'message' => $n->message,
-                'link' => $n->link ? url($n->link) : '#',
-                'is_read' => (bool) $n->is_read,
-                'created_at' => $n->created_at->diffForHumans(),
-                'match_id' => $n->billiard_match_id,
-                'is_pending_match' => ($n->type === 'match_pending_confirmation'),
-            ]),
+            'notifications' => $notifications->map(function (UserNotification $notification) use ($user): array {
+                $isMatchRequest = $notification->type === 'match_pending_confirmation';
+                $match = $isMatchRequest ? $notification->match : null;
+                $canViewMatch = $match && (! $match->isHidden() || $user->isAdmin());
+                $withinDeadline = $canViewMatch && (! $match->auto_confirm_at || $match->auto_confirm_at->gt(now()));
+                $canConfirm = $withinDeadline && $match->isWaitingForUser($user);
+                $matchStatus = match (true) {
+                    ! $isMatchRequest => null,
+                    ! $canViewMatch => 'Trận không còn khả dụng',
+                    $canConfirm => 'Cần xác nhận',
+                    $match->status === 'confirmed' => 'Đã xác nhận',
+                    $match->status === 'resolved' => 'Đã xử lý',
+                    $match->status === 'disputed' => 'Đang khiếu nại',
+                    $match->status === 'cancelled' => 'Đã hủy',
+                    ! $withinDeadline => 'Đã hết hạn phản hồi',
+                    default => 'Đang chờ xác nhận',
+                };
+                $statusMessage = $canViewMatch ? "Trận #{$match->id} · {$matchStatus}." : $matchStatus.'.';
+
+                return [
+                    'id' => $notification->id,
+                    'title' => $isMatchRequest && ! $canConfirm ? 'Cập nhật kết quả trận đấu' : $notification->title,
+                    'message' => $isMatchRequest && ! $canConfirm ? $statusMessage : $notification->message,
+                    'link' => $isMatchRequest
+                        ? ($canViewMatch ? route('matches.show', $match) : null)
+                        : ($notification->link ? url($notification->link) : null),
+                    'is_read' => $notification->is_read,
+                    'created_at' => $notification->created_at->locale('vi')->diffForHumans(),
+                    'match_id' => $notification->billiard_match_id,
+                    'is_pending_match' => $isMatchRequest,
+                    'can_confirm' => $canConfirm,
+                    'confirm_url' => $canConfirm ? route('matches.confirm', $match) : null,
+                    'confirm_text' => $canConfirm ? "Người thắng: {$match->winner_names}. Món kèo: {$match->prize}." : null,
+                ];
+            }),
             'pendingActionMatches' => $pendingActionMatches,
         ]);
     }

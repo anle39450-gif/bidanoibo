@@ -6,365 +6,189 @@
         ->get();
 @endphp
 
-<!-- ============================================================== -->
-<!-- 1. FULLSCREEN SOS RED FLASHING EMERGENCY MODAL (PURE AJAX) -->
-<!-- ============================================================== -->
-<div id="ajaxSosEmergencyOverlay" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 sm:p-6 overflow-y-auto"
-    style="animation: ajax-sos-background-pulse 1s infinite alternate;">
-
-    <!-- Styles for emergency SOS flashing red strobe and hazard borders -->
-    <style>
-        @keyframes ajax-sos-background-pulse {
-            0% {
-                background-color: rgba(185, 28, 28, 0.95);
-                box-shadow: inset 0 0 140px rgba(255, 0, 0, 0.95);
-            }
-            100% {
-                background-color: rgba(75, 5, 5, 0.97);
-                box-shadow: inset 0 0 40px rgba(180, 0, 0, 0.6);
-            }
-        }
-
-        @keyframes ajax-sos-border-flash {
-            0%, 100% {
-                border-color: #ef4444;
-                box-shadow: 0 0 50px rgba(239, 68, 68, 0.9), 0 0 100px rgba(220, 38, 38, 0.6);
-            }
-            50% {
-                border-color: #facc15;
-                box-shadow: 0 0 60px rgba(250, 204, 21, 0.9), 0 0 120px rgba(234, 179, 8, 0.6);
-            }
-        }
-
-        @keyframes ajax-sos-text-strobe {
-            0%, 100% { color: #fef08a; transform: scale(1); }
-            50% { color: #ffffff; transform: scale(1.02); }
-        }
-
-        .animate-ajax-sos-border {
-            animation: ajax-sos-border-flash 0.8s infinite alternate;
-        }
-
-        .animate-ajax-sos-text {
-            animation: ajax-sos-text-strobe 0.8s infinite alternate;
-        }
-
-        /* Chaotic background taunting marquee text ("Bạn sợ à? Rén à?") */
-        @keyframes sos-marquee-left-fast {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-        }
-
-        @keyframes sos-marquee-right-fast {
-            0% { transform: translateX(-50%); }
-            100% { transform: translateX(0); }
-        }
-
-        @keyframes sos-marquee-left-slow {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-        }
-
-        @keyframes sos-text-flicker {
-            0%, 100% { opacity: 0.28; filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.8)); }
-            50% { opacity: 0.55; filter: drop-shadow(0 0 25px rgba(250, 204, 21, 1)); }
-        }
-
-        .sos-bg-stream-1 {
-            animation: sos-marquee-left-fast 10s linear infinite, sos-text-flicker 1.2s ease-in-out infinite alternate;
-        }
-
-        .sos-bg-stream-2 {
-            animation: sos-marquee-right-fast 8s linear infinite, sos-text-flicker 0.9s ease-in-out infinite alternate;
-        }
-
-        .sos-bg-stream-3 {
-            animation: sos-marquee-left-slow 14s linear infinite, sos-text-flicker 1.5s ease-in-out infinite alternate;
-        }
-
-        .sos-bg-stream-4 {
-            animation: sos-marquee-right-fast 9s linear infinite, sos-text-flicker 1.1s ease-in-out infinite alternate;
-        }
-
-        .sos-bg-stream-5 {
-            animation: sos-marquee-left-fast 7s linear infinite, sos-text-flicker 0.8s ease-in-out infinite alternate;
-        }
-    </style>
-
-    <!-- ========================================================== -->
-    <!-- CHAOTIC BACKGROUND TAUNTING MARQUEE TEXT ("BẠN SỢ À? RÉN À?") -->
-    <!-- ========================================================== -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none select-none flex flex-col justify-between py-4 z-0">
-        
-        <!-- Stream 1: Top running left -->
-        <div class="w-[300vw] sos-bg-stream-1 flex items-center whitespace-nowrap transform -rotate-2">
-            <span class="text-3xl sm:text-5xl md:text-6xl font-black text-yellow-300 uppercase tracking-widest px-4">
-                BẠN SỢ À? 😱 • RÉN À? 🔥 • BẠN SỢ À? 😱 • RÉN À? 🔥 • CÓ DÁM RA BÀN CHIẾN KHÔNG? ⚔️ • BẠN SỢ À? 😱 • RÉN À? 🔥 • BẠN SỢ À? 😱 • RÉN À? 🔥
-            </span>
-            <span class="text-3xl sm:text-5xl md:text-6xl font-black text-yellow-300 uppercase tracking-widest px-4">
-                BẠN SỢ À? 😱 • RÉN À? 🔥 • BẠN SỢ À? 😱 • RÉN À? 🔥 • CÓ DÁM RA BÀN CHIẾN KHÔNG? ⚔️ • BẠN SỢ À? 😱 • RÉN À? 🔥 • BẠN SỢ À? 😱 • RÉN À? 🔥
-            </span>
-        </div>
-
-        <!-- Stream 2: Running right, tilted -->
-        <div class="w-[300vw] sos-bg-stream-2 flex items-center whitespace-nowrap transform rotate-3">
-            <span class="text-4xl sm:text-6xl md:text-7xl font-black text-red-400 uppercase tracking-widest px-4">
-                RÉN RỒI ĐÚNG KHÔNG? 😂 • BẠN SỢ À? 👻 • RÉN THÌ NÓI MỘT CÂU! 💥 • SỢ THÌ BẤM TỪ CHỐI ĐI! 🏳️ • RÉN RỒI! 💀 • BẠN SỢ À? 👻
-            </span>
-            <span class="text-4xl sm:text-6xl md:text-7xl font-black text-red-400 uppercase tracking-widest px-4">
-                RÉN RỒI ĐÚNG KHÔNG? 😂 • BẠN SỢ À? 👻 • RÉN THÌ NÓI MỘT CÂU! 💥 • SỢ THÌ BẤM TỪ CHỐI ĐI! 🏳️ • RÉN RỒI! 💀 • BẠN SỢ À? 👻
-            </span>
-        </div>
-
-        <!-- Stream 3: Middle giant text running left -->
-        <div class="w-[300vw] sos-bg-stream-3 flex items-center whitespace-nowrap transform -rotate-1">
-            <span class="text-5xl sm:text-7xl md:text-8xl font-black text-amber-300 uppercase tracking-widest px-4">
-                BẠN SỢ À? RÉN À? 😱 • BẠN SỢ À? RÉN À? 🔥 • DÁM SOLO KHÔNG NÀO? 🎱 • BẠN SỢ À? RÉN À? 😱 • BẠN SỢ À? RÉN À? 🔥
-            </span>
-            <span class="text-5xl sm:text-7xl md:text-8xl font-black text-amber-300 uppercase tracking-widest px-4">
-                BẠN SỢ À? RÉN À? 😱 • BẠN SỢ À? RÉN À? 🔥 • DÁM SOLO KHÔNG NÀO? 🎱 • BẠN SỢ À? RÉN À? 😱 • BẠN SỢ À? RÉN À? 🔥
-            </span>
-        </div>
-
-        <!-- Stream 4: Lower running right -->
-        <div class="w-[300vw] sos-bg-stream-4 flex items-center whitespace-nowrap transform rotate-2">
-            <span class="text-3xl sm:text-5xl md:text-6xl font-black text-yellow-200 uppercase tracking-widest px-4">
-                RÉN À? 🔥 • SỢ À? 💀 • ĐỪNG CÓ RÉN NHA! 🤣 • RUN TAY CHƯA? 🎱 • BẠN SỢ À? 😱 • RÉN À? 🔥 • ĐỪNG CÓ RÉN NHA! 🤣
-            </span>
-            <span class="text-3xl sm:text-5xl md:text-6xl font-black text-yellow-200 uppercase tracking-widest px-4">
-                RÉN À? 🔥 • SỢ À? 💀 • ĐỪNG CÓ RÉN NHA! 🤣 • RUN TAY CHƯA? 🎱 • BẠN SỢ À? 😱 • RÉN À? 🔥 • ĐỪNG CÓ RÉN NHA! 🤣
-            </span>
-        </div>
-
-        <!-- Stream 5: Bottom running left -->
-        <div class="w-[300vw] sos-bg-stream-5 flex items-center whitespace-nowrap transform -rotate-3">
-            <span class="text-4xl sm:text-6xl md:text-7xl font-black text-red-300 uppercase tracking-widest px-4">
-                BẠN SỢ À? 😱 • RÉN À? 🔥 • KHÔNG DÁM ĐẤU THÌ NGHỈ ĐI! 🏳️ • BẠN SỢ À? 😱 • RÉN THẬT RỒI! 💀 • BẠN SỢ À? • RÉN À?
-            </span>
-            <span class="text-4xl sm:text-6xl md:text-7xl font-black text-red-300 uppercase tracking-widest px-4">
-                BẠN SỢ À? 😱 • RÉN À? 🔥 • KHÔNG DÁM ĐẤU THÌ NGHỈ ĐI! 🏳️ • BẠN SỢ À? 😱 • RÉN THẬT RỒI! 💀 • BẠN SỢ À? • RÉN À?
-            </span>
-        </div>
-
-    </div>
-
-    <!-- Card Box with flashing border -->
-    <div class="relative z-10 w-full max-w-lg bg-gray-950/95 backdrop-blur-md text-white rounded-2xl border-4 animate-ajax-sos-border p-6 sm:p-8 shadow-2xl text-center space-y-5 overflow-hidden">
-        
-        <!-- Red Alert Siren Header -->
-        <div class="space-y-2">
-            <div id="sos_badge_type" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-600/40 border border-red-500 text-xs sm:text-sm font-extrabold tracking-widest uppercase animate-ajax-sos-text">
-                <span>🚨 BÁO ĐỘNG SOS: CÓ LỜI KHIÊU CHIẾN KHẨN CẤP! 🚨</span>
-            </div>
-            <h2 id="sos_modal_title" class="text-xl sm:text-2xl font-black text-white tracking-wide uppercase">
-                BẠN ĐANG BỊ THÁCH ĐẤU!
-            </h2>
-        </div>
-
-        <!-- Challenger Profile Highlight -->
-        <div class="bg-red-950/70 border border-red-800/80 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4 text-left">
-            <div class="relative shrink-0 flex -space-x-3">
-                <img id="sos_challenger_avatar" src="" alt="Challenger"
-                    class="w-16 h-16 rounded-full border-2 border-yellow-400 object-cover shadow-lg">
-                <img id="sos_challenger_partner_avatar" src="" alt="Partner"
-                    class="w-16 h-16 rounded-full border-2 border-yellow-400 object-cover shadow-lg hidden">
-                <span class="absolute -bottom-1 -right-1 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full uppercase border border-white">
-                    VS
-                </span>
-            </div>
-            <div class="flex-1 text-center sm:text-left">
-                <div id="sos_challenger_label" class="text-xs uppercase text-red-300 font-bold tracking-wider">Kẻ thách đấu:</div>
-                <div id="sos_challenger_name" class="text-lg font-black text-yellow-300"></div>
-                <div id="sos_challenger_username" class="text-xs text-gray-300 font-mono"></div>
-                <div id="sos_opponent_team_box" class="text-xs text-emerald-400 font-bold mt-1.5 hidden">
-                    Đội của bạn: <span id="sos_opponent_team_names" class="text-white"></span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Challenge Prize & Taunt Message -->
-        <div class="bg-black/80 rounded-xl p-4 border border-gray-800 space-y-2.5 text-left">
-            <div>
-                <div class="text-xs uppercase text-gray-400 font-bold">Món kèo thách thức:</div>
-                <div id="sos_challenge_prize" class="text-base font-extrabold text-emerald-400 flex items-center gap-1.5">
-                </div>
-            </div>
-            <div id="sos_challenge_message_box" class="pt-1 border-t border-gray-800/80">
-                <div class="text-xs uppercase text-gray-400 font-bold">Lời khiêu chiến:</div>
-                <div id="sos_challenge_message" class="text-sm italic text-yellow-100 font-medium"></div>
-            </div>
-        </div>
-
-        <!-- 2 Big Action Buttons -->
-        <div class="pt-2 flex flex-col sm:flex-row gap-3">
-            <button type="button" id="sos_btn_accept" onclick="handleAjaxAcceptChallenge()"
-                class="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-black py-3.5 px-4 rounded-xl shadow-lg transition transform hover:scale-[1.03] active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 text-sm sm:text-base border border-emerald-400">
-                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+<dialog id="incoming-challenge-dialog" aria-labelledby="incoming-challenge-title"
+    class="m-auto w-[calc(100%-1.5rem)] max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white p-0 shadow-2xl backdrop:bg-gray-950/55 motion-safe:open:animate-match-dialog motion-safe:backdrop:animate-match-backdrop">
+    <div class="flex max-h-[min(40rem,calc(100dvh-1.5rem))] flex-col">
+        <header class="flex shrink-0 items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 sm:px-5">
+            <h2 id="incoming-challenge-title" class="text-lg font-bold text-gray-900">Lời khiêu chiến mới</h2>
+            <button type="button" onclick="deferIncomingChallenge()" autofocus aria-label="Xem sau"
+                class="grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg text-gray-600 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-primary">
+                <svg aria-hidden="true" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" d="m6 6 12 12M18 6l-12 12" />
                 </svg>
-                <span id="sos_btn_accept_text">TIẾP CHIÊU (ĐỒNG Ý CHIẾN)</span>
             </button>
+        </header>
 
-            <button type="button" id="sos_btn_decline" onclick="handleAjaxDeclineChallenge()"
-                class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-3.5 px-5 rounded-xl transition cursor-pointer text-xs sm:text-sm border border-gray-700">
-                🏳️ SỢ QUÁ TỪ CHỐI
-            </button>
-        </div>
-
-    </div>
-</div>
-
-<!-- ============================================================== -->
-<!-- 2. SEND CHALLENGE MODAL (GỬI LỜI KHIÊU CHIẾN - PURE AJAX) -->
-<!-- ============================================================== -->
-<div id="ajaxSendChallengeModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 overflow-y-auto">
-    <!-- Backdrop -->
-    <div class="fixed inset-0 bg-gray-900/70 backdrop-blur-xs transition-opacity cursor-pointer" onclick="closeSendChallengeModal()"></div>
-
-    <div class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden text-left z-10">
-        <!-- Header -->
-        <div class="bg-gradient-to-r from-red-600 to-rose-700 text-white px-5 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="text-xl">⚔️</span>
-                <h3 class="text-base sm:text-lg font-black tracking-wide">PHÁT LỆNH KHIÊU CHIẾN</h3>
-            </div>
-            <button type="button" onclick="closeSendChallengeModal()" class="text-white/80 hover:text-white p-1 rounded-md cursor-pointer text-2xl leading-none">&times;</button>
-        </div>
-
-        <!-- Form -->
-        <form id="ajaxSendChallengeForm" onsubmit="handleAjaxSendChallengeSubmit(event)" class="p-5 space-y-4 text-sm">
-            @csrf
-
-            <!-- Alert Box -->
-            <div id="challenge_form_alert" class="hidden p-3 rounded-lg text-xs font-semibold"></div>
-
-            <!-- Mode Switcher (1vs1 Solo or 2vs2 Doubles) -->
-            <div class="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
-                <button type="button" id="tab_challenge_singles" onclick="switchChallengeMode('singles')"
-                    class="py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition bg-white text-gray-900 shadow-xs cursor-pointer flex items-center justify-center gap-1.5">
-                    <span>🎯 Solo 1 vs 1</span>
-                </button>
-                <button type="button" id="tab_challenge_doubles" onclick="switchChallengeMode('doubles')"
-                    class="py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition text-gray-500 hover:text-gray-900 cursor-pointer flex items-center justify-center gap-1.5">
-                    <span>👥 Đánh Đôi 2 vs 2</span>
-                </button>
+        <div class="min-h-0 space-y-3.5 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
+            <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-gray-600">
+                <span id="incoming-challenge-format" class="rounded-full bg-primary-soft px-2.5 py-1 font-semibold text-primary"></span>
+                <span id="incoming-challenge-deadline" class="tabular-nums"></span>
             </div>
 
-            <input type="hidden" name="challenge_type" id="challenge_type" value="singles">
-
-            <!-- Singles: Chọn 1 đối thủ -->
-            <div id="challenge_singles_container">
-                <label class="block font-bold text-gray-800 mb-1.5 uppercase text-xs tracking-wider">
-                    Chọn cơ thủ khiêu chiến <span class="text-red-500">*</span>
-                </label>
-                <select name="opponent_id" id="challenge_opponent_id" required
-                    class="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 font-medium">
-                    <option value="">-- Chọn đối thủ muốn thách đấu --</option>
-                    @foreach($challengeOpponents as $u)
-                        <option value="{{ $u->id }}">{{ $u->name }} (@<span>{{ $u->username }}</span>)</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <!-- Doubles: Chọn đồng đội + 2 đối thủ -->
-            <div id="challenge_doubles_container" class="hidden space-y-3.5">
-                <!-- Chọn đồng đội -->
-                <div>
-                    <label class="block font-bold text-indigo-900 mb-1.5 uppercase text-xs tracking-wider">
-                        1. Đồng đội của bạn (Cùng đội) <span class="text-red-500">*</span>
-                    </label>
-                    <select name="challenger_partner_id" id="challenge_challenger_partner_id"
-                        class="w-full border border-indigo-200 bg-indigo-50/30 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
-                        <option value="">-- Chọn cơ thủ bắt cặp cùng bạn --</option>
-                        @foreach($challengeOpponents as $u)
-                            <option value="{{ $u->id }}">{{ $u->name }} (@<span>{{ $u->username }}</span>)</option>
-                        @endforeach
-                    </select>
+            <div class="grid grid-cols-2 gap-2">
+                <div class="min-w-0 rounded-xl bg-gray-50 px-3 py-2.5">
+                    <p class="text-xs text-gray-600">Bên mời</p>
+                    <p id="incoming-challenger-team" class="mt-1 text-sm font-semibold text-gray-900 wrap-anywhere"></p>
                 </div>
+                <div class="min-w-0 rounded-xl bg-gray-50 px-3 py-2.5">
+                    <p class="text-xs text-gray-600">Bên bạn</p>
+                    <p id="incoming-opponent-team" class="mt-1 text-sm font-semibold text-gray-900 wrap-anywhere"></p>
+                </div>
+            </div>
 
-                <div class="border-t border-gray-200 pt-2.5">
-                    <label class="block font-bold text-rose-900 mb-1.5 uppercase text-xs tracking-wider">
-                        2. Đội đối thủ (2 cơ thủ đối phương) <span class="text-red-500">*</span>
-                    </label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div class="rounded-xl border border-gray-200 px-3 py-2.5">
+                <p class="text-xs text-gray-600">Món kèo</p>
+                <p id="incoming-challenge-prize" class="mt-1 font-semibold text-gray-900 wrap-anywhere"></p>
+            </div>
+            <div id="incoming-challenge-message" hidden>
+                <p class="text-xs font-semibold text-gray-600">Lời nhắn</p>
+                <p id="incoming-challenge-message-text" class="mt-1 text-sm whitespace-pre-wrap text-gray-700 wrap-anywhere"></p>
+            </div>
+            <p id="incoming-challenge-error" role="alert" hidden class="rounded-lg bg-primary-soft px-3 py-2 text-sm text-primary"></p>
+        </div>
+
+        <footer class="grid shrink-0 grid-cols-2 gap-2 border-t border-gray-100 px-4 py-3 sm:px-5">
+            <button type="button" id="incoming-challenge-decline" onclick="respondToIncomingChallenge(false)"
+                class="min-h-10 cursor-pointer rounded-lg border border-gray-200 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50">Từ chối</button>
+            <button type="button" id="incoming-challenge-accept" onclick="respondToIncomingChallenge(true)"
+                class="min-h-10 cursor-pointer rounded-lg bg-primary px-3 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50">Đồng ý</button>
+        </footer>
+    </div>
+</dialog>
+
+<button type="button" id="incoming-challenge-reminder" hidden onclick="openIncomingChallenge()"
+    class="fixed right-4 bottom-4 z-40 inline-flex min-h-10 cursor-pointer items-center rounded-full border border-primary/20 bg-white px-4 text-sm font-semibold text-primary shadow-lg hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-primary">
+    Lời khiêu chiến
+</button>
+<p id="incoming-challenge-feedback" role="status" hidden
+    class="fixed right-4 bottom-17 z-40 max-w-[calc(100%-2rem)] rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 shadow-lg"></p>
+
+<div id="ajaxSendChallengeModal" class="fixed inset-0 z-100 hidden" role="dialog" aria-modal="true"
+    aria-labelledby="ajax-send-challenge-title"
+    onkeydown="if (event.key === 'Escape') { event.stopPropagation(); closeSendChallengeModal(); }">
+    <div class="absolute inset-0 bg-gray-950/55 motion-safe:animate-match-backdrop" aria-hidden="true" onclick="closeSendChallengeModal()"></div>
+
+    <div class="pointer-events-none relative flex h-full items-end justify-center p-2 sm:items-center sm:p-6">
+        <div class="pointer-events-auto flex max-h-full w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl motion-safe:animate-match-dialog sm:max-w-md">
+            <div class="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-2.5 sm:px-5">
+                <h3 id="ajax-send-challenge-title" tabindex="-1" class="text-lg font-bold text-gray-900 focus:outline-none">Khiêu chiến</h3>
+                <button type="button" onclick="closeSendChallengeModal()" aria-label="Đóng"
+                    class="grid size-9 cursor-pointer place-items-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-primary">
+                    <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" d="m6 6 12 12M18 6 6 18" />
+                    </svg>
+                </button>
+            </div>
+
+            <form id="ajaxSendChallengeForm" onsubmit="handleAjaxSendChallengeSubmit(event)" class="flex min-h-0 flex-1 flex-col text-sm">
+                @csrf
+                <input type="hidden" name="challenge_type" id="challenge_type" value="singles">
+
+                <div id="ajax-send-challenge-fields" class="min-h-0 space-y-3.5 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
+                    <div class="grid grid-cols-2 gap-1 rounded-xl bg-gray-100 p-1" role="group" aria-label="Thể thức">
+                        <button type="button" id="tab_challenge_singles" onclick="switchChallengeMode('singles')" aria-pressed="true"
+                            class="min-h-9 cursor-pointer rounded-lg px-3 font-semibold text-gray-600 transition hover:text-primary focus-visible:outline-2 focus-visible:outline-primary aria-pressed:bg-white aria-pressed:text-primary aria-pressed:shadow-xs">
+                            Đánh đơn
+                        </button>
+                        <button type="button" id="tab_challenge_doubles" onclick="switchChallengeMode('doubles')" aria-pressed="false"
+                            class="min-h-9 cursor-pointer rounded-lg px-3 font-semibold text-gray-600 transition hover:text-primary focus-visible:outline-2 focus-visible:outline-primary aria-pressed:bg-white aria-pressed:text-primary aria-pressed:shadow-xs">
+                            Đánh đôi
+                        </button>
+                    </div>
+
+                    <div id="challenge_singles_container">
+                        <label for="challenge_opponent_id" class="mb-1.5 block font-semibold text-gray-700">Đối thủ <span class="text-primary">*</span></label>
+                        <select name="opponent_id" id="challenge_opponent_id" required
+                            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary">
+                            <option value="">Chọn đối thủ</option>
+                            @foreach($challengeOpponents as $u)
+                                <option value="{{ $u->id }}">{{ $u->name }} ({{ '@'.$u->username }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div id="challenge_doubles_container" class="hidden space-y-3">
                         <div>
-                            <span class="text-[11px] font-semibold text-gray-600 block mb-1">Đối thủ 1:</span>
-                            <select id="challenge_opponent_id_doubles"
-                                class="w-full border border-rose-200 bg-rose-50/30 rounded-lg px-2.5 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 font-medium">
-                                <option value="">-- Chọn đối thủ 1 --</option>
+                            <label for="challenge_challenger_partner_id" class="mb-1.5 block font-semibold text-gray-700">Đồng đội <span class="text-primary">*</span></label>
+                            <select name="challenger_partner_id" id="challenge_challenger_partner_id"
+                                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary">
+                                <option value="">Chọn đồng đội</option>
                                 @foreach($challengeOpponents as $u)
-                                    <option value="{{ $u->id }}">{{ $u->name }} (@<span>{{ $u->username }}</span>)</option>
+                                    <option value="{{ $u->id }}">{{ $u->name }} ({{ '@'.$u->username }})</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div>
-                            <span class="text-[11px] font-semibold text-gray-600 block mb-1">Đối thủ 2:</span>
-                            <select name="opponent_partner_id" id="challenge_opponent_partner_id"
-                                class="w-full border border-rose-200 bg-rose-50/30 rounded-lg px-2.5 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 font-medium">
-                                <option value="">-- Chọn đối thủ 2 --</option>
-                                @foreach($challengeOpponents as $u)
-                                    <option value="{{ $u->id }}">{{ $u->name }} (@<span>{{ $u->username }}</span>)</option>
-                                @endforeach
-                            </select>
+
+                        <div class="grid gap-2 sm:grid-cols-2">
+                            <div class="min-w-0">
+                                <label for="challenge_opponent_id_doubles" class="mb-1.5 block font-semibold text-gray-700">Đối thủ 1 <span class="text-primary">*</span></label>
+                                <select id="challenge_opponent_id_doubles"
+                                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary">
+                                    <option value="">Chọn cơ thủ</option>
+                                    @foreach($challengeOpponents as $u)
+                                        <option value="{{ $u->id }}">{{ $u->name }} ({{ '@'.$u->username }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="min-w-0">
+                                <label for="challenge_opponent_partner_id" class="mb-1.5 block font-semibold text-gray-700">Đối thủ 2 <span class="text-primary">*</span></label>
+                                <select name="opponent_partner_id" id="challenge_opponent_partner_id"
+                                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary">
+                                    <option value="">Chọn cơ thủ</option>
+                                    @foreach($challengeOpponents as $u)
+                                        <option value="{{ $u->id }}">{{ $u->name }} ({{ '@'.$u->username }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
+
+                        <p class="rounded-lg bg-gray-50 px-3 py-2 text-xs leading-relaxed text-gray-600">Khi trả kèo, bạn ghép với đối thủ 1, đồng đội ghép với đối thủ 2.</p>
+                    </div>
+
+                    <div>
+                        <label for="challenge_prize" class="mb-1.5 block font-semibold text-gray-700">Kèo <span class="text-primary">*</span></label>
+                        <input type="text" name="prize" id="challenge_prize" required maxlength="255" value="Kèo cà phê muối" placeholder="Nhập kèo"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary">
+
+                        <div class="mt-2 flex flex-wrap gap-1.5">
+                            @foreach([
+                                'Cà phê muối' => 'Kèo cà phê muối',
+                                'Rockstar' => 'Kèo Rockstar',
+                                'Trà sữa' => 'Kèo trà sữa',
+                                'Bữa trưa' => 'Kèo bữa trưa',
+                                'Tiền bàn' => 'Kèo tiền bàn',
+                                'Bia hơi' => 'Kèo bia hơi',
+                            ] as $label => $qp)
+                                <button type="button" onclick="document.getElementById('challenge_prize').value = '{{ $qp }}'"
+                                    class="min-h-8 cursor-pointer rounded-lg bg-gray-100 px-2.5 text-xs font-medium text-gray-700 transition hover:bg-primary-soft hover:text-primary focus-visible:outline-2 focus-visible:outline-primary">
+                                    {{ $label }}
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="challenge_message" class="mb-1.5 block font-semibold text-gray-700">Lời nhắn <span class="text-xs font-normal text-gray-500">(tùy chọn)</span></label>
+                        <textarea name="message" id="challenge_message" rows="2" maxlength="500" placeholder="Để trống để dùng lời mời mặc định"
+                            class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
                     </div>
                 </div>
 
-                <div class="bg-purple-50 border border-purple-200 rounded-lg p-2.5 text-xs text-purple-900 mt-2">
-                    <b>🎯 Chỉ định trả kèo (Viết trước trả trước, viết sau trả sau):</b><br>
-                    • Cặp 1: <b>Bạn</b> ⚡ <b>Đối thủ 1</b><br>
-                    • Cặp 2: <b>Đồng đội của bạn</b> ⚡ <b>Đối thủ 2</b><br>
-                    <span class="text-purple-700 italic">Đội thua sẽ tự động tách chéo: người ở Cặp nào trả riêng kèo cho người thắng ở Cặp đó.</span>
-                </div>
-            </div>
-
-            <!-- Món kèo cược -->
-            <div>
-                <label class="block font-bold text-gray-800 mb-1.5 uppercase text-xs tracking-wider">
-                    Món kèo thách thức <span class="text-red-500">*</span>
-                </label>
-                <input type="text" name="prize" id="challenge_prize" required
-                    value="Kèo cà phê muối"
-                    placeholder="Ví dụ: 1 ly cà phê muối, 1 tô phở, bao tiền bàn..."
-                    class="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 font-medium">
-
-                <!-- Quick prizes -->
-                <div class="flex flex-wrap gap-1.5 mt-2">
-                    @foreach(['Kèo cà phê muối', 'Kèo Rockstar', 'Kèo trà sữa', 'Kèo bữa trưa', 'Kèo tiền bàn', 'Kèo bia hơi'] as $qp)
-                        <button type="button" onclick="document.getElementById('challenge_prize').value = '{{ $qp }}'"
-                            class="text-xs px-2.5 py-1 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition cursor-pointer">
-                            {{ $qp }}
+                <div class="shrink-0 space-y-2 border-t border-gray-100 bg-gray-50 px-4 py-3 sm:px-5">
+                    <div id="challenge_form_alert" role="alert" class="hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700"></div>
+                    <div class="flex items-center justify-end gap-2.5">
+                        <button type="button" onclick="closeSendChallengeModal()"
+                            class="min-h-10 cursor-pointer rounded-lg border border-gray-300 bg-white px-4 font-medium text-gray-700 transition hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-primary">
+                            Hủy
                         </button>
-                    @endforeach
+                        <button type="submit" id="btn_submit_challenge"
+                            class="min-h-10 cursor-pointer rounded-lg bg-primary px-4 font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70">
+                            Gửi khiêu chiến
+                        </button>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Lời thách đấu / Taunt -->
-            <div>
-                <label class="block font-bold text-gray-800 mb-1.5 uppercase text-xs tracking-wider">
-                    Lời thách đấu (Taunt)
-                </label>
-                <textarea name="message" id="challenge_message" rows="2"
-                    placeholder="Ví dụ: Ra bàn solo ngay nếu không muốn bị coi là sợ!"
-                    class="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">Ra bàn solo ngay nếu không muốn bị coi là sợ!</textarea>
-            </div>
-
-            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 leading-relaxed">
-                <b>Hiệu ứng SOS:</b> Khi bạn bấm gửi, màn hình đối thủ sẽ lập tức nhấp nháy <b>đèn đỏ SOS báo động</b> và bot Telegram sẽ gửi tối hậu thư bắt buộc đối thủ phải Tiếp Chiêu hoặc Từ Chối!
-            </div>
-
-            <!-- Submit Buttons -->
-            <div class="pt-2 flex items-center justify-end gap-2.5 border-t border-gray-100">
-                <button type="button" onclick="closeSendChallengeModal()"
-                    class="px-4 py-2 text-gray-600 hover:text-gray-800 font-semibold text-xs sm:text-sm cursor-pointer">
-                    Hủy bỏ
-                </button>
-                <button type="submit" id="btn_submit_challenge"
-                    class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-extrabold px-5 py-2.5 rounded-lg text-xs sm:text-sm shadow-sm transition cursor-pointer flex items-center gap-1.5">
-                    <span>⚔️ Phát Lệnh Khiêu Chiến!</span>
-                </button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -372,89 +196,51 @@
 <!-- 3. JAVASCRIPT CONTROLLER FOR PURE AJAX DUEL CHALLENGE -->
 <!-- ============================================================== -->
 <script>
-    let activeIncomingChallengeId = null;
-    let sirenAudioInterval = null;
     let currentChallengeMode = 'singles';
+    let sendChallengeReturnFocus = null;
+    let sendChallengeLocksScroll = false;
 
     // Switch Singles / Doubles challenge mode
     function switchChallengeMode(mode) {
         currentChallengeMode = mode;
-        const typeInput = document.getElementById('challenge_type');
-        if (typeInput) typeInput.value = mode;
+        const isDoubles = mode === 'doubles';
 
-        const btnSingles = document.getElementById('tab_challenge_singles');
-        const btnDoubles = document.getElementById('tab_challenge_doubles');
-        const singlesContainer = document.getElementById('challenge_singles_container');
-        const doublesContainer = document.getElementById('challenge_doubles_container');
-        const oppSingles = document.getElementById('challenge_opponent_id');
-        const partnerId = document.getElementById('challenge_challenger_partner_id');
-        const opp2Id = document.getElementById('challenge_opponent_partner_id');
-        const msgInput = document.getElementById('challenge_message');
-
-        if (mode === 'doubles') {
-            if (btnDoubles) btnDoubles.className = 'py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition bg-white text-indigo-900 shadow-xs cursor-pointer flex items-center justify-center gap-1.5';
-            if (btnSingles) btnSingles.className = 'py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition text-gray-500 hover:text-gray-900 cursor-pointer flex items-center justify-center gap-1.5';
-            if (singlesContainer) singlesContainer.classList.add('hidden');
-            if (doublesContainer) doublesContainer.classList.remove('hidden');
-            if (oppSingles) oppSingles.removeAttribute('required');
-            if (partnerId) partnerId.setAttribute('required', 'required');
-            if (opp2Id) opp2Id.setAttribute('required', 'required');
-            if (msgInput && msgInput.value === 'Ra bàn solo ngay nếu không muốn bị coi là sợ!') {
-                msgInput.value = 'Lập team 2vs2 ra bàn song đấu ngay!';
-            }
-        } else {
-            if (btnSingles) btnSingles.className = 'py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition bg-white text-gray-900 shadow-xs cursor-pointer flex items-center justify-center gap-1.5';
-            if (btnDoubles) btnDoubles.className = 'py-2 px-3 text-xs sm:text-sm font-bold rounded-lg transition text-gray-500 hover:text-gray-900 cursor-pointer flex items-center justify-center gap-1.5';
-            if (doublesContainer) doublesContainer.classList.add('hidden');
-            if (singlesContainer) singlesContainer.classList.remove('hidden');
-            if (oppSingles) oppSingles.setAttribute('required', 'required');
-            if (partnerId) partnerId.removeAttribute('required');
-            if (opp2Id) opp2Id.removeAttribute('required');
-            if (msgInput && msgInput.value === 'Lập team 2vs2 ra bàn song đấu ngay!') {
-                msgInput.value = 'Ra bàn solo ngay nếu không muốn bị coi là sợ!';
-            }
-        }
-    }
-
-    // Siren Sound synthesizer via Web Audio API (No external sound files required)
-    function playEmergencySirenSound() {
-        try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(500, ctx.currentTime);
-            osc.frequency.linearRampToValueAtTime(950, ctx.currentTime + 0.35);
-            osc.frequency.linearRampToValueAtTime(500, ctx.currentTime + 0.7);
-            gain.gain.setValueAtTime(0.2, ctx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.9);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.9);
-        } catch(e) {}
+        document.getElementById('challenge_type').value = mode;
+        document.getElementById('tab_challenge_singles').setAttribute('aria-pressed', String(!isDoubles));
+        document.getElementById('tab_challenge_doubles').setAttribute('aria-pressed', String(isDoubles));
+        document.getElementById('challenge_singles_container').classList.toggle('hidden', isDoubles);
+        document.getElementById('challenge_doubles_container').classList.toggle('hidden', !isDoubles);
+        document.getElementById('challenge_opponent_id').required = !isDoubles;
+        document.getElementById('challenge_challenger_partner_id').required = isDoubles;
+        document.getElementById('challenge_opponent_id_doubles').required = isDoubles;
+        document.getElementById('challenge_opponent_partner_id').required = isDoubles;
+        document.getElementById('challenge_form_alert').classList.add('hidden');
     }
 
     // Modal Send Challenge controls
     function openSendChallengeModal(opponentId = null) {
         const modal = document.getElementById('ajaxSendChallengeModal');
-        if (!modal) return;
+        if (!modal || !modal.classList.contains('hidden')) return;
         if (opponentId) {
             document.getElementById('challenge_opponent_id').value = opponentId;
             switchChallengeMode('singles');
         }
+        sendChallengeReturnFocus = document.activeElement;
+        sendChallengeLocksScroll = !document.body.classList.contains('overflow-hidden');
+        document.body.classList.add('overflow-hidden');
         modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        document.getElementById('ajax-send-challenge-fields').scrollTop = 0;
+        document.getElementById('ajax-send-challenge-title').focus({ preventScroll: true });
     }
 
     function closeSendChallengeModal() {
         const modal = document.getElementById('ajaxSendChallengeModal');
-        if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-        const alertBox = document.getElementById('challenge_form_alert');
-        if (alertBox) alertBox.classList.add('hidden');
+        if (!modal || modal.classList.contains('hidden')) return;
+        modal.classList.add('hidden');
+        if (sendChallengeLocksScroll) document.body.classList.remove('overflow-hidden');
+        if (sendChallengeReturnFocus?.isConnected) sendChallengeReturnFocus.focus({ preventScroll: true });
+        sendChallengeReturnFocus = null;
+        document.getElementById('challenge_form_alert').classList.add('hidden');
     }
 
     // Submit Send Challenge via AJAX
@@ -467,15 +253,15 @@
         if (currentChallengeMode === 'doubles') {
             const opp1 = document.getElementById('challenge_opponent_id_doubles').value;
             if (!opp1) {
-                alertBox.className = 'p-3 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200 block';
-                alertBox.textContent = 'Vui lòng chọn đối thủ 1 cho đội bạn!';
+                alertBox.textContent = 'Vui lòng chọn đối thủ 1.';
+                alertBox.classList.remove('hidden');
                 return;
             }
             document.getElementById('challenge_opponent_id').value = opp1;
         }
 
         btn.disabled = true;
-        btn.innerHTML = '<span>Đang phát lệnh...</span>';
+        btn.textContent = 'Đang gửi…';
         alertBox.classList.add('hidden');
 
         const formData = new FormData(form);
@@ -499,172 +285,176 @@
                     window.location.reload();
                 }
             } else {
-                alertBox.className = 'p-3 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200 block';
-                alertBox.textContent = data.message || 'Có lỗi xảy ra, vui lòng thử lại!';
+                alertBox.textContent = data.message || 'Chưa gửi được lời khiêu chiến. Vui lòng thử lại.';
+                alertBox.classList.remove('hidden');
             }
         } catch (err) {
-            alertBox.className = 'p-3 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200 block';
-            alertBox.textContent = 'Không thể kết nối đến máy chủ!';
+            alertBox.textContent = 'Không thể kết nối đến máy chủ.';
+            alertBox.classList.remove('hidden');
         } finally {
             btn.disabled = false;
-            btn.innerHTML = '<span>⚔️ Phát Lệnh Khiêu Chiến!</span>';
+            btn.textContent = 'Gửi khiêu chiến';
         }
     }
 
-    // Show SOS Red Emergency Overlay
-    function showSosEmergencyAlert(challenge) {
-        activeIncomingChallengeId = challenge.id;
-        const overlay = document.getElementById('ajaxSosEmergencyOverlay');
-        if (!overlay) return;
 
-        const isDoubles = challenge.is_doubles;
-        const badgeType = document.getElementById('sos_badge_type');
-        const modalTitle = document.getElementById('sos_modal_title');
-        const challengerLabel = document.getElementById('sos_challenger_label');
-        const partnerAvatar = document.getElementById('sos_challenger_partner_avatar');
-        const opponentTeamBox = document.getElementById('sos_opponent_team_box');
-        const btnAcceptText = document.getElementById('sos_btn_accept_text');
+    const incomingChallengeDialog = document.getElementById('incoming-challenge-dialog');
+    const incomingChallengeReminder = document.getElementById('incoming-challenge-reminder');
+    const incomingChallengeError = document.getElementById('incoming-challenge-error');
+    const incomingChallengeButtons = incomingChallengeDialog.querySelectorAll('footer button');
+    let incomingChallenge = null;
+    let deferredChallengeId = null;
+    let checkingChallenges = false;
+    let respondingToChallenge = false;
+    let challengeLocksScroll = false;
+    let challengeFeedbackTimer;
 
-        if (isDoubles) {
-            if (badgeType) badgeType.innerHTML = '<span>🚨 BÁO ĐỘNG SOS: LỜI KHIÊU CHIẾN ĐÔI 2VS2! 🚨</span>';
-            if (modalTitle) modalTitle.textContent = 'ĐỘI CỦA BẠN ĐANG BỊ THÁCH ĐẤU!';
-            if (challengerLabel) challengerLabel.textContent = 'Đội thách đấu:';
-            document.getElementById('sos_challenger_avatar').src = challenge.challenger_avatar;
-            document.getElementById('sos_challenger_name').textContent = challenge.challenger_team_names;
-            document.getElementById('sos_challenger_username').textContent = '@' + challenge.challenger_username + (challenge.challenger_partner_username ? ', @' + challenge.challenger_partner_username : '');
-            if (partnerAvatar && challenge.challenger_partner_avatar) {
-                partnerAvatar.src = challenge.challenger_partner_avatar;
-                partnerAvatar.classList.remove('hidden');
-            }
-            if (opponentTeamBox) {
-                opponentTeamBox.classList.remove('hidden');
-                document.getElementById('sos_opponent_team_names').textContent = challenge.opponent_team_names;
-            }
-            if (btnAcceptText) btnAcceptText.textContent = 'TIẾP CHIÊU (ĐẠI DIỆN ĐỘI ĐỒNG Ý CHIẾN)';
-        } else {
-            if (badgeType) badgeType.innerHTML = '<span>🚨 BÁO ĐỘNG SOS: CÓ LỜI KHIÊU CHIẾN KHẨN CẤP! 🚨</span>';
-            if (modalTitle) modalTitle.textContent = 'BẠN ĐANG BỊ THÁCH ĐẤU!';
-            if (challengerLabel) challengerLabel.textContent = 'Kẻ thách đấu:';
-            document.getElementById('sos_challenger_avatar').src = challenge.challenger_avatar;
-            document.getElementById('sos_challenger_name').textContent = challenge.challenger_name;
-            document.getElementById('sos_challenger_username').textContent = '@' + challenge.challenger_username;
-            if (partnerAvatar) partnerAvatar.classList.add('hidden');
-            if (opponentTeamBox) opponentTeamBox.classList.add('hidden');
-            if (btnAcceptText) btnAcceptText.textContent = 'TIẾP CHIÊU (ĐỒNG Ý CHIẾN)';
-        }
+    function openIncomingChallenge() {
+        if (!incomingChallenge || respondingToChallenge || incomingChallengeDialog.open) return;
+        if ([...document.querySelectorAll('dialog[open], [aria-modal=true]:not(.swal-modal), .swal-overlay--show-modal')]
+            .some((modal) => modal.getClientRects().length)) return;
 
-        document.getElementById('sos_challenge_prize').innerHTML = '<span>' + challenge.prize + '</span>';
-        
-        const msgBox = document.getElementById('sos_challenge_message_box');
-        if (challenge.message) {
-            msgBox.classList.remove('hidden');
-            document.getElementById('sos_challenge_message').textContent = '"' + challenge.message + '"';
-        } else {
-            msgBox.classList.add('hidden');
-        }
-
-        overlay.classList.remove('hidden');
-        overlay.classList.add('flex');
-
-        // Play siren sound immediately and repeat every 3s
-        playEmergencySirenSound();
-        if (!sirenAudioInterval) {
-            sirenAudioInterval = setInterval(playEmergencySirenSound, 3000);
-        }
+        const challenge = incomingChallenge;
+        document.getElementById('incoming-challenge-format').textContent = challenge.is_doubles ? 'Đánh đôi' : 'Đánh đơn';
+        document.getElementById('incoming-challenge-deadline').textContent = challenge.reply_deadline ? 'Phản hồi trước ' + challenge.reply_deadline : '';
+        document.getElementById('incoming-challenger-team').textContent = challenge.challenger_team_names;
+        document.getElementById('incoming-opponent-team').textContent = challenge.opponent_team_names;
+        document.getElementById('incoming-challenge-prize').textContent = challenge.prize;
+        document.getElementById('incoming-challenge-message').hidden = !challenge.message;
+        document.getElementById('incoming-challenge-message-text').textContent = challenge.message || '';
+        incomingChallengeReminder.hidden = true;
+        challengeLocksScroll ||= !document.body.classList.contains('overflow-hidden');
+        document.body.classList.add('overflow-hidden');
+        incomingChallengeDialog.showModal();
     }
 
-    function hideSosEmergencyAlert() {
-        activeIncomingChallengeId = null;
-        const overlay = document.getElementById('ajaxSosEmergencyOverlay');
-        if (overlay) {
-            overlay.classList.add('hidden');
-            overlay.classList.remove('flex');
-        }
-        if (sirenAudioInterval) {
-            clearInterval(sirenAudioInterval);
-            sirenAudioInterval = null;
-        }
+    function deferIncomingChallenge() {
+        if (respondingToChallenge) return;
+        deferredChallengeId = incomingChallenge?.id;
+        incomingChallengeReminder.hidden = !incomingChallenge;
+        incomingChallengeDialog.close();
+        if (incomingChallenge) incomingChallengeReminder.focus({ preventScroll: true });
     }
 
-    // Accept Challenge via AJAX
-    async function handleAjaxAcceptChallenge() {
-        if (!activeIncomingChallengeId) return;
-        const btn = document.getElementById('sos_btn_accept');
-        btn.disabled = true;
-        btn.textContent = 'ĐANG TIẾP CHIÊU...';
+    incomingChallengeDialog.addEventListener('cancel', (event) => {
+        event.preventDefault();
+        deferIncomingChallenge();
+    });
+    incomingChallengeDialog.addEventListener('close', () => {
+        if (incomingChallengeDialog.open) return;
+        if (challengeLocksScroll) document.body.classList.remove('overflow-hidden');
+        challengeLocksScroll = false;
+    });
+
+    function showChallengeFeedback(message) {
+        const feedback = document.getElementById('incoming-challenge-feedback');
+        feedback.hidden = false;
+        feedback.textContent = message;
+        clearTimeout(challengeFeedbackTimer);
+        challengeFeedbackTimer = setTimeout(() => { feedback.hidden = true; }, 5000);
+    }
+
+    async function respondToIncomingChallenge(accept) {
+        if (!incomingChallenge || respondingToChallenge) return;
+
+        const challenge = incomingChallenge;
+        const actionButton = document.getElementById(accept ? 'incoming-challenge-accept' : 'incoming-challenge-decline');
+        let reopen = true;
+        respondingToChallenge = true;
+        incomingChallengeButtons.forEach((button) => { button.disabled = true; });
+        incomingChallengeError.hidden = true;
+        incomingChallengeDialog.close();
 
         try {
-            const res = await fetch('/challenges/' + activeIncomingChallengeId + '/accept', {
+            const agreed = await window.confirmSiteAction({
+                title: accept ? 'Đồng ý khiêu chiến?' : 'Từ chối khiêu chiến?',
+                text: accept && challenge.is_doubles
+                    ? 'Bạn sẽ đồng ý thay mặt đội ' + challenge.opponent_team_names + '. Món kèo: ' + challenge.prize + '.'
+                    : 'Lời mời từ ' + challenge.challenger_team_names + '. Món kèo: ' + challenge.prize + '.',
+                buttons: ['Quay lại', accept ? 'Đồng ý' : 'Từ chối'],
+            });
+            if (!agreed) return;
+
+            const response = await fetch(accept ? challenge.accept_url : challenge.decline_url, {
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     'Accept': 'application/json'
                 }
             });
-            const data = await res.json();
-            if (data.success) {
-                hideSosEmergencyAlert();
-                alert(data.message);
-                if (data.redirect_url) {
-                    window.location.href = data.redirect_url;
-                }
-            } else {
-                alert(data.message || 'Lỗi khi chấp nhận thách đấu!');
-                hideSosEmergencyAlert();
-            }
-        } catch (err) {
-            hideSosEmergencyAlert();
-        }
-    }
-
-    // Decline Challenge via AJAX
-    async function handleAjaxDeclineChallenge() {
-        if (!activeIncomingChallengeId) return;
-        const btn = document.getElementById('sos_btn_decline');
-        btn.disabled = true;
-        btn.textContent = 'ĐANG TỪ CHỐI...';
-
-        try {
-            const res = await fetch('/challenges/' + activeIncomingChallengeId + '/decline', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Accept': 'application/json'
-                }
-            });
-            const data = await res.json();
-            hideSosEmergencyAlert();
-            alert(data.message || 'Đã từ chối khiêu chiến.');
-        } catch (err) {
-            hideSosEmergencyAlert();
-        }
-    }
-
-    // Lightweight Background Polling via AJAX (every 5 seconds)
-    async function checkPendingChallenges() {
-        try {
-            const res = await fetch('{{ route("challenges.check") }}', {
-                headers: { 'Accept': 'application/json' }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.has_challenge && data.challenge) {
-                    if (activeIncomingChallengeId !== data.challenge.id) {
-                        showSosEmergencyAlert(data.challenge);
-                    }
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                if ([403, 404, 409].includes(response.status)) {
+                    incomingChallenge = null;
+                    reopen = false;
+                    showChallengeFeedback(data.message || 'Lời khiêu chiến không còn khả dụng.');
                 } else {
-                    if (activeIncomingChallengeId) {
-                        hideSosEmergencyAlert();
-                    }
+                    incomingChallengeError.textContent = data.message || 'Chưa gửi được phản hồi. Vui lòng thử lại.';
+                    incomingChallengeError.hidden = false;
                 }
+                return;
             }
-        } catch (e) {}
+
+            incomingChallenge = null;
+            reopen = false;
+            if (accept && data.redirect_url) {
+                window.location.assign(data.redirect_url);
+            } else {
+                showChallengeFeedback(data.message || 'Đã từ chối lời khiêu chiến.');
+            }
+        } catch {
+            incomingChallengeError.textContent = 'Chưa gửi được phản hồi. Vui lòng thử lại.';
+            incomingChallengeError.hidden = false;
+        } finally {
+            respondingToChallenge = false;
+            incomingChallengeButtons.forEach((button) => { button.disabled = false; });
+            if (reopen) {
+                incomingChallengeReminder.hidden = false;
+                openIncomingChallenge();
+                if (incomingChallengeDialog.open) actionButton.focus({ preventScroll: true });
+            } else {
+                incomingChallengeReminder.hidden = true;
+                if (!accept) checkPendingChallenges();
+            }
+        }
     }
 
-    // Start polling when document is ready
-    document.addEventListener('DOMContentLoaded', function () {
+    async function checkPendingChallenges() {
+        if (checkingChallenges || respondingToChallenge || document.hidden) return;
+        checkingChallenges = true;
+
+        try {
+            const response = await fetch(@js(route('challenges.check')), { headers: { Accept: 'application/json' }, cache: 'no-store' });
+            if (!response.ok) return;
+            const data = await response.json();
+            if (respondingToChallenge) return;
+
+            const pending = data.has_challenge ? data.challenge : null;
+            if (incomingChallenge?.id !== pending?.id) {
+                incomingChallengeError.hidden = true;
+                if (incomingChallengeDialog.open) incomingChallengeDialog.close();
+            }
+            incomingChallenge = pending;
+
+            if (!pending) {
+                incomingChallengeReminder.hidden = true;
+                return;
+            }
+            if (!incomingChallengeDialog.open) {
+                incomingChallengeReminder.hidden = false;
+                if (deferredChallengeId !== pending.id) openIncomingChallenge();
+            }
+        } catch {
+            // Keep the current invitation visible until the next successful check.
+        } finally {
+            checkingChallenges = false;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
         checkPendingChallenges();
         setInterval(checkPendingChallenges, 5000);
     });
+    document.addEventListener('visibilitychange', checkPendingChallenges);
 </script>
 @endauth

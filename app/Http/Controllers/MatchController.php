@@ -146,10 +146,10 @@ class MatchController extends Controller
     {
         $this->matchService->autoConfirmExpiredMatches();
 
-        $users = User::where('is_active', true)->orderBy('name')->get();
         $viewMode = $request->get('view', 'list'); // 'list' or 'calendar'
+        $upcomingChallengesCount = BilliardChallenge::where('status', 'accepted')->count();
 
-        return view('matches.index', compact('users', 'viewMode'));
+        return view('matches.index', compact('viewMode', 'upcomingChallengesCount'));
     }
 
     public function calendar(Request $request): View
@@ -162,6 +162,9 @@ class MatchController extends Controller
         $selectedDate = $request->input('date', $today->format('Y-m-d'));
 
         $data = $this->getCalendarData($year, $month, $selectedDate);
+        $data['matchupAnalyses'] = $data['upcomingChallenges']->mapWithKeys(
+            fn (BilliardChallenge $challenge): array => [$challenge->id => $challenge->getMatchupAnalysis()],
+        );
 
         return view('matches.calendar', $data);
     }
@@ -215,14 +218,16 @@ class MatchController extends Controller
                 'status_label' => match ($m->status) {
                     'confirmed' => 'Đã xác nhận',
                     'resolved' => 'Đã xử lý',
-                    'pending' => 'Chờ duyệt',
+                    'pending' => 'Chờ xác nhận',
                     'disputed' => 'Khiếu nại',
+                    'cancelled' => 'Đã hủy',
                     default => $m->status,
                 },
                 'status_class' => match ($m->status) {
-                    'confirmed' => 'bg-green-100 text-green-800',
+                    'confirmed', 'resolved' => 'bg-green-100 text-green-800',
                     'pending' => 'bg-amber-100 text-amber-800',
-                    default => 'bg-red-100 text-red-800',
+                    'disputed' => 'bg-red-100 text-red-800',
+                    default => 'bg-gray-100 text-gray-700',
                 },
                 'team1_names' => $m->team1_names,
                 'team2_names' => $m->team2_names,
@@ -285,7 +290,7 @@ class MatchController extends Controller
         ];
     }
 
-    public function show(BilliardMatch $match): View
+    public function show(Request $request, BilliardMatch $match): View
     {
         $currentUser = Auth::user();
 
@@ -297,7 +302,15 @@ class MatchController extends Controller
             abort(404);
         }
 
-        $this->matchService->autoConfirmExpiredMatches();
+        if ($this->matchService->autoConfirmExpiredMatches() > 0 && $match->status === 'pending') {
+            $match->refresh();
+        }
+
+        if ($request->boolean('preview')) {
+            $match->load(['creator', 'player1', 'player1Partner', 'player2', 'player2Partner', 'winner', 'winnerPartner', 'loser', 'loserPartner', 'histories']);
+
+            return view('matches.partials.match-detail', compact('match'));
+        }
 
         $match->load([
             'creator',

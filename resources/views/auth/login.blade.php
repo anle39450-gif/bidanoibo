@@ -1,4 +1,4 @@
-@extends('layouts.auth', ['title' => 'Đăng nhập'])
+@extends('layouts.auth', ['title' => 'Đăng nhập - Bida Nội Bộ'])
 
 @section('content')
 <div class="space-y-5">
@@ -27,7 +27,7 @@
                     required 
                     autofocus 
                     placeholder="VD: admin, an, binh..." 
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600 transition"
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
                 >
                 @error('login')
                     <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span>
@@ -43,7 +43,7 @@
                     name="password" 
                     required 
                     placeholder="••••••••" 
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600 transition"
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition"
                 >
                 @error('password')
                     <span class="text-red-600 text-xs mt-1 block">{{ $message }}</span>
@@ -52,14 +52,14 @@
 
             <div class="flex items-center text-xs">
                 <label class="flex items-center gap-2 cursor-pointer text-gray-600">
-                    <input type="checkbox" name="remember" class="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <input type="checkbox" name="remember" class="w-3.5 h-3.5 rounded border-gray-300 text-primary focus:ring-primary">
                     <span>Ghi nhớ đăng nhập</span>
                 </label>
             </div>
 
             <button 
                 type="submit" 
-                class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm shadow-xs transition cursor-pointer"
+                class="w-full py-2 bg-primary hover:bg-primary-hover text-white font-medium rounded-lg text-sm shadow-xs transition cursor-pointer"
             >
                 Đăng nhập
             </button>

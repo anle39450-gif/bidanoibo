@@ -1,12 +1,14 @@
 <?php
 
 use App\Livewire\CreateMatchModal;
+use App\Livewire\HeadToHeadComparator;
 use App\Livewire\RealtimeNotificationBell;
 use App\Models\BilliardMatch;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserNotification;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -256,6 +258,7 @@ test('ajax store route records singles match and returns json', function () {
             'opponent_id' => $player2->id,
             'winner_choice' => 'me',
             'prize' => 'Kèo cà phê muối AJAX',
+            'played_at' => '2026-03-10',
             'notes' => 'Tạo trận nhanh qua AJAX',
         ]);
 
@@ -268,6 +271,8 @@ test('ajax store route records singles match and returns json', function () {
     expect($match)->not->toBeNull();
     expect($match->winner_id)->toBe($player1->id);
     expect($match->loser_id)->toBe($player2->id);
+    expect($match->played_at->toDateString())->toBe('2026-03-10');
+    expect($match->evidence_path)->toBeNull();
 });
 
 test('ajax store route records doubles match and returns json', function () {
@@ -305,7 +310,7 @@ test('calendar page renders calendar view successfully for authenticated user', 
     $user = User::factory()->create();
     $response = $this->actingAs($user)->get(route('calendar'));
     $response->assertStatus(200);
-    $response->assertSee('Lịch Thi Đấu Bida Theo Ngày');
+    $response->assertSeeText('Theo ngày');
 });
 
 test('calendar data endpoint returns json for ajax month loading for authenticated user', function () {
@@ -516,6 +521,27 @@ test('change password modal is rendered on layout and profile page', function ()
     $response->assertSee('Đổi Mật Khẩu');
 });
 
+test('profile head-to-head shows results after choosing an opponent', function () {
+    $member = User::factory()->create();
+    $opponent = User::factory()->create();
+
+    $match = BilliardMatch::factory()->confirmed()->create([
+        'creator_id' => $member->id,
+        'player1_id' => $member->id,
+        'player2_id' => $opponent->id,
+        'winner_id' => $member->id,
+        'loser_id' => $opponent->id,
+    ]);
+
+    Livewire::actingAs($member)
+        ->test(HeadToHeadComparator::class, ['member' => $member])
+        ->assertSee('Chọn đối thủ')
+        ->assertDontSee($match->prize)
+        ->set('selectedOpponentId', $opponent->id)
+        ->assertSee('1 trận')
+        ->assertSee($match->prize);
+});
+
 test('dashboard displays personal win and loss stats and unpaid debts for logged in user', function () {
     $user = User::factory()->create(['name' => 'Nguyễn Văn A', 'username' => 'nva']);
     $opponent = User::factory()->create(['name' => 'Trần Văn B', 'username' => 'tvb']);
@@ -546,11 +572,85 @@ test('dashboard displays personal win and loss stats and unpaid debts for logged
         'prize_status' => 'unpaid',
     ]);
 
+    BilliardMatch::factory()->confirmed()->create([
+        'creator_id' => $opponent->id,
+        'player1_id' => $opponent->id,
+        'player2_id' => $user->id,
+        'winner_id' => $opponent->id,
+        'loser_id' => $user->id,
+        'prize' => 'Kèo trà sữa đã trả',
+        'prize_status' => 'paid',
+    ]);
+
     $response = $this->actingAs($user)->get(route('dashboard'));
     $response->assertStatus(200);
-    $response->assertSee('Trận Thắng');
-    $response->assertSee('Trận Thua');
-    $response->assertSee('Kèo Cần Trả (Nợ)');
+    $response->assertSee('Trận thắng');
+    $response->assertSee('Trận thua');
+    $response->assertSee('Kèo cần trả');
     $response->assertSee('Kèo cà phê muối');
     $response->assertSee('Trả kèo ngay');
+    $response->assertSeeInOrder(['Kèo cần trả', 'Trả kèo ngay', 'Đã trả · chờ xác nhận', 'Kèo trà sữa đã trả', 'Cập nhật trả kèo']);
+});
+
+test('dashboard shows matches awaiting the signed-in player confirmation', function () {
+    $this->freezeSecond();
+
+    $creator = User::factory()->create();
+    $opponent = User::factory()->create();
+
+    $match = BilliardMatch::factory()->create([
+        'creator_id' => $creator->id,
+        'player1_id' => $creator->id,
+        'player2_id' => $opponent->id,
+        'winner_id' => $creator->id,
+        'loser_id' => $opponent->id,
+        'auto_confirm_at' => now()->addHours(2)->addMinutes(30),
+    ]);
+
+    $this->actingAs($opponent)->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('Trận cần bạn xác nhận')
+        ->assertSee('Còn 2 giờ 30 phút')
+        ->assertSee(route('matches.show', $match));
+
+    $this->actingAs($creator)->get(route('dashboard'))
+        ->assertOk()
+        ->assertDontSee('Trận cần bạn xác nhận');
+});
+
+test('dashboard paginates settled prizes and recent matches independently', function () {
+    $viewer = User::factory()->create();
+    $winner = User::factory()->create();
+
+    $matches = BilliardMatch::factory()->confirmed()->count(11)->create([
+        'creator_id' => $winner->id,
+        'player1_id' => $winner->id,
+        'player2_id' => $viewer->id,
+        'winner_id' => $winner->id,
+        'loser_id' => $viewer->id,
+        'played_at' => now(),
+        'prize_status' => 'paid',
+    ]);
+
+    $this->actingAs($viewer)->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('awaiting_page=2#keo-da-tra', false)
+        ->assertSee('recent_page=2#tran-gan-day', false);
+
+    $response = $this->get(route('dashboard', ['awaiting_page' => 999, 'recent_page' => 1]));
+
+    $response->assertOk()
+        ->assertViewHas('matchesAwaitingReceipt', fn (LengthAwarePaginator $paginator): bool => $paginator->currentPage() === 3
+            && $paginator->perPage() === 5
+            && $paginator->total() === 11
+            && $paginator->getCollection()->modelKeys() === [$matches->first()->id])
+        ->assertViewHas('recentMatches', fn (LengthAwarePaginator $paginator): bool => $paginator->currentPage() === 1
+            && $paginator->count() === 8
+            && $paginator->getCollection()->first()->id === $matches->last()->id);
+
+    $this->get(route('dashboard', ['recent_page' => 999]))
+        ->assertOk()
+        ->assertViewHas('recentMatches', fn (LengthAwarePaginator $paginator): bool => $paginator->currentPage() === 2
+            && $paginator->count() === 3
+            && $paginator->getCollection()->last()->id === $matches->first()->id);
 });

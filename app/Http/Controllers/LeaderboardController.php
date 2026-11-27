@@ -20,9 +20,7 @@ class LeaderboardController extends Controller
         }
 
         $leaderboard = $this->statsService->getLeaderboard($period);
-        $topPlayer = $this->statsService->getTopPlayer($period);
-        $loser = $this->statsService->getLoserOfTheMonth();
 
-        return view('leaderboard.index', compact('leaderboard', 'period', 'topPlayer', 'loser'));
+        return view('leaderboard.index', compact('leaderboard', 'period'));
     }
 }

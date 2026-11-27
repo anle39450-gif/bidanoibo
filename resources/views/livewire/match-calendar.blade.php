@@ -73,7 +73,7 @@
                         wire:click="selectDate('{{ $day['dateString'] }}')"
                         class="min-h-[54px] sm:min-h-[70px] p-1.5 sm:p-2 rounded-lg border text-left flex flex-col justify-between transition cursor-pointer
                             {{ $isSelected 
-                                ? 'bg-blue-50 border-blue-600 ring-2 ring-blue-600 text-blue-900 font-bold' 
+                                ? 'bg-primary-soft border-primary ring-2 ring-primary text-primary font-bold'
                                 : ($isToday 
                                     ? 'bg-amber-50/70 border-amber-300 text-gray-900 font-semibold' 
                                     : ($isCurrentMonth 
@@ -81,14 +81,14 @@
                                         : 'bg-gray-50/70 border-gray-100 text-gray-400')) }}"
                     >
                         <!-- Day number -->
-                        <span class="text-xs sm:text-sm {{ $isSelected ? 'text-blue-700 font-bold' : ($isToday ? 'text-amber-900 font-bold' : 'font-medium') }}">
+                        <span class="text-xs sm:text-sm {{ $isSelected ? 'text-primary font-bold' : ($isToday ? 'text-amber-900 font-bold' : 'font-medium') }}">
                             {{ $day['dayNumber'] }}
                         </span>
 
                         <!-- Match badge -->
                         @if($hasMatches)
                             <div class="mt-1">
-                                <span class="inline-flex items-center px-1 sm:px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-semibold {{ $isSelected ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800' }}">
+                                <span class="inline-flex items-center px-1 sm:px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-semibold {{ $isSelected ? 'bg-primary text-white' : 'bg-blue-100 text-blue-800' }}">
                                     {{ $day['matchCount'] }}<span class="hidden sm:inline ml-0.5"> trận</span>
                                 </span>
                             </div>
@@ -102,7 +102,7 @@
             <!-- Footer note -->
             <div class="text-xs sm:text-sm text-gray-500 pt-2 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                 <span>Nhấn vào từng ngày trên lịch để xem danh sách trận</span>
-                <span class="text-blue-600 font-semibold">Hôm nay: {{ now()->format('d/m/Y') }}</span>
+                <span class="text-primary font-semibold">Hôm nay: {{ now()->format('d/m/Y') }}</span>
             </div>
         </div>
 
@@ -158,7 +158,7 @@
                             <!-- Prize & Link -->
                             <div class="flex items-center justify-between text-xs sm:text-sm pt-2.5 border-t border-gray-200/60">
                                 <span class="text-gray-700 font-medium">Kèo: <b class="text-gray-900">{{ $m->prize }}</b></span>
-                                <a href="{{ route('matches.show', $m->id) }}" class="text-blue-600 hover:text-blue-800 font-semibold">
+                                <a href="{{ route('matches.show', $m->id) }}" class="text-primary hover:text-primary-hover font-semibold">
                                     Xem chi tiết →
                                 </a>
                             </div>
@@ -170,7 +170,7 @@
                                 <button 
                                     type="button" 
                                     onclick="triggerCreateMatchModal()" 
-                                    class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition cursor-pointer"
+                                    class="inline-block bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition cursor-pointer"
                                 >
                                     + Ghi nhận trận ngay
                                 </button>

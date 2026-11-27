@@ -71,8 +71,9 @@ class MatchList extends Component
 
     public function render()
     {
-        $query = BilliardMatch::with(['creator', 'player1', 'player2', 'winner', 'loser'])
-            ->orderBy('played_at', 'desc');
+        $query = BilliardMatch::with(['player1', 'player2', 'player1Partner', 'player2Partner', 'winner', 'winnerPartner'])
+            ->orderByDesc('played_at')
+            ->orderByDesc('id');
 
         $currentUser = Auth::user();
 
@@ -93,16 +94,18 @@ class MatchList extends Component
         if ($this->playerId) {
             $query->where(function ($q) {
                 $q->where('player1_id', $this->playerId)
-                    ->orWhere('player2_id', $this->playerId);
+                    ->orWhere('player2_id', $this->playerId)
+                    ->orWhere('player1_partner_id', $this->playerId)
+                    ->orWhere('player2_partner_id', $this->playerId);
             });
         }
 
         // 3. Current User Result Filter
         if ($currentUser && $this->filterResult !== 'all') {
             if ($this->filterResult === 'my_wins') {
-                $query->where('winner_id', $currentUser->id);
+                $query->where(fn ($q) => $q->where('winner_id', $currentUser->id)->orWhere('winner_partner_id', $currentUser->id));
             } elseif ($this->filterResult === 'my_losses') {
-                $query->where('loser_id', $currentUser->id);
+                $query->where(fn ($q) => $q->where('loser_id', $currentUser->id)->orWhere('loser_partner_id', $currentUser->id));
             }
         }
 

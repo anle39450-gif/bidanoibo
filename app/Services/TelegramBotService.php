@@ -87,8 +87,7 @@ class TelegramBotService
         if ($challenge->message) {
             $text .= "📝 <b>Lời khiêu chiến:</b> <i>\"{$challenge->message}\"</i>\n";
         }
-        $targetDesc = $isDoubles ? $challenge->opponent_team_names : $opponent->name;
-        $text .= "\n⚡ <i>Cảnh báo: Nếu {$targetDesc} đang mở website, màn hình sẽ lập tức nhấp nháy đèn đỏ SOS và dòng chữ 'Bạn sợ à? Rén à?' chạy loạn xạ!</i>";
+        $text .= "\n<i>Bạn có thể phản hồi trên Telegram hoặc trong lời khiêu chiến trên website.</i>";
 
         $siteUrl = url('/calendar?tab=upcoming');
         $replyMarkup = [
@@ -834,22 +833,17 @@ class TelegramBotService
                 return;
             }
 
-            if ($challenge->status !== 'pending') {
-                $this->answerCallbackQuery($callbackId, "Lời khiêu chiến này đã ở trạng thái: {$challenge->status}");
-
-                return;
-            }
-
             if (! $challenge->isOpponentTeam($user)) {
                 $this->answerCallbackQuery($callbackId, '⚠️ Lời khiêu chiến này không dành cho bạn!');
 
                 return;
             }
 
-            $challenge->update([
-                'status' => 'accepted',
-                'accepted_at' => now(),
-            ]);
+            if (! $challenge->recordResponse(accepted: true)) {
+                $this->answerCallbackQuery($callbackId, 'Lời khiêu chiến đã hết hạn hoặc đã được phản hồi.');
+
+                return;
+            }
 
             $this->answerCallbackQuery($callbackId, '⚔️ Bạn đã TIẾP CHIÊU thành công! Kèo đấu đã được đưa vào lịch sắp diễn ra.');
             $this->sendDuelAcceptedNotification($challenge);
@@ -867,22 +861,17 @@ class TelegramBotService
                 return;
             }
 
-            if ($challenge->status !== 'pending') {
-                $this->answerCallbackQuery($callbackId, "Lời khiêu chiến này đã ở trạng thái: {$challenge->status}");
-
-                return;
-            }
-
             if (! $challenge->isOpponentTeam($user)) {
                 $this->answerCallbackQuery($callbackId, '⚠️ Lời khiêu chiến này không dành cho bạn!');
 
                 return;
             }
 
-            $challenge->update([
-                'status' => 'declined',
-                'declined_at' => now(),
-            ]);
+            if (! $challenge->recordResponse(accepted: false)) {
+                $this->answerCallbackQuery($callbackId, 'Lời khiêu chiến đã hết hạn hoặc đã được phản hồi.');
+
+                return;
+            }
 
             $this->answerCallbackQuery($callbackId, '🏳️ Bạn đã từ chối lời khiêu chiến!');
             $this->sendMessage($chatId, "🏳️ Bạn đã từ chối lời khiêu chiến của <b>{$challenge->challenger->name}</b>.");
@@ -1766,7 +1755,7 @@ class TelegramBotService
                 $out .= "🎯 <b>Chỉ định trả kèo (Viết trước trả trước, viết sau trả sau):</b>\n";
                 $out .= "• <b>Cặp 1:</b> {$user->name} ⚡ {$opp1->name} <i>(Người viết trước)</i>\n";
                 $out .= "• <b>Cặp 2:</b> {$partner->name} ⚡ {$opp2->name} <i>(Người viết sau)</i>\n\n";
-                $out .= '<i>(Nếu đối thủ đang mở website, màn hình sẽ nháy đèn đỏ SOS bắt buộc phải phản hồi!)</i>';
+                $out .= '<i>Đối thủ có thể xem và phản hồi lời mời trên website.</i>';
 
                 $this->sendMessage($chatId, $out);
 
@@ -1814,7 +1803,7 @@ class TelegramBotService
 
                 $out .= "\n🚨 <b>ĐÃ PHÁT LỆNH KHIÊU CHIẾN TỚI {$target->name}!</b>\n";
                 $out .= "🎁 <b>Kèo:</b> {$prize}\n";
-                $out .= "<i>(Nếu {$target->name} đang mở web, màn hình sẽ nháy đèn đỏ SOS bắt buộc phải phản hồi!)</i>";
+                $out .= "<i>{$target->name} có thể xem và phản hồi lời mời trên website.</i>";
             }
 
             $this->sendMessage($chatId, $out);

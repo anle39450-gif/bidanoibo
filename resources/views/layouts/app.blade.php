@@ -7,19 +7,16 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ $title ?? 'Quản Lý Lịch Sử Đấu Bida Nội Bộ' }}</title>
-
-    <!-- Native System Font for 0ms lag -->
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-    </style>
+    @include('partials.favicon')
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
 
 <body class="h-full text-gray-900 antialiased" x-data="{ mobileMenuOpen: false }">
+    @php
+        $matchesMenuActive = request()->routeIs('calendar', 'matches.*') || request()->is('calendar');
+    @endphp
 
     <div class="min-h-full">
 
@@ -62,13 +59,9 @@
                                     ⚔️ Khiêu chiến
                                 </button>
                             @endauth
-                            <button type="button" onclick="triggerCreateMatchModal(); mobileMenuOpen = false;"
-                                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg text-sm shadow-sm transition text-center cursor-pointer">
-                                + Ghi nhận trận đấu
-                            </button>
                             <button type="button" onclick="openTelegramHelpModal(); mobileMenuOpen = false;"
                                 title="Hướng dẫn sử dụng Telegram Bot"
-                                class="w-10 h-10 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-600 hover:text-blue-600 flex items-center justify-center font-bold text-sm shadow-xs shrink-0 cursor-pointer">
+                                class="w-10 h-10 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-600 hover:text-primary flex items-center justify-center font-bold text-sm shadow-xs shrink-0 cursor-pointer">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
@@ -78,37 +71,29 @@
                         </div>
 
                         <nav class="flex flex-1 flex-col">
-                            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 mb-2">Menu chính
-                            </div>
                             <ul role="list" class="flex flex-1 flex-col gap-y-1">
                                 <li>
-                                    <a href="{{ route('calendar') }}"
-                                        class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('calendar') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100' }}">
-                                        Lịch thi đấu (Calendar)
-                                    </a>
-                                </li>
-                                <li>
                                     <a href="{{ route('dashboard') }}"
-                                        class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('dashboard') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100' }}">
-                                        Bảng điều khiển (Dashboard)
+                                        class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('dashboard') ? 'bg-primary-soft text-primary font-semibold' : 'text-gray-700 hover:bg-gray-100' }}">
+                                        Bảng điều khiển
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="{{ route('matches.index') }}"
-                                        class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('matches.index') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100' }}">
-                                        Lịch sử các trận đấu
+                                    <a href="{{ route('calendar') }}"
+                                        class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ $matchesMenuActive ? 'bg-primary-soft text-primary font-semibold' : 'text-gray-700 hover:bg-gray-100' }}">
+                                        Trận đấu
                                     </a>
                                 </li>
                                 <li>
                                     <a href="{{ route('leaderboard') }}"
-                                        class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('leaderboard') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100' }}">
+                                        class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('leaderboard') ? 'bg-primary-soft text-primary font-semibold' : 'text-gray-700 hover:bg-gray-100' }}">
                                         Bảng xếp hạng
                                     </a>
                                 </li>
                                 <li>
                                     <a href="{{ route('members.index') }}"
-                                        class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('members.*') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100' }}">
-                                        Danh sách cơ thủ
+                                        class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('members.*') ? 'bg-primary-soft text-primary font-semibold' : 'text-gray-700 hover:bg-gray-100' }}">
+                                        Cơ thủ
                                     </a>
                                 </li>
                                 @if(auth()->user()->isAdmin())
@@ -116,7 +101,7 @@
                                         <div class="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 mb-2">Quản
                                             lý</div>
                                         <a href="{{ route('admin.index') }}"
-                                            class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.*') ? 'bg-amber-50 text-amber-800 font-semibold' : 'text-amber-700 hover:bg-amber-50' }}">
+                                            class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.*') ? 'bg-primary-soft text-primary font-semibold' : 'text-gray-700 hover:bg-gray-100 hover:text-primary' }}">
                                             <span>Trang quản trị</span>
                                             @php $disputeCount = \App\Models\BilliardMatch::where('status', 'disputed')->count(); @endphp
                                             @if($disputeCount > 0)
@@ -128,63 +113,9 @@
                                 @endif
                             </ul>
 
-                            <!-- Mobile User Profile & Password / Logout -->
-                            <div class="pt-4 border-t border-gray-100 mt-auto">
-                                <div class="flex items-center justify-between">
-                                    <a href="{{ route('members.show', auth()->user()->username) }}"
-                                        class="flex items-center gap-2.5 overflow-hidden group">
-                                        <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}"
-                                            class="w-8 h-8 rounded-full border border-gray-200 object-cover shrink-0">
-                                        <div class="overflow-hidden">
-                                            <div
-                                                class="text-xs font-bold text-gray-900 group-hover:text-blue-600 truncate leading-tight">
-                                                {{ auth()->user()->name }}</div>
-                                            <div class="flex items-center gap-1 mt-0.5 text-[11px]">
-                                                <span
-                                                    class="text-green-700 font-bold">{{ auth()->user()->wins_count }}W</span>
-                                                <span class="text-gray-300">•</span>
-                                                <span
-                                                    class="text-red-600 font-bold">{{ auth()->user()->losses_count }}L</span>
-                                                <span class="text-gray-300">•</span>
-                                                @if(auth()->user()->unpaid_debts_count > 0)
-                                                    <span class="text-amber-700 font-bold" title="Kèo bạn nợ">Nợ
-                                                        {{ auth()->user()->unpaid_debts_count }}</span>
-                                                    <span class="text-gray-300">•</span>
-                                                @endif
-                                                <span class="text-blue-700 font-medium"
-                                                    title="Kèo đối thủ chưa trả bạn">Nhận
-                                                    {{ auth()->user()->unpaid_receivables_count }}</span>
-                                            </div>
-                                        </div>
-                                    </a>
-
-                                    <div class="flex items-center gap-1">
-                                        <button type="button"
-                                            onclick="openChangePasswordModal(); mobileMenuOpen = false;"
-                                            title="Đổi mật khẩu"
-                                            class="text-gray-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-gray-100 transition cursor-pointer">
-                                            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z">
-                                                </path>
-                                            </svg>
-                                        </button>
-                                        <form method="POST" action="{{ route('logout') }}">
-                                            @csrf
-                                            <button type="submit" title="Đăng xuất"
-                                                class="text-gray-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-gray-100 transition cursor-pointer">
-                                                <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
-                                                    </path>
-                                                </svg>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
+                            <!-- Mobile User Profile -->
+                            <div class="mt-auto border-t border-gray-100 pt-4">
+                                @include('partials.sidebar-account', ['user' => auth()->user()])
                             </div>
                         </nav>
                     </div>
@@ -206,48 +137,33 @@
                 </a>
             </div>
 
-            <!-- Fast Action Button -->
-            <div class="p-4 border-b border-gray-100">
-                <button type="button" onclick="triggerCreateMatchModal()"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg text-sm shadow-sm transition text-center flex items-center justify-center gap-1.5 cursor-pointer">
-                    <span>+ Ghi nhận trận đấu</span>
-                </button>
-            </div>
-
             <!-- Vertical Navigation Links (Không có icon gây thò thụt) -->
             <nav class="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
-                <div class="text-xs font-bold text-gray-400 uppercase tracking-wider px-3.5 mb-2">Menu chính</div>
+                <a href="{{ route('dashboard') }}"
+                    class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('dashboard') ? 'bg-primary-soft text-primary font-semibold' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900' }}">
+                    Bảng điều khiển
+                </a>
 
                 <a href="{{ route('calendar') }}"
-                    class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('calendar') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900' }}">
-                    Lịch thi đấu (Calendar)
-                </a>
-
-                <a href="{{ route('dashboard') }}"
-                    class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('dashboard') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900' }}">
-                    Bảng điều khiển (Dashboard)
-                </a>
-
-                <a href="{{ route('matches.index') }}"
-                    class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('matches.index') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900' }}">
-                    Lịch sử các trận đấu
+                    class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ $matchesMenuActive ? 'bg-primary-soft text-primary font-semibold' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900' }}">
+                    Trận đấu
                 </a>
 
                 <a href="{{ route('leaderboard') }}"
-                    class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('leaderboard') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900' }}">
+                    class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('leaderboard') ? 'bg-primary-soft text-primary font-semibold' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900' }}">
                     Bảng xếp hạng
                 </a>
 
                 <a href="{{ route('members.index') }}"
-                    class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('members.*') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900' }}">
-                    Danh sách cơ thủ
+                    class="block px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('members.*') ? 'bg-primary-soft text-primary font-semibold' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900' }}">
+                    Cơ thủ
                 </a>
 
                 @if(auth()->user()->isAdmin())
                     <div class="pt-3 border-t border-gray-100 mt-2">
                         <div class="text-xs font-bold text-gray-400 uppercase tracking-wider px-3.5 mb-2">Quản lý</div>
                         <a href="{{ route('admin.index') }}"
-                            class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.*') ? 'bg-amber-50 text-amber-800 font-semibold' : 'text-amber-700 hover:bg-amber-50' }}">
+                            class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.*') ? 'bg-primary-soft text-primary font-semibold' : 'text-gray-700 hover:bg-gray-100 hover:text-primary' }}">
                             <span>Trang quản trị</span>
                             @php $disputeCount = \App\Models\BilliardMatch::where('status', 'disputed')->count(); @endphp
                             @if($disputeCount > 0)
@@ -260,54 +176,8 @@
             </nav>
 
             <!-- User Footer in Sidebar -->
-            <div class="p-3.5 border-t border-gray-200">
-                <div class="flex items-center justify-between">
-                    <a href="{{ route('members.show', auth()->user()->username) }}"
-                        class="flex items-center gap-3 overflow-hidden group">
-                        <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}"
-                            class="w-9 h-9 rounded-full border border-gray-200 object-cover shrink-0">
-                        <div class="overflow-hidden">
-                            <div
-                                class="text-sm font-bold text-gray-900 group-hover:text-blue-600 truncate leading-tight">
-                                {{ auth()->user()->name }}</div>
-                            <div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5 text-xs">
-                                <span class="text-green-700 font-bold">{{ auth()->user()->wins_count }}W</span>
-                                <span class="text-gray-300">•</span>
-                                <span class="text-red-600 font-bold">{{ auth()->user()->losses_count }}L</span>
-                                <span class="text-gray-300">•</span>
-                                @if(auth()->user()->unpaid_debts_count > 0)
-                                    <span class="text-amber-700 font-bold" title="Kèo bạn nợ">Nợ
-                                        {{ auth()->user()->unpaid_debts_count }}</span>
-                                    <span class="text-gray-300">•</span>
-                                @endif
-                                <span class="text-blue-700 font-medium" title="Kèo đối thủ chưa trả bạn">Nhận
-                                    {{ auth()->user()->unpaid_receivables_count }}</span>
-                            </div>
-                        </div>
-                    </a>
-
-                    <div class="flex items-center gap-1">
-                        <button type="button" onclick="openChangePasswordModal()" title="Đổi mật khẩu"
-                            class="text-gray-400 hover:text-blue-600 p-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
-                            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z">
-                                </path>
-                            </svg>
-                        </button>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" title="Đăng xuất"
-                                class="text-gray-400 hover:text-red-600 p-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
-                                <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
-                                    </path>
-                                </svg>
-                            </button>
-                        </form>
-                    </div>
-                </div>
+            <div class="border-t border-gray-200 p-3.5">
+                @include('partials.sidebar-account', ['user' => auth()->user()])
             </div>
         </aside>
 
@@ -316,82 +186,63 @@
 
             <!-- Top Bar -->
             <header
-                class="sticky top-0 z-30 bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+                class="sticky top-0 z-30 flex h-16 items-center gap-1.5 border-b border-gray-200 bg-white px-3 sm:gap-3 sm:px-6 lg:px-8">
                 <!-- Mobile toggle button & brand -->
-                <div class="flex items-center gap-3">
+                <div class="flex min-w-0 items-center gap-1 md:hidden">
                     <button type="button" @click="mobileMenuOpen = true"
-                        class="md:hidden text-gray-600 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100 cursor-pointer"
+                        class="grid size-10 shrink-0 cursor-pointer place-items-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-primary"
                         aria-label="Mở menu">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 6h16M4 12h16M4 18h16"></path>
                         </svg>
                     </button>
-                    <div class="md:hidden flex items-center gap-2">
+                    <div class="flex min-w-0 items-center gap-2">
                         @include('partials.app-logo', ['size' => 'sm'])
-                        <span class="font-bold text-base text-gray-900">Bida Nội Bộ</span>
+                        <span class="hidden truncate text-sm font-bold text-gray-900 min-[375px]:inline">Bida Nội Bộ</span>
                     </div>
                 </div>
 
-                <div class="hidden md:flex items-center text-sm font-medium text-gray-500 gap-3">
-                    <span class="hidden 2xl:inline text-xs text-gray-400">Quản lý bida nội bộ</span>
-                    <a href="{{ route('dashboard') }}"
-                        class="flex items-center gap-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-semibold transition shadow-2xs"
-                        title="Xem chi tiết tại Dashboard">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-green-700 font-bold">{{ auth()->user()->wins_count }} Thắng</span>
-                            <span class="text-gray-300">/</span>
-                            <span class="text-red-600 font-bold">{{ auth()->user()->losses_count }} Thua</span>
-                            <span class="text-gray-400 font-normal">({{ auth()->user()->win_rate }}%)</span>
-                        </div>
-                        <span class="text-gray-300">|</span>
-                        <div class="flex items-center gap-2">
-                            @if(auth()->user()->unpaid_debts_count > 0)
-                                <span
-                                    class="bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded font-bold"
-                                    title="Kèo bạn cần trả cho đối thủ">
-                                    Nợ: {{ auth()->user()->unpaid_debts_count }}
-                                </span>
-                            @else
-                                <span class="text-gray-400 font-normal" title="Bạn không nợ kèo nào">0 nợ</span>
-                            @endif
-
-                            <span class="text-gray-300">•</span>
-
-                            @if(auth()->user()->unpaid_receivables_count > 0)
-                                <span class="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded font-bold"
-                                    title="Kèo đối thủ chưa trả cho bạn">
-                                    Chờ nhận: {{ auth()->user()->unpaid_receivables_count }}
-                                </span>
-                            @else
-                                <span class="text-gray-400 font-normal" title="Không có kèo chờ nhận">0 chờ nhận</span>
-                            @endif
-
-                            <span class="text-gray-300">•</span>
-                            <span class="text-gray-500 font-medium" title="Kèo bạn đã thanh toán xong">Đã trả: <b
-                                    class="text-gray-800">{{ auth()->user()->paid_debts_count }}</b></span>
-                        </div>
-                    </a>
+                <div class="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2 md:ml-0">
+                    <button type="button" onclick="triggerCreateMatchModal()" aria-label="Ghi nhận trận" title="Ghi nhận trận"
+                        class="flex h-9 min-w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-primary text-sm font-semibold text-white shadow-xs transition hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-3.5">
+                        <svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                            <path stroke-linecap="round" d="M12 5v14M5 12h14" />
+                        </svg>
+                        <span class="hidden sm:inline">Ghi nhận trận</span>
+                    </button>
+                    <button type="button" onclick="openSendChallengeModal()" aria-label="Khiêu chiến" title="Khiêu chiến"
+                        class="flex h-9 min-w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-primary/20 bg-white text-sm font-semibold text-primary transition hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-3.5">
+                        <span aria-hidden="true">⚔️</span>
+                        <span class="hidden sm:inline">Khiêu chiến</span>
+                    </button>
                 </div>
 
-                <!-- Right items: Realtime Notification Bell & Quick links -->
-                <div class="flex items-center gap-2.5 ml-auto">
-                    @auth
-                        <button type="button" onclick="openSendChallengeModal()"
-                            class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-extrabold py-2 px-3.5 rounded-lg text-sm shadow-xs transition flex items-center gap-1.5 cursor-pointer transform hover:scale-[1.03] active:scale-[0.98]">
-                            <span class="animate-pulse">⚔️</span>
-                            <span>Khiêu chiến</span>
-                        </button>
-                    @endauth
-                    <button type="button" onclick="triggerCreateMatchModal()"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3.5 rounded-lg text-sm shadow-xs transition flex items-center gap-1.5 cursor-pointer">
-                        <span>+ Ghi nhận trận</span>
-                    </button>
-                    <!-- Icon hỏi chấm hướng dẫn sử dụng Telegram Bot -->
+                <div class="flex shrink-0 items-center gap-1.5 sm:gap-2 md:ml-auto">
+                    @php
+                        $unpaidDebtsCount = auth()->user()->unpaid_debts_count;
+                        $unpaidReceivablesCount = auth()->user()->unpaid_receivables_count;
+                    @endphp
+                    @if($unpaidDebtsCount > 0 || $unpaidReceivablesCount > 0)
+                        <a href="{{ route('dashboard') }}#tong-quan-keo"
+                            class="mr-1 hidden h-9 items-center gap-2 rounded-lg border border-gray-200 px-2.5 text-xs font-semibold whitespace-nowrap transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:flex"
+                            title="Xem tình trạng kèo trong Bảng điều khiển">
+                            @if($unpaidDebtsCount > 0)
+                                <span class="text-amber-800">{{ $unpaidDebtsCount }} kèo cần trả</span>
+                            @endif
+                            @if($unpaidDebtsCount > 0 && $unpaidReceivablesCount > 0)
+                                <span class="h-3.5 w-px bg-gray-200" aria-hidden="true"></span>
+                            @endif
+                            @if($unpaidReceivablesCount > 0)
+                                <span class="text-blue-800">{{ $unpaidReceivablesCount }} kèo chờ nhận</span>
+                            @endif
+                        </a>
+                    @endif
+
                     <button type="button" onclick="openTelegramHelpModal()"
-                        title="Hướng dẫn sử dụng Telegram Bot ghi trận"
-                        class="w-9 h-9 rounded-lg border border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 text-gray-600 hover:text-blue-600 flex items-center justify-center font-bold text-sm shadow-xs transition cursor-pointer shrink-0">
-                        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        aria-label="Hướng dẫn ghi trận qua Telegram" title="Hướng dẫn ghi trận qua Telegram"
+                        class="grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                        <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
                             </path>
@@ -402,24 +253,26 @@
             </header>
 
             <!-- Flash alerts -->
-            <div class="px-4 sm:px-6 lg:px-8 pt-4 w-full {{ ($fullWidth ?? false) || request()->routeIs('dashboard') ? '' : 'max-w-7xl' }}">
-                @if(session('success'))
-                    <div
-                        class="bg-green-50 border-l-4 border-green-500 p-3.5 mb-3 rounded-r-lg text-sm text-green-800 flex items-center justify-between shadow-sm">
-                        <span>{{ session('success') }}</span>
-                    </div>
-                @endif
+            @if(!($compactTop ?? false) || session('success') || session('error'))
+                <div class="px-4 sm:px-6 lg:px-8 pt-4 w-full {{ ($fullWidth ?? false) || request()->routeIs('dashboard') ? '' : 'max-w-7xl' }}">
+                    @if(session('success'))
+                        <div
+                            class="bg-green-50 border-l-4 border-green-500 p-3.5 mb-3 rounded-r-lg text-sm text-green-800 flex items-center justify-between shadow-sm">
+                            <span>{{ session('success') }}</span>
+                        </div>
+                    @endif
 
-                @if(session('error'))
-                    <div
-                        class="bg-red-50 border-l-4 border-red-500 p-3.5 mb-3 rounded-r-lg text-sm text-red-800 flex items-center justify-between shadow-sm">
-                        <span>{{ session('error') }}</span>
-                    </div>
-                @endif
-            </div>
+                    @if(session('error'))
+                        <div
+                            class="bg-red-50 border-l-4 border-red-500 p-3.5 mb-3 rounded-r-lg text-sm text-red-800 flex items-center justify-between shadow-sm">
+                            <span>{{ session('error') }}</span>
+                        </div>
+                    @endif
+                </div>
+            @endif
 
             <!-- Page Main Content Slot -->
-            <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full {{ ($fullWidth ?? false) || request()->routeIs('dashboard') ? '' : 'max-w-7xl' }}">
+            <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full {{ ($fullWidth ?? false) || request()->routeIs('dashboard') ? '' : 'max-w-7xl' }} {{ ($compactTop ?? false) ? 'pt-3 sm:pt-4 lg:pt-4' : '' }}">
                 {{ $slot ?? '' }}
                 @yield('content')
             </main>
@@ -448,6 +301,7 @@
     @include('partials.change-password-modal')
 
     @auth
+        @include('matches.partials.match-detail-dialog')
         @include('partials.ajax-duel-challenge')
         @include('partials.ajax-side-bet-modal')
     @endauth

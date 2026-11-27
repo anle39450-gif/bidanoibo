@@ -1,166 +1,117 @@
-@extends('layouts.app', ['title' => 'Bảng xếp hạng - Bida Nội Bộ'])
+@extends('layouts.app', ['title' => 'Bảng xếp hạng - Bida Nội Bộ', 'fullWidth' => true, 'compactTop' => true])
 
 @section('content')
-<div class="space-y-6">
-    <!-- Header with Period Selector -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Bảng Xếp Hạng Cơ Thủ Bida</h1>
-            <p class="text-sm sm:text-base text-gray-500 mt-1">Xếp hạng theo số trận thắng, tỷ lệ thắng và phong độ chuỗi trận.</p>
+    @php
+        $viewerId = auth()->id();
+        $viewerRank = $leaderboard->first(fn (array $entry): bool => $entry['user']->id === $viewerId)['rank'] ?? null;
+    @endphp
+
+    <div class="space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h1 id="leaderboard-heading" class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Bảng xếp hạng</h1>
+
+            <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+                <nav aria-label="Lọc bảng xếp hạng theo thời gian" class="grid grid-cols-3 gap-1 rounded-lg border border-gray-200 bg-white p-1">
+                    @foreach(['all' => 'Tất cả', 'month' => 'Tháng này', 'year' => 'Năm nay'] as $periodValue => $label)
+                        <a href="{{ route('leaderboard', ['period' => $periodValue]) }}"
+                            @if($period === $periodValue) aria-current="page" @endif
+                            class="flex min-h-9 items-center justify-center rounded-md px-2.5 text-center text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-3 sm:text-sm {{ $period === $periodValue ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100' }}">
+                            {{ $label }}
+                        </a>
+                    @endforeach
+                </nav>
+
+                @if($viewerRank !== null)
+                    <a href="#my-leaderboard-rank"
+                        class="inline-flex min-h-9 w-fit items-center gap-2 rounded-lg border border-primary/15 bg-primary-soft px-3 text-xs font-semibold text-primary transition hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:text-sm">
+                        Hạng của bạn <span class="tabular-nums">#{{ $viewerRank }}</span>
+                    </a>
+                @endif
+            </div>
         </div>
 
-        <!-- Period Tabs -->
-        <div class="inline-flex rounded-lg shadow-sm border border-gray-300 bg-white p-1 text-sm font-medium">
-            <a href="{{ route('leaderboard', ['period' => 'all']) }}" class="px-3.5 py-1.5 rounded-md transition {{ $period === 'all' ? 'bg-blue-600 text-white font-semibold shadow-sm' : 'text-gray-600 hover:text-gray-900' }}">
-                Toàn thời gian
-            </a>
-            <a href="{{ route('leaderboard', ['period' => 'month']) }}" class="px-3.5 py-1.5 rounded-md transition {{ $period === 'month' ? 'bg-blue-600 text-white font-semibold shadow-sm' : 'text-gray-600 hover:text-gray-900' }}">
-                Tháng này
-            </a>
-            <a href="{{ route('leaderboard', ['period' => 'year']) }}" class="px-3.5 py-1.5 rounded-md transition {{ $period === 'year' ? 'bg-blue-600 text-white font-semibold shadow-sm' : 'text-gray-600 hover:text-gray-900' }}">
-                Năm nay
-            </a>
-        </div>
-    </div>
-
-    <!-- Spotlight: Top Player & Loser -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        @if($topPlayer)
-            <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm flex items-center gap-4">
-                <span class="px-2.5 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded">TOP 1</span>
-                <div>
-                    <span class="text-xs sm:text-sm font-semibold text-amber-700 uppercase">Quán quân {{ $period === 'month' ? 'tháng này' : ($period === 'year' ? 'năm nay' : 'toàn thời gian') }}</span>
-                    <a href="{{ route('members.show', $topPlayer['user']->username) }}" class="text-lg sm:text-xl font-bold text-gray-900 hover:underline block mt-0.5">
-                        {{ $topPlayer['user']->name }}
-                    </a>
-                    <div class="text-sm text-gray-600 mt-0.5">
-                        Thắng: <b class="text-green-700">{{ $topPlayer['wins'] }}</b> trận ({{ $topPlayer['win_rate'] }}%) 
-                        @if($topPlayer['current_streak_type'] === 'win')
-                            • Chuỗi {{ $topPlayer['current_streak_count'] }}W
-                        @endif
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        @if($loser)
-            <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm flex items-center gap-4">
-                <span class="px-2.5 py-1 bg-red-100 text-red-800 text-xs font-bold rounded">CHIẾN THẦN</span>
-                <div>
-                    <span class="text-xs sm:text-sm font-semibold text-red-700 uppercase">Chiến thần bao kèo</span>
-                    <a href="{{ route('members.show', $loser['user']->username) }}" class="text-lg sm:text-xl font-bold text-gray-900 hover:underline block mt-0.5">
-                        {{ $loser['user']->name }}
-                    </a>
-                    <div class="text-sm text-gray-600 mt-0.5">
-                        Thua: <b class="text-red-700">{{ $loser['losses'] }}</b> trận • <i>{{ $loser['humorous_title'] }}</i>
-                    </div>
-                </div>
-            </div>
-        @endif
-    </div>
-
-    <!-- Leaderboard Table -->
-    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wider text-xs">
+        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs">
+            <table aria-labelledby="leaderboard-heading" class="w-full text-left text-sm">
+                <thead class="border-b border-gray-200 bg-gray-50 text-xs text-gray-600">
                     <tr>
-                        <th class="py-3.5 px-4">Hạng</th>
-                        <th class="py-3.5 px-4">Cơ thủ</th>
-                        <th class="py-3.5 px-4 text-center">Tổng trận</th>
-                        <th class="py-3.5 px-4 text-center">Thắng</th>
-                        <th class="py-3.5 px-4 text-center">Thua</th>
-                        <th class="py-3.5 px-4 text-center">Tỷ lệ thắng</th>
-                        <th class="py-3.5 px-4 text-center">Chuỗi hiện tại</th>
-                        <th class="py-3.5 px-4 text-center">Chuỗi MAX</th>
-                        <th class="py-3.5 px-4">Danh hiệu vui</th>
+                        <th scope="col" class="w-12 px-2 py-3 text-center sm:px-4">Hạng</th>
+                        <th scope="col" class="px-2 py-3 sm:px-4">Cơ thủ</th>
+                        <th scope="col" class="hidden px-3 py-3 text-right lg:table-cell">Trận</th>
+                        <th scope="col" class="px-1.5 py-3 text-right sm:px-3">Thắng</th>
+                        <th scope="col" class="hidden px-3 py-3 text-right lg:table-cell">Thua</th>
+                        <th scope="col" class="px-2 py-3 text-right whitespace-nowrap sm:px-4">Tỷ lệ<span class="hidden sm:inline"> thắng</span></th>
+                        <th scope="col" class="hidden px-3 py-3 lg:table-cell">Phong độ</th>
+                        <th scope="col" class="hidden px-4 py-3 xl:table-cell">Danh hiệu</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200">
-                    @forelse($leaderboard as $item)
+                <tbody class="divide-y divide-gray-100 tabular-nums">
+                    @forelse($leaderboard as $entry)
                         @php
-                            $rank = $item['rank'];
-                            $user = $item['user'];
+                            $rank = $entry['rank'];
+                            $player = $entry['user'];
+                            $isLeader = $rank === 1 && $entry['wins'] > 0;
+                            $medal = match ($rank) {
+                                1 => '🥇',
+                                2 => '🥈',
+                                3 => '🥉',
+                                default => null,
+                            };
                         @endphp
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="py-3.5 px-4 font-extrabold text-gray-900">
-                                @if($rank === 1)
-                                    <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-xs">Hạng 1</span>
-                                @elseif($rank === 2)
-                                    <span class="px-2 py-0.5 rounded bg-gray-200 text-gray-800 font-bold text-xs">Hạng 2</span>
-                                @elseif($rank === 3)
-                                    <span class="px-2 py-0.5 rounded bg-orange-100 text-orange-900 font-bold text-xs">Hạng 3</span>
+                        <tr @if($player->id === $viewerId) id="my-leaderboard-rank" tabindex="-1" @endif
+                            class="scroll-mt-20 transition-colors hover:bg-gray-50 target:bg-primary-soft target:hover:bg-primary-soft {{ $isLeader ? 'bg-primary-soft/40' : '' }}">
+                            <td class="px-2 py-3 text-center sm:px-4">
+                                @if($medal)
+                                    <span role="img" aria-label="Hạng {{ $rank }}" class="inline-grid size-7 place-items-center text-xl leading-none">{{ $medal }}</span>
                                 @else
-                                    <span class="text-gray-600 font-semibold text-xs">{{ $rank }}</span>
+                                    <span class="inline-grid size-7 place-items-center text-xs font-semibold text-gray-600">{{ $rank }}</span>
                                 @endif
                             </td>
-
-                            <td class="py-3.5 px-4">
-                                <div class="flex items-center gap-3">
-                                    <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}" class="w-8 h-8 rounded-full border border-gray-200 object-cover">
-                                    <div>
-                                        <a href="{{ route('members.show', $user->username) }}" class="font-bold text-gray-900 hover:underline">
-                                            {{ $user->name }}
+                            <th scope="row" class="px-2 py-3 font-normal sm:px-4">
+                                <div class="flex items-center gap-2 sm:gap-3">
+                                    @include('partials.member-avatar', ['user' => $player])
+                                    <div class="min-w-0">
+                                        <a href="{{ route('members.show', $player->username) }}"
+                                            class="rounded-sm font-semibold text-gray-900 wrap-anywhere hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                                            {{ $player->name }}
                                         </a>
-                                        <span class="text-xs text-gray-400 block">@<span>{{ $user->username }}</span></span>
+                                        <span class="block text-xs text-gray-500 wrap-anywhere">{{ '@'.$player->username }}</span>
+                                        <div class="mt-1 flex flex-wrap gap-x-2 text-xs text-gray-600 lg:hidden">
+                                            <span>{{ $entry['total_matches'] }} trận</span>
+                                            <span>{{ $entry['losses'] }} thua</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </td>
-
-                            <td class="py-3.5 px-4 text-center text-gray-700 font-medium">
-                                {{ $item['total_matches'] }}
-                            </td>
-
-                            <td class="py-3.5 px-4 text-center font-bold text-green-700">
-                                {{ $item['wins'] }}
-                            </td>
-
-                            <td class="py-3.5 px-4 text-center font-bold text-red-600">
-                                {{ $item['losses'] }}
-                            </td>
-
-                            <td class="py-3.5 px-4 text-center font-bold text-gray-900">
-                                {{ $item['win_rate'] }}%
-                            </td>
-
-                            <td class="py-3.5 px-4 text-center">
-                                @if($item['current_streak_type'] === 'win')
-                                    <span class="px-2.5 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800">
-                                        W{{ $item['current_streak_count'] }}
-                                    </span>
-                                @elseif($item['current_streak_type'] === 'loss')
-                                    <span class="px-2.5 py-0.5 rounded text-xs font-bold bg-red-100 text-red-800">
-                                        L{{ $item['current_streak_count'] }}
-                                    </span>
+                            </th>
+                            <td class="hidden px-3 py-3 text-right font-medium text-gray-700 lg:table-cell">{{ $entry['total_matches'] }}</td>
+                            <td class="px-1.5 py-3 text-right font-semibold text-green-700 sm:px-3">{{ $entry['wins'] }}</td>
+                            <td class="hidden px-3 py-3 text-right font-semibold text-red-700 lg:table-cell">{{ $entry['losses'] }}</td>
+                            <td class="px-2 py-3 text-right text-xs font-semibold text-gray-900 whitespace-nowrap sm:px-4 sm:text-sm">{{ $entry['win_rate'] }}%</td>
+                            <td class="hidden px-3 py-3 lg:table-cell">
+                                @if($entry['current_streak_type'] === 'win')
+                                    <span class="rounded-md bg-green-50 px-1.5 py-1 text-xs font-medium whitespace-nowrap text-green-800">{{ $entry['current_streak_count'] }} thắng</span>
+                                @elseif($entry['current_streak_type'] === 'loss')
+                                    <span class="rounded-md bg-red-50 px-1.5 py-1 text-xs font-medium whitespace-nowrap text-red-800">{{ $entry['current_streak_count'] }} thua</span>
                                 @else
-                                    <span class="text-gray-400">-</span>
+                                    <span class="text-gray-400">—</span>
                                 @endif
                             </td>
-
-                            <td class="py-3.5 px-4 text-center font-medium text-gray-600">
-                                {{ $item['longest_win_streak'] }}
-                            </td>
-
-                            <td class="py-3.5 px-4">
+                            <td class="hidden px-4 py-3 xl:table-cell">
                                 <div class="flex flex-wrap gap-1.5">
-                                    @forelse($item['badges'] as $b)
-                                        <span class="px-2.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
-                                            {{ $b['name'] }}
-                                        </span>
+                                    @forelse(array_unique(array_column($entry['badges'], 'name')) as $badge)
+                                        <span class="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-700">{{ $badge }}</span>
                                     @empty
-                                        <span class="text-gray-400">-</span>
+                                        <span class="text-gray-400">—</span>
                                     @endforelse
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="p-8 text-center text-gray-500">Chưa có dữ liệu bảng xếp hạng.</td>
+                            <td colspan="8" class="px-4 py-10 text-center text-sm text-gray-600">Chưa có dữ liệu bảng xếp hạng.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </div>
-</div>
 @endsection
