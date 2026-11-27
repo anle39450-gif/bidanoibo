@@ -315,10 +315,12 @@
             const status = card.querySelector('[data-match-status]');
             status.textContent = match.status_label;
             status.classList.add(...match.status_class.split(' '));
-            card.querySelector('[data-match-team1]').textContent = match.team1_names;
-            card.querySelector('[data-match-team2]').textContent = match.team2_names;
-            card.querySelector('[data-match-result]').hidden = !match.is_confirmed || !match.winner_names;
-            card.querySelector('[data-match-winner]').textContent = match.winner_names;
+            const hasResult = match.is_confirmed && match.is_team1_winner !== match.is_team2_winner;
+            for (const side of [1, 2]) {
+                const team = card.querySelector(`[data-match-side="${side}"]`);
+                team.querySelector('[data-match-team-name]').textContent = match[`team${side}_names`];
+                team.dataset.result = hasResult ? (match[`is_team${side}_winner`] ? 'win' : 'loss') : '';
+            }
             card.querySelector('[data-match-prize]').textContent = match.prize;
             card.querySelector('[data-match-link]').href = match.url;
 

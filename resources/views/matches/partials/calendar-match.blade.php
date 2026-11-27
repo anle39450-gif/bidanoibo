@@ -5,15 +5,24 @@
         <span data-match-status class="rounded-full px-2 py-0.5 font-semibold {{ $match['status_class'] ?? '' }}">{{ $match['status_label'] ?? '' }}</span>
     </div>
 
-    <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm font-semibold text-gray-900 sm:text-base">
-        <span data-match-team1 class="wrap-anywhere">{{ $match['team1_names'] ?? '' }}</span>
-        <span class="text-xs font-medium text-gray-500">gặp</span>
-        <span data-match-team2 class="wrap-anywhere">{{ $match['team2_names'] ?? '' }}</span>
+    @php
+        $team1Won = !empty($match['is_team1_winner']);
+        $team2Won = !empty($match['is_team2_winner']);
+        $hasResult = !empty($match['is_confirmed']) && $team1Won !== $team2Won;
+    @endphp
+    <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 sm:gap-2">
+        @foreach([1 => $team1Won, 2 => $team2Won] as $side => $won)
+            @unless($loop->first)
+                <span class="text-xs font-medium text-gray-500">gặp</span>
+            @endunless
+            <div data-match-side="{{ $side }}" data-result="{{ $hasResult ? ($won ? 'win' : 'loss') : '' }}"
+                class="group flex h-full min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-lg border border-gray-200 bg-white px-2 py-2 text-center data-[result=win]:border-green-200 data-[result=win]:bg-green-50 data-[result=loss]:border-red-200 data-[result=loss]:bg-primary-soft">
+                <span data-match-team-name class="text-sm font-semibold text-gray-900 wrap-anywhere">{{ $match['team'.$side.'_names'] ?? '' }}</span>
+                <span class="hidden rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800 group-data-[result=win]:inline-block">Thắng</span>
+                <span class="hidden rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-primary group-data-[result=loss]:inline-block">Thua</span>
+            </div>
+        @endforeach
     </div>
-
-    <p data-match-result @if(empty($match['is_confirmed']) || empty($match['winner_names'])) hidden @endif class="text-xs font-semibold text-green-800 wrap-anywhere">
-        <span data-match-winner>{{ $match['winner_names'] ?? '' }}</span> thắng
-    </p>
 
     @if(isset($match['remaining_minutes']))
         <p class="text-xs text-amber-800">Tự xác nhận sau <strong>{{ intdiv($match['remaining_minutes'], 60) }} giờ {{ $match['remaining_minutes'] % 60 }} phút</strong></p>

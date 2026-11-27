@@ -403,18 +403,13 @@
                             };
                         @endphp
                         <li>
-                            <a href="{{ route('matches.show', $match->id) }}"
+                            <a href="{{ route('matches.show', $match->id) }}" aria-haspopup="dialog"
                                 class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2 px-4 py-3 transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary sm:gap-3 sm:px-5">
                                 <div class="min-w-0">
-                                    <p class="text-sm font-semibold text-gray-900 wrap-anywhere">{{ $match->team1_names }} vs {{ $match->team2_names }}</p>
-                                    <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-600">
-                                        @if(in_array($match->status, ['confirmed', 'resolved'], true))
-                                            <span class="font-medium text-green-800 wrap-anywhere">{{ $match->winner_names }} thắng</span>
-                                        @endif
-                                        @if($match->prize)
-                                            <span class="wrap-anywhere">{{ $match->prize }}</span>
-                                        @endif
-                                    </div>
+                                    @include('dashboard.match-result', ['match' => $match])
+                                    @if($match->prize)
+                                        <p class="mt-1 text-xs text-gray-600 wrap-anywhere">{{ $match->prize }}</p>
+                                    @endif
                                 </div>
                                 <div class="flex flex-col items-end gap-1">
                                     <span class="rounded-md px-1.5 py-0.5 text-xs font-medium {{ $statusStyle }}">{{ $matchStatus }}</span>

@@ -53,7 +53,7 @@ document.addEventListener('click', async (event) => {
 
     const isLogout = button.hasAttribute('data-confirm-logout');
     const confirmed = await window.confirmSiteAction({
-        title: isLogout ? 'Đăng xuất?' : 'Cập nhật trả kèo?',
+        title: isLogout ? 'Đăng xuất?' : (button.dataset.confirmPaymentTitle || 'Cập nhật trả kèo?'),
         text: isLogout ? 'Bạn có chắc muốn đăng xuất khỏi Bida Nội Bộ?' : button.dataset.confirmPayment,
         buttons: isLogout ? ['Ở lại', 'Đăng xuất'] : ['Hủy', 'Xác nhận'],
     });

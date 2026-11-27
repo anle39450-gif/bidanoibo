@@ -25,7 +25,7 @@ class BilliardStatsService
             });
 
         $matchesQuery = $this->applyPeriodFilter($matchesQuery, $period);
-        $matches = $matchesQuery->orderBy('played_at', 'asc')->get();
+        $matches = $matchesQuery->orderBy('played_at', 'asc')->orderBy('id')->get();
 
         $totalMatches = $matches->count();
         $wins = $matches->filter(fn ($m) => $m->winner_id === $user->id || $m->winner_partner_id === $user->id)->count();
@@ -71,6 +71,10 @@ class BilliardStatsService
             }
         }
 
+        $recentResults = $matches->take(-5)
+            ->map(fn (BilliardMatch $match): string => in_array($user->id, [$match->winner_id, $match->winner_partner_id], true) ? 'win' : 'loss')
+            ->values()->all();
+
         return [
             'total_matches' => $totalMatches,
             'wins' => $wins,
@@ -80,6 +84,7 @@ class BilliardStatsService
             'current_streak_count' => $currentStreakCount,
             'longest_win_streak' => $longestWinStreak,
             'longest_loss_streak' => $longestLossStreak,
+            'recent_results' => $recentResults,
             'badges' => $this->getFunBadges($user, $totalMatches, $wins, $losses, $winRate, $currentStreakType, $currentStreakCount, $longestWinStreak),
         ];
     }
@@ -133,11 +138,14 @@ class BilliardStatsService
      *
      * @return Collection<int, array<string, mixed>>
      */
-    public function getLeaderboard(?string $period = 'all'): Collection
+    public function getLeaderboard(?string $period = 'all', bool $includeAdmins = true): Collection
     {
-        $users = User::where('is_active', true)->get();
+        $usersQuery = User::where('is_active', true);
+        if (! $includeAdmins) {
+            $usersQuery->where('role', '!=', 'admin');
+        }
 
-        $leaderboard = $users->map(function (User $user) use ($period) {
+        $leaderboard = $usersQuery->get()->map(function (User $user) use ($period) {
             $stats = $this->getPlayerStats($user, $period);
 
             return [
@@ -150,6 +158,7 @@ class BilliardStatsService
                 'current_streak_count' => $stats['current_streak_count'],
                 'longest_win_streak' => $stats['longest_win_streak'],
                 'longest_loss_streak' => $stats['longest_loss_streak'],
+                'recent_results' => $stats['recent_results'],
                 'badges' => $stats['badges'],
             ];
         });
