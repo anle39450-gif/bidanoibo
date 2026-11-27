@@ -4,6 +4,30 @@
     <div class="space-y-4" x-data="{
         profile: { badges: [] },
         profileUrl: '',
+        memberSearch: '',
+        visibleMemberCount: {{ $membersWithStats->count() }},
+        normalizeSearch(value) {
+            return value.toLocaleLowerCase('vi').normalize('NFD').replace(/\p{M}/gu, '').replace(/\u0111/g, 'd').replace(/@/g, '').trim();
+        },
+        filterMembers(value) {
+            this.memberSearch = value;
+            const terms = this.normalizeSearch(value).split(/\s+/).filter(Boolean);
+            let visibleCount = 0;
+
+            for (const row of this.$refs.memberTable.querySelectorAll('[data-member-search]')) {
+                const searchText = this.normalizeSearch(row.dataset.memberSearch);
+                const visible = terms.every((term) => searchText.includes(term));
+                row.hidden = !visible;
+                if (visible) visibleCount++;
+            }
+
+            this.visibleMemberCount = visibleCount;
+        },
+        clearMemberSearch() {
+            this.$refs.memberSearchInput.value = '';
+            this.filterMembers('');
+            this.$refs.memberSearchInput.focus();
+        },
         openProfile(event, profile) {
             const dialog = this.$refs.profileDialog;
             if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || typeof dialog.showModal !== 'function') return;
@@ -37,8 +61,33 @@
             @endauth
         </div>
 
+        @if($membersWithStats->isNotEmpty())
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <div class="relative w-full sm:max-w-sm" role="search" aria-label="Tìm cơ thủ">
+                    <label for="member-search-input" class="sr-only">Tìm theo tên hoặc tên đăng nhập</label>
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-500">
+                        <circle cx="11" cy="11" r="6" />
+                        <path stroke-linecap="round" d="m16 16 4 4" />
+                    </svg>
+                    <input id="member-search-input" x-ref="memberSearchInput" type="search" autocomplete="off"
+                        @input="filterMembers($event.target.value)" aria-controls="members-table" placeholder="Tìm tên hoặc @username"
+                        class="min-h-10 w-full rounded-lg border border-gray-300 bg-white pr-10 pl-9 text-sm text-gray-900 focus-visible:outline-2 focus-visible:outline-primary [&::-webkit-search-cancel-button]:hidden">
+                    <button type="button" x-show="memberSearch.length" style="display: none;" @click="clearMemberSearch()" aria-label="Xóa từ khóa"
+                        class="absolute top-1/2 right-1 grid size-8 -translate-y-1/2 cursor-pointer place-items-center rounded-md text-gray-600 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-primary">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4">
+                            <path stroke-linecap="round" d="m6 6 12 12M18 6 6 18" />
+                        </svg>
+                    </button>
+                </div>
+                <p role="status" aria-atomic="true" class="text-sm text-gray-600 tabular-nums">
+                    <span x-text="visibleMemberCount">{{ $membersWithStats->count() }}</span><span x-show="memberSearch.trim().length" style="display: none;"> / {{ $membersWithStats->count() }}</span> cơ thủ
+                </p>
+            </div>
+        @endif
+
         <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs">
-            <table aria-labelledby="members-heading" class="w-full text-left text-sm">
+            <table id="members-table" x-ref="memberTable" aria-labelledby="members-heading" class="w-full text-left text-sm">
                 <thead class="border-b border-gray-200 bg-gray-50 text-xs font-semibold text-gray-600">
                     <tr>
                         <th scope="col" class="px-3 py-3 sm:px-4">Cơ thủ</th>
@@ -67,7 +116,7 @@
                                 'badges' => array_values(array_unique(array_column($stats['badges'], 'name'))),
                             ];
                         @endphp
-                        <tr class="transition-colors hover:bg-gray-50/75">
+                        <tr data-member-search="{{ $member->name }} {{ $member->username }}" class="transition-colors hover:bg-gray-50/75">
                             <th scope="row" class="px-3 py-3 font-normal sm:px-4">
                                 <div class="flex items-center gap-2 sm:gap-3">
                                     @include('partials.member-avatar', ['user' => $member])
@@ -122,6 +171,11 @@
                             <td colspan="7" class="px-4 py-10 text-center text-sm text-gray-500">Chưa có cơ thủ nào.</td>
                         </tr>
                     @endforelse
+                    @if($membersWithStats->isNotEmpty())
+                        <tr x-show="visibleMemberCount === 0" style="display: none;">
+                            <td colspan="7" class="px-4 py-10 text-center text-sm text-gray-600">Không tìm thấy cơ thủ phù hợp.</td>
+                        </tr>
+                    @endif
                 </tbody>
             </table>
         </div>

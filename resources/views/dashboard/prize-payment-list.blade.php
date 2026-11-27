@@ -13,9 +13,8 @@
                 'rejected' => $recipient ? 'Trả kèo lại cho '.$recipient : 'Trả kèo lại',
                 default => $recipient ? 'Trả kèo cho '.$recipient : 'Trả kèo ngay',
             };
-            $confirmation = $isWaiting
-                ? "Xác nhận cập nhật kèo '{$debtMatch->prize}' đã trả cho ".($recipient ?? $debtMatch->winner_names).'?'
-                : "Xác nhận bạn đã trả kèo '{$debtMatch->prize}'".($recipient ? ' cho '.$recipient : '').'?';
+            $recipientName = $recipient ?? $debtMatch->winner_names;
+            $confirmation = "Xác nhận bạn đã trả kèo «{$debtMatch->prize}» cho {$recipientName}.";
         @endphp
         <li class="flex flex-col gap-2.5 px-3 py-3 sm:flex-row sm:items-start sm:justify-between">
             <div class="min-w-0 space-y-1">
@@ -36,10 +35,11 @@
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-600">
                     <span class="font-medium text-gray-800 wrap-anywhere">{{ $debtMatch->prize }}</span>
                     <time datetime="{{ $debtMatch->played_at->toDateString() }}" class="tabular-nums">{{ $debtMatch->played_at->format('d/m/Y') }}</time>
+                    @if($debtMatch->isDoubles())
+                        <span>Kèo đôi tách chéo</span>
+                    @endif
                 </div>
-                @if($debtMatch->isDoubles())
-                    <p class="text-xs text-gray-600 wrap-anywhere">Kèo đôi tách chéo · {{ $debtMatch->team1_names }} vs {{ $debtMatch->team2_names }}</p>
-                @endif
+                @include('dashboard.match-result', ['match' => $debtMatch])
                 @if($userNotes)
                     <p class="text-xs text-gray-600 wrap-anywhere">{{ $userNotes }}</p>
                 @endif
@@ -49,12 +49,11 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-2 sm:max-w-[45%] sm:justify-end">
-                <form method="POST" action="{{ route('matches.pay-prize', $debtMatch->id) }}"
-                    @unless($isWaiting) onsubmit="return confirm(@js($confirmation))" @endunless>
+                <form method="POST" action="{{ route('matches.pay-prize', $debtMatch->id) }}">
                     @csrf
                     <input type="hidden" name="pair_slot" value="{{ $userSlot }}">
-                    <button type="{{ $isWaiting ? 'button' : 'submit' }}"
-                        @if($isWaiting) data-confirm-payment="{{ $confirmation }}" @endif
+                    <button type="button" data-confirm-payment="{{ $confirmation }}"
+                        data-confirm-payment-title="{{ $isWaiting ? 'Cập nhật trả kèo?' : 'Xác nhận đã trả kèo?' }}"
                         class="min-h-9 max-w-full cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold wrap-anywhere transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary {{ $isWaiting ? 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50' : 'bg-primary text-white hover:bg-primary-hover' }}">
                         {{ $paymentLabel }}
                     </button>
