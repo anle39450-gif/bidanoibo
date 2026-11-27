@@ -29,7 +29,7 @@
                         name="name" 
                         required 
                         placeholder="VD: Nguyễn Văn An" 
-                        class="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                 </div>
 
@@ -43,7 +43,7 @@
                         name="username" 
                         required 
                         placeholder="VD: an, binh, cuong..." 
-                        class="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                     <span class="text-[11px] text-gray-400 mt-1 block">Dùng để đăng nhập và tạo kèo nhanh: <code>/an binh</code></span>
                 </div>
@@ -58,7 +58,7 @@
                         name="email" 
                         required 
                         placeholder="VD: an@bida.local" 
-                        class="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                 </div>
 
@@ -71,7 +71,7 @@
                         type="password" 
                         name="password" 
                         placeholder="Mặc định: password nếu để trống" 
-                        class="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full rounded-lg border border-gray-300 px-3.5 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                     <span class="text-[11px] text-gray-400 mt-1 block">Để trống sẽ tự đặt mật khẩu là <code>password</code></span>
                 </div>
@@ -82,7 +82,7 @@
                         <label class="block text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
                             Vai trò
                         </label>
-                        <select name="role" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                        <select name="role" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary font-medium">
                             <option value="member">Thành viên (Cơ thủ)</option>
                             <option value="admin">Quản trị viên (Admin)</option>
                         </select>
@@ -112,7 +112,7 @@
                     </button>
                     <button 
                         type="submit" 
-                        class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition cursor-pointer"
+                        class="px-5 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-semibold shadow-sm transition cursor-pointer"
                     >
                         Tạo cơ thủ
                     </button>

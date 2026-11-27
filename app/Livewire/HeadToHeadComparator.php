@@ -4,25 +4,20 @@ namespace App\Livewire;
 
 use App\Models\User;
 use App\Services\BilliardStatsService;
+use Illuminate\View\View;
 use Livewire\Component;
 
 class HeadToHeadComparator extends Component
 {
     public User $member;
 
-    public ?int $selectedOpponentId = null;
+    public int $selectedOpponentId = 0;
 
     public function mount(User $member, ?int $defaultOpponentId = null): void
     {
         $this->member = $member;
 
-        if ($defaultOpponentId) {
-            $this->selectedOpponentId = $defaultOpponentId;
-        } else {
-            // Pick first opponent available
-            $first = User::where('id', '!=', $member->id)->where('is_active', true)->first();
-            $this->selectedOpponentId = $first?->id;
-        }
+        $this->selectedOpponentId = $defaultOpponentId ?? 0;
     }
 
     public function selectOpponent(int $opponentId): void
@@ -30,14 +25,14 @@ class HeadToHeadComparator extends Component
         $this->selectedOpponentId = $opponentId;
     }
 
-    public function render(BilliardStatsService $statsService)
+    public function render(BilliardStatsService $statsService): View
     {
         $opponents = User::where('id', '!=', $this->member->id)
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
 
-        $selectedOpponent = $this->selectedOpponentId ? User::find($this->selectedOpponentId) : null;
+        $selectedOpponent = $this->selectedOpponentId ? $opponents->find($this->selectedOpponentId) : null;
         $h2hData = $selectedOpponent ? $statsService->getHeadToHead($this->member, $selectedOpponent) : null;
 
         return view('livewire.head-to-head-comparator', [

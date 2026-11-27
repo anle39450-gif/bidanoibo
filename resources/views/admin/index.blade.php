@@ -82,9 +82,9 @@
 
                         <div class="flex flex-col sm:flex-row gap-2.5">
                             <input type="text" name="admin_notes" required placeholder="Nhập lý do xử lý của quản trị viên..."
-                                class="flex-1 text-sm border border-gray-300 rounded-lg px-3.5 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                class="flex-1 text-sm border border-gray-300 rounded-lg px-3.5 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
                             <button type="submit"
-                                class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2 rounded-lg cursor-pointer transition shadow-sm shrink-0">
+                                class="bg-primary hover:bg-primary-hover text-white text-sm font-semibold px-5 py-2 rounded-lg cursor-pointer transition shadow-sm shrink-0">
                                 Lưu quyết định
                             </button>
                         </div>
@@ -168,7 +168,7 @@
                                 </td>
                                 <td class="py-3 px-3.5 text-right space-x-2 shrink-0">
                                     <a href="{{ route('matches.show', $m->id) }}"
-                                        class="text-blue-600 hover:text-blue-800 text-xs font-semibold">
+                                        class="text-primary hover:text-primary-hover text-xs font-semibold">
                                         Chi tiết
                                     </a>
 
@@ -280,7 +280,7 @@
                                     </td>
                                     <td class="py-3 px-3.5 text-right space-x-2 shrink-0">
                                         <a href="{{ route('matches.show', $tm->id) }}"
-                                            class="text-blue-600 hover:text-blue-800 text-xs font-semibold">
+                                            class="text-primary hover:text-primary-hover text-xs font-semibold">
                                             Xem
                                         </a>
 
@@ -320,7 +320,7 @@
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-bold text-gray-900">Quản Lý Cơ Thủ ({{ $members->count() }})</h2>
                 <button type="button" onclick="openCreateMemberModal()"
-                    class="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg shadow-sm transition cursor-pointer">
+                    class="bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg shadow-sm transition cursor-pointer">
                     + Tạo mới cơ thủ
                 </button>
             </div>
@@ -369,7 +369,7 @@
                                             </div>
                                             @if($botConfig->bot_username)
                                                 <a href="https://t.me/{{ $botConfig->bot_username }}?start={{ $mb->getTelegramLinkCode() }}"
-                                                    target="_blank" class="text-blue-600 hover:underline block font-medium text-[11px]">
+                                                    target="_blank" class="text-primary hover:underline block font-medium text-[11px]">
                                                     Link kết nối bot
                                                 </a>
                                             @endif
@@ -391,7 +391,7 @@
                                     <form method="POST" action="{{ route('admin.users.role', $mb->id) }}" class="inline">
                                         @csrf
                                         <button type="submit"
-                                            class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">Đổi
+                                            class="text-primary hover:text-primary-hover hover:underline cursor-pointer">Đổi
                                             quyền</button>
                                     </form>
                                     <form method="POST" action="{{ route('admin.users.status', $mb->id) }}" class="inline">
@@ -438,7 +438,7 @@
                                 Tải lên logo mới (PNG, JPG, SVG, WebP - Tối đa 5MB)
                             </label>
                             <input type="file" name="logo" required accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                                class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+                                class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary-soft file:text-primary hover:file:bg-primary/10 cursor-pointer">
                             @error('logo')
                                 <span class="text-red-600 text-xs mt-1 block font-medium">{{ $message }}</span>
                             @enderror
@@ -446,7 +446,7 @@
 
                         <div class="flex items-center gap-3">
                             <button type="submit"
-                                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-sm transition cursor-pointer">
+                                class="bg-primary hover:bg-primary-hover text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-sm transition cursor-pointer">
                                 Cập nhật logo
                             </button>
                         </div>
@@ -476,13 +476,13 @@
                     <label class="block font-semibold text-gray-700 mb-1.5">Telegram Bot Token</label>
                     <input type="password" name="bot_token" value="{{ $botConfig->bot_token }}"
                         placeholder="123456:ABC-DEF..."
-                        class="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary">
                 </div>
 
                 <div>
                     <label class="block font-semibold text-gray-700 mb-1.5">Bot Username</label>
                     <input type="text" name="bot_username" value="{{ $botConfig->bot_username }}" placeholder="BidaNoiBoBot"
-                        class="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary">
                 </div>
 
                 <div>
@@ -490,7 +490,7 @@
                     <div class="flex flex-col sm:flex-row gap-2">
                         <input type="text" name="group_chat_id" value="{{ $botConfig->group_chat_id }}"
                             placeholder="-1001234567890"
-                            class="flex-1 border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            class="flex-1 border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary">
                         @if($botConfig->bot_username)
                             <a href="https://t.me/{{ $botConfig->bot_username }}?startgroup=bida&admin=invite_users+manage_chat" target="_blank"
                                 class="inline-flex items-center justify-center gap-1.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs px-3.5 py-2 rounded-lg shadow-xs transition shrink-0 cursor-pointer">
@@ -514,7 +514,7 @@
                     <div class="flex flex-col sm:flex-row gap-2">
                         <input type="url" name="group_invite_link" value="{{ $botConfig->group_invite_link }}"
                             placeholder="https://t.me/+AbCdEfGhIjKl hoặc https://t.me/ten_nhom"
-                            class="flex-1 border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            class="flex-1 border border-gray-300 rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary">
                         @if($botConfig->group_invite_link)
                             <a href="{{ $botConfig->group_invite_link }}" target="_blank"
                                 class="inline-flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-xs px-3.5 py-2 rounded-lg border border-gray-300 transition shrink-0">
@@ -534,13 +534,13 @@
 
                 <div class="flex items-center gap-2.5">
                     <input type="checkbox" name="set_webhook" value="1" id="set_webhook"
-                        class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        class="rounded border-gray-300 text-primary focus:ring-primary">
                     <label for="set_webhook" class="text-gray-700 font-medium">Đăng ký Webhook URL với Telegram API khi
                         lưu</label>
                 </div>
 
                 <button type="submit"
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm shadow-sm transition cursor-pointer">
+                    class="bg-primary hover:bg-primary-hover text-white font-semibold px-5 py-2.5 rounded-lg text-sm shadow-sm transition cursor-pointer">
                     Lưu cấu hình Bot
                 </button>
             </form>
@@ -586,7 +586,7 @@
                         <div class="text-xs text-blue-700 flex items-center gap-1.5 pt-0.5">
                             <span class="font-semibold text-gray-700">Link mời nhóm:</span>
                             <a href="{{ $botConfig->group_invite_link }}" target="_blank"
-                                class="underline font-mono truncate max-w-[220px] sm:max-w-xs text-blue-600 hover:text-blue-800">{{ $botConfig->group_invite_link }}</a>
+                                class="underline font-mono truncate max-w-[220px] sm:max-w-xs text-primary hover:text-primary-hover">{{ $botConfig->group_invite_link }}</a>
                         </div>
                     @endif
                     <div class="text-xs text-gray-500 pt-1">
@@ -605,7 +605,7 @@
                         <form method="POST" action="{{ route('admin.telegram.daily-report') }}">
                             @csrf
                             <button type="submit"
-                                class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3.5 py-2 rounded-lg text-xs sm:text-sm shadow-sm transition cursor-pointer">
+                                class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white font-semibold px-3.5 py-2 rounded-lg text-xs sm:text-sm shadow-sm transition cursor-pointer">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
@@ -683,7 +683,7 @@
                         </label>
                         <input type="text" name="password" id="admin_new_password" required minlength="6"
                             placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
-                            class="w-full text-sm rounded-lg border border-gray-300 px-3.5 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition font-mono">
+                            class="w-full text-sm rounded-lg border border-gray-300 px-3.5 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none transition font-mono">
                     </div>
 
                     <div class="pt-3 border-t border-gray-100 flex items-center justify-end gap-2.5">
@@ -692,7 +692,7 @@
                             Hủy bỏ
                         </button>
                         <button type="submit"
-                            class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition cursor-pointer">
+                            class="px-5 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition cursor-pointer">
                             Lưu mật khẩu mới
                         </button>
                     </div>

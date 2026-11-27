@@ -62,14 +62,14 @@
                         @endif
                     </div>
                     <button type="button" wire:click="markAllAsRead"
-                        class="text-xs font-medium text-blue-600 hover:underline cursor-pointer">
+                        class="text-xs font-medium text-primary hover:underline cursor-pointer">
                         Đánh dấu đã đọc
                     </button>
                 </div>
 
                 <div class="max-h-80 overflow-y-auto divide-y divide-gray-100">
                     @forelse($notifications as $noti)
-                        <div class="p-3.5 hover:bg-gray-50 transition {{ !$noti->is_read ? 'bg-blue-50/40' : '' }}">
+                        <div class="p-3.5 hover:bg-gray-50 transition {{ !$noti->is_read ? 'bg-primary-soft/40' : '' }}">
                             <div class="flex items-start justify-between gap-2.5">
                                 <a href="{{ $noti->link ? url($noti->link) : '#' }}" class="block flex-1">
                                     <div class="text-sm font-semibold text-gray-900">

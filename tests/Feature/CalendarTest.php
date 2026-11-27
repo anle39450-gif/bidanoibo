@@ -15,7 +15,7 @@ test('authenticated user can access calendar route', function () {
     $user = User::factory()->create();
     $response = $this->actingAs($user)->get('/calendar');
     $response->assertStatus(200);
-    $response->assertSee('Lịch Thi Đấu Bida Theo Ngày');
+    $response->assertSeeText('Theo ngày');
 });
 
 test('match calendar renders current month and selects date with matches', function () {

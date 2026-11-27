@@ -60,6 +60,7 @@ test('challenge calculates matchup analysis and win prediction percentage', func
 
 test('openai player analysis service uses gpt-4o-mini and returns valid structure', function () {
     $user = User::factory()->create(['name' => 'Đạt Cơ Thủ', 'username' => 'dat']);
+    config(['services.openai.api_key' => 'test-key']);
 
     Http::fake([
         'https://api.openai.com/v1/chat/completions' => Http::response([
@@ -111,8 +112,9 @@ test('openai player analysis service falls back gracefully when api fails or off
     expect($result['title'])->not->toBeEmpty();
 });
 
-test('user can view ai analysis on dashboard and refresh via ajax', function () {
+test('dashboard hides ai suggestions while the analysis endpoint remains available', function () {
     $user = User::factory()->create(['name' => 'An', 'username' => 'an']);
+    config(['services.openai.api_key' => 'test-key']);
 
     Http::fake([
         'https://api.openai.com/v1/chat/completions' => Http::response([
@@ -133,16 +135,19 @@ test('user can view ai analysis on dashboard and refresh via ajax', function () 
     ]);
 
     $response = $this->actingAs($user)->get('/dashboard');
-    $response->assertStatus(200);
-    $response->assertSee('AI Billiards Coach');
-    $response->assertSee('GPT-4o Mini');
-    $response->assertDontSee('🎲');
+    $response->assertOk()
+        ->assertDontSee('Gợi ý cải thiện (AI)')
+        ->assertDontSee('Phong độ rất ổn định qua các trận gần đây.');
+    Http::assertNothingSent();
 
-    // Test AJAX refresh endpoint
-    $refreshResponse = $this->actingAs($user)->postJson('/dashboard/ai-analysis/refresh');
-    $refreshResponse->assertStatus(200)
-        ->assertJson([
-            'success' => true,
-        ]);
-    expect($refreshResponse->json('analysis.title'))->toBe('Cơ Thủ Chiến Lược');
+    $this->postJson('/dashboard/ai-analysis/refresh', ['refresh' => false])
+        ->assertOk()
+        ->assertJsonPath('analysis.title', 'Cơ Thủ Chiến Lược');
+    $this->postJson('/dashboard/ai-analysis/refresh', ['refresh' => false])->assertOk();
+    Http::assertSentCount(1);
+
+    $this->postJson('/dashboard/ai-analysis/refresh')
+        ->assertOk()
+        ->assertJsonPath('analysis.title', 'Cơ Thủ Chiến Lược');
+    Http::assertSentCount(2);
 });

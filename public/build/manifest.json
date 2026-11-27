@@ -27,19 +27,33 @@
     "file": "assets/instrument-sans-600-normal-B9e8oLYv.woff",
     "src": "_instrument-sans-600-normal-B9e8oLYv.woff"
   },
+  "resources/css/InterVariable.woff2": {
+    "file": "assets/InterVariable-DiVDrmQJ.woff2",
+    "src": "resources/css/InterVariable.woff2"
+  },
   "resources/css/app.css": {
-    "file": "assets/app-CxnBnz2z.css",
+    "file": "assets/app-Bjau5_k2.css",
     "name": "app",
     "names": [
       "app.css"
     ],
     "src": "resources/css/app.css",
-    "isEntry": true
+    "isEntry": true,
+    "assets": [
+      "assets/InterVariable-DiVDrmQJ.woff2"
+    ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-BvRk9kiK.js",
+    "file": "assets/app-BX9-4T1Z.js",
     "name": "app",
     "src": "resources/js/app.js",
-    "isEntry": true
+    "isEntry": true,
+    "assets": [
+      "assets/sweetalert-2.1.2-BH2NUiwL.js"
+    ]
+  },
+  "resources/js/sweetalert-2.1.2.js": {
+    "file": "assets/sweetalert-2.1.2-BH2NUiwL.js",
+    "src": "resources/js/sweetalert-2.1.2.js"
   }
 }

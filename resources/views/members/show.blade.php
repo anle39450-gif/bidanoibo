@@ -1,193 +1,141 @@
-@extends('layouts.app', ['title' => 'Hồ sơ ' . $member->name . ' - Bida Nội Bộ'])
+@extends('layouts.app', ['title' => 'Hồ sơ ' . $member->name . ' - Bida Nội Bộ', 'fullWidth' => true, 'compactTop' => true])
 
 @section('content')
-    <div class="space-y-6">
-
-        <!-- Profile Card -->
-        <div
-            class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
-            <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
-                <img src="{{ $member->avatar_url }}" alt="{{ $member->name }}"
-                    class="w-16 h-16 rounded-full border border-gray-200 object-cover">
-
-                <div class="space-y-1">
-                    <div class="flex items-center justify-center sm:justify-start gap-2">
-                        <h1 class="text-xl font-bold text-gray-900">{{ $member->name }}</h1>
-                        <span class="text-xs text-gray-500 font-mono">@<span>{{ $member->username }}</span></span>
-                        @if($member->isAdmin())
-                            <span class="bg-amber-100 text-amber-800 text-[11px] font-semibold px-2 py-0.5 rounded">Quản trị
-                                viên</span>
-                        @endif
-                    </div>
-
-                    <div class="text-xs text-gray-500">
-                        Gia nhập: {{ $member->created_at->format('d/m/Y') }}
-                    </div>
-
-                    <!-- Badges -->
-                    <div class="flex flex-wrap items-center justify-center sm:justify-start gap-1 pt-1">
-                        @forelse($stats['badges'] as $b)
-                            <span class="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded border border-gray-200">
-                                {{ $b['name'] }}
-                            </span>
-                        @empty
-                            <span class="text-xs text-gray-400">Chưa có danh hiệu.</span>
-                        @endforelse
+    <div class="space-y-4">
+        <section aria-labelledby="member-heading" class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs">
+            <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
+                <div class="flex min-w-0 items-center gap-3">
+                    @include('partials.member-avatar', ['user' => $member])
+                    <div class="min-w-0">
+                        <h1 id="member-heading" class="text-xl font-bold text-gray-900 wrap-anywhere">{{ $member->name }}</h1>
+                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600">
+                            <span class="wrap-anywhere">{{ '@'.$member->username }}</span>
+                            @if($member->isAdmin())
+                                <span class="rounded-md bg-amber-50 px-1.5 py-0.5 font-medium text-amber-800">Quản trị viên</span>
+                            @endif
+                            @foreach(array_unique(array_column($stats['badges'], 'name')) as $badge)
+                                <span class="rounded-md bg-gray-100 px-1.5 py-0.5 text-gray-700">{{ $badge }}</span>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
+
+                @auth
+                    @if(auth()->id() !== $member->id)
+                        <button type="button" onclick="triggerCreateMatchModal({{ $member->id }})"
+                            class="min-h-9 cursor-pointer rounded-lg bg-primary px-3 text-xs font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                            Ghi trận với {{ $member->name }}
+                        </button>
+                    @else
+                        <button type="button" onclick="openChangePasswordModal()"
+                            class="min-h-9 cursor-pointer rounded-lg border border-gray-200 px-3 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                            Đổi mật khẩu
+                        </button>
+                    @endif
+                @endauth
             </div>
 
-            @auth
-                @if(auth()->id() !== $member->id)
-                    <button type="button" onclick="triggerCreateMatchModal({{ $member->id }})"
-                        class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-4 py-2 rounded-md shadow-sm transition cursor-pointer">
-                        + Ghi nhận trận với {{ $member->name }}
-                    </button>
-                @else
-                    <button type="button" onclick="openChangePasswordModal()"
-                        class="bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 text-xs font-semibold px-4 py-2 rounded-md shadow-xs transition flex items-center gap-1.5 cursor-pointer">
-                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
-                        <span>Đổi mật khẩu</span>
-                    </button>
-                @endif
-            @endauth
+            <dl class="grid grid-cols-4 divide-x divide-gray-100 border-t border-gray-100 bg-gray-50/70 py-3 text-center tabular-nums">
+                <div class="px-1">
+                    <dt class="text-xs text-gray-600">Số trận</dt>
+                    <dd class="mt-0.5 text-lg font-bold text-gray-900">{{ $stats['total_matches'] }}</dd>
+                </div>
+                <div class="px-1">
+                    <dt class="text-xs text-gray-600">Thắng</dt>
+                    <dd class="mt-0.5 text-lg font-bold text-green-700">{{ $stats['wins'] }}</dd>
+                </div>
+                <div class="px-1">
+                    <dt class="text-xs text-gray-600">Thua</dt>
+                    <dd class="mt-0.5 text-lg font-bold text-red-700">{{ $stats['losses'] }}</dd>
+                </div>
+                <div class="px-1">
+                    <dt class="text-xs text-gray-600">Tỷ lệ thắng</dt>
+                    <dd class="mt-0.5 text-lg font-bold text-gray-900">{{ $stats['win_rate'] }}%</dd>
+                </div>
+            </dl>
+        </section>
+
+        <div class="grid items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+            <section aria-labelledby="recent-matches-heading" class="min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs">
+                <h2 id="recent-matches-heading" class="border-b border-gray-100 px-4 py-3.5 text-base font-bold text-gray-900 sm:px-5">Trận gần đây</h2>
+
+                <ul class="divide-y divide-gray-100">
+                    @forelse($recentMatches as $recentMatch)
+                        @php
+                            $isWin = in_array($member->id, [$recentMatch->winner_id, $recentMatch->winner_partner_id], true);
+                            $result = match ($recentMatch->status) {
+                                'confirmed', 'resolved' => $isWin ? 'Thắng' : 'Thua',
+                                'pending' => 'Chờ xác nhận',
+                                'disputed' => 'Khiếu nại',
+                                'cancelled' => 'Đã hủy',
+                                default => $recentMatch->status,
+                            };
+                            $resultStyle = match ($result) {
+                                'Thắng' => 'bg-green-50 text-green-800',
+                                'Thua' => 'bg-red-50 text-red-800',
+                                'Chờ xác nhận', 'Khiếu nại' => 'bg-amber-50 text-amber-800',
+                                default => 'bg-gray-100 text-gray-700',
+                            };
+                        @endphp
+                        <li>
+                            <a href="{{ route('matches.show', $recentMatch->id) }}"
+                                class="flex min-w-0 items-start justify-between gap-2 px-4 py-3 transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary sm:items-center sm:px-5">
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                        <span class="text-sm font-semibold text-gray-900 wrap-anywhere">{{ $recentMatch->team1_names }} vs {{ $recentMatch->team2_names }}</span>
+                                        <span class="rounded-md px-1.5 py-0.5 text-xs font-medium {{ $resultStyle }}">{{ $result }}</span>
+                                    </div>
+                                    @if($recentMatch->prize)
+                                        <p class="mt-1 text-xs text-gray-600 wrap-anywhere">{{ $recentMatch->prize }}</p>
+                                    @endif
+                                </div>
+                                <span class="inline-flex shrink-0 items-center gap-1.5 text-xs text-gray-600 tabular-nums">
+                                    <time datetime="{{ $recentMatch->played_at->toDateString() }}">{{ $recentMatch->played_at->format('d/m/Y') }}</time>
+                                    <svg viewBox="0 0 24 24" class="hidden size-3.5 text-primary sm:block" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m9 18 6-6-6-6" />
+                                    </svg>
+                                </span>
+                            </a>
+                        </li>
+                    @empty
+                        <li class="px-4 py-6 text-sm text-gray-600 sm:px-5">Chưa có trận nào.</li>
+                    @endforelse
+                </ul>
+            </section>
+
+            <livewire:head-to-head-comparator :member="$member" />
         </div>
 
-        <!-- Telegram Card (for owner or admin) -->
         @auth
             @if(auth()->id() === $member->id || auth()->user()->isAdmin())
-                <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm space-y-3">
-                    <div class="flex items-center justify-between pb-2 border-b border-gray-100">
-                        <h3 class="text-sm font-bold text-gray-900">Liên Kết Telegram Bot</h3>
+                <details class="rounded-xl border border-gray-200 bg-white shadow-xs">
+                    <summary class="cursor-pointer rounded-xl px-4 py-3.5 text-sm font-semibold text-gray-900 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary sm:px-5">
+                        Liên kết Telegram
+                    </summary>
+                    <div class="space-y-3 border-t border-gray-100 px-4 py-4 text-sm sm:px-5">
                         @if($member->telegram_id)
-                            <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">
-                                Đã liên kết (ID: {{ $member->telegram_id }})
-                            </span>
+                            <p class="font-medium text-green-800">Đã liên kết (ID: {{ $member->telegram_id }})</p>
                         @else
-                            <span class="bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-0.5 rounded">
-                                Chưa liên kết
-                            </span>
-                        @endif
-                    </div>
-
-                    @if(!$member->telegram_id)
-                        <div class="text-xs text-gray-600 space-y-2">
-                            <p>Để nhận thông báo và ghi nhận trận nhanh qua Telegram:</p>
-                            <ol class="list-decimal list-inside space-y-1 text-gray-500">
-                                <li>Mở Telegram và chat với bot: <b>@<span>{{ $botConfig->bot_username ?? 'BidaNoiBoBot' }}</span></b>
-                                </li>
-                                <li>Gửi lệnh liên kết: <code
-                                        class="bg-gray-100 px-1 py-0.5 rounded font-mono text-gray-800">/start {{ $member->telegram_link_code ?? 'LINK' }}</code>
-                                </li>
-                            </ol>
-
-                            <div class="pt-2 flex items-center gap-2">
+                            <p class="text-gray-700">Gửi <code class="rounded bg-gray-100 px-1.5 py-0.5">/start {{ $member->telegram_link_code ?? 'LINK' }}</code> cho {{ '@'.($botConfig->bot_username ?? 'BidaNoiBoBot') }} để liên kết.</p>
+                            <div class="flex flex-wrap items-center gap-2">
                                 @if($botConfig->bot_username)
                                     <a href="https://t.me/{{ $botConfig->bot_username }}?start={{ $member->telegram_link_code }}"
-                                        target="_blank"
-                                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs px-3 py-1.5 rounded transition">
-                                        Mở Telegram kết nối ngay
+                                        target="_blank" rel="noopener"
+                                        class="inline-flex min-h-9 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-white hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                                        Mở Telegram
                                     </a>
                                 @endif
-
                                 <form method="POST" action="{{ route('members.telegram-code', $member->id) }}">
                                     @csrf
-                                    <button type="submit"
-                                        class="border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-xs font-medium px-3 py-1.5 rounded transition">
+                                    <button type="submit" class="min-h-9 cursor-pointer rounded-lg border border-gray-200 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
                                         Đổi mã liên kết
                                     </button>
                                 </form>
                             </div>
-                        </div>
-                    @endif
-                </div>
+                        @endif
+                    </div>
+                </details>
             @endif
         @endauth
-
-        <!-- Performance Cards -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <div class="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
-                <div class="text-xs font-medium text-gray-500 uppercase">Tổng số trận</div>
-                <div class="text-xl font-bold text-gray-900 mt-1">{{ $stats['total_matches'] }}</div>
-            </div>
-
-            <div class="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
-                <div class="text-xs font-medium text-gray-500 uppercase">Thắng</div>
-                <div class="text-xl font-bold text-green-700 mt-1">{{ $stats['wins'] }}</div>
-            </div>
-
-            <div class="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
-                <div class="text-xs font-medium text-gray-500 uppercase">Thua</div>
-                <div class="text-xl font-bold text-red-600 mt-1">{{ $stats['losses'] }}</div>
-            </div>
-
-            <div class="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
-                <div class="text-xs font-medium text-gray-500 uppercase">Tỷ lệ thắng</div>
-                <div class="text-xl font-bold text-gray-900 mt-1">{{ $stats['win_rate'] }}%</div>
-            </div>
-
-            <div class="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
-                <div class="text-xs font-medium text-gray-500 uppercase">Chuỗi hiện tại</div>
-                <div class="text-sm font-bold mt-1">
-                    @if($stats['current_streak_type'] === 'win')
-                        <span class="text-green-700">{{ $stats['current_streak_count'] }} Thắng</span>
-                    @elseif($stats['current_streak_type'] === 'loss')
-                        <span class="text-red-600">{{ $stats['current_streak_count'] }} Thua</span>
-                    @else
-                        <span class="text-gray-400">-</span>
-                    @endif
-                </div>
-            </div>
-
-            <div class="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
-                <div class="text-xs font-medium text-gray-500 uppercase">Chuỗi MAX</div>
-                <div class="text-xl font-bold text-gray-900 mt-1">{{ $stats['longest_win_streak'] }}</div>
-            </div>
-        </div>
-
-        <!-- Livewire Head-to-Head Component -->
-        <livewire:head-to-head-comparator :member="$member" />
-
-        <!-- Recent Match History -->
-        <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-sm font-bold text-gray-900">Trận đấu gần đây của {{ $member->name }}</h3>
-            </div>
-
-            <div class="divide-y divide-gray-100 text-xs">
-                @forelse($recentMatches as $m)
-                    @php
-                        $isConfirmed = in_array($m->status, ['confirmed', 'resolved']);
-                        $isWin = ($m->winner_id === $member->id);
-                    @endphp
-                    <div class="p-4 hover:bg-gray-50 transition flex items-center justify-between gap-4">
-                        <div class="flex items-center gap-3">
-                            <span
-                                class="px-2 py-0.5 rounded font-bold text-[11px] {{ $isConfirmed ? ($isWin ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800') : 'bg-amber-100 text-amber-800' }}">
-                                {{ $isConfirmed ? ($isWin ? 'THẮNG' : 'THUA') : strtoupper($m->status) }}
-                            </span>
-                            <div>
-                                <div class="font-semibold text-gray-900 text-sm">
-                                    {{ $m->player1->name }} vs {{ $m->player2->name }}
-                                </div>
-                                <div class="text-gray-500 mt-0.5">
-                                    Kèo: <b>{{ $m->prize }}</b> @if($m->notes) • <i>"{{ $m->notes }}"</i> @endif
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-3 shrink-0">
-                            <span class="text-gray-400 font-mono">{{ $m->played_at->format('d/m/Y') }}</span>
-                            <a href="{{ route('matches.show', $m->id) }}" class="text-blue-600 hover:underline font-medium">
-                                Chi tiết
-                            </a>
-                        </div>
-                    </div>
-                @empty
-                    <div class="p-8 text-center text-gray-500">Chưa có trận đấu nào.</div>
-                @endforelse
-            </div>
-        </div>
-
     </div>
 @endsection

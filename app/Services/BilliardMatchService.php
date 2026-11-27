@@ -146,25 +146,32 @@ class BilliardMatchService
      */
     public function confirmMatch(BilliardMatch $match, User $user, string $by = 'opponent'): bool
     {
-        if ($match->status !== 'pending') {
-            throw ValidationException::withMessages([
-                'status' => "Trận đấu không ở trạng thái chờ xác nhận (hiện tại: {$match->status})",
-            ]);
-        }
+        DB::transaction(function () use ($match, $user, $by): void {
+            $current = BilliardMatch::whereKey($match->getKey())->lockForUpdate()->firstOrFail();
 
-        // Rule: Creator cannot confirm for opponent unless user is admin
-        if ($match->creator_id === $user->id && ! $user->isAdmin()) {
-            throw ValidationException::withMessages([
-                'user' => 'Người tạo trận không thể tự ý xác nhận thay đối thủ!',
-            ]);
-        }
+            if ($current->status !== 'pending' || ($current->auto_confirm_at && $current->auto_confirm_at->lte(now()))) {
+                throw ValidationException::withMessages([
+                    'status' => 'Trận này không còn chờ bạn xác nhận. Hãy xem chi tiết để biết trạng thái mới nhất.',
+                ]);
+            }
 
-        return DB::transaction(function () use ($match, $user, $by) {
+            if (! $user->isAdmin() && ($current->isHidden() || ! $current->isWaitingForUser($user))) {
+                throw ValidationException::withMessages([
+                    'user' => 'Bạn không có quyền xác nhận trận này.',
+                ]);
+            }
+
+            $match->setRawAttributes($current->getAttributes(), true);
             $match->update([
                 'status' => 'confirmed',
                 'confirmed_at' => Carbon::now(),
                 'confirmed_by' => $by,
             ]);
+
+            $match->notifications()->where('user_id', $user->id)
+                ->where('type', 'match_pending_confirmation')
+                ->where('is_read', false)
+                ->update(['is_read' => true, 'read_at' => now()]);
 
             MatchHistory::create([
                 'billiard_match_id' => $match->id,
@@ -184,11 +191,11 @@ class BilliardMatchService
                     'link' => "/matches/{$match->id}",
                 ]);
             }
-
-            $this->telegramBot->sendMatchStatusUpdate($match, "Trận đấu đã được {$user->name} xác nhận chính thức!");
-
-            return true;
         });
+
+        $this->telegramBot->sendMatchStatusUpdate($match, "Trận đấu đã được {$user->name} xác nhận chính thức!");
+
+        return true;
     }
 
     /**
@@ -217,6 +224,13 @@ class BilliardMatchService
         }
 
         return DB::transaction(function () use ($match, $user, $reason, $evidencePath) {
+            $current = BilliardMatch::whereKey($match->getKey())->lockForUpdate()->firstOrFail();
+            if ($current->status !== 'pending') {
+                throw ValidationException::withMessages([
+                    'status' => 'Chỉ có thể khiếu nại trận đấu đang ở trạng thái chờ xác nhận!',
+                ]);
+            }
+
             $match->update([
                 'status' => 'disputed',
                 'disputed_at' => Carbon::now(),
@@ -385,7 +399,12 @@ class BilliardMatchService
 
         $count = 0;
         foreach ($expiredMatches as $match) {
-            DB::transaction(function () use ($match) {
+            $confirmed = DB::transaction(function () use ($match): bool {
+                $match = BilliardMatch::whereKey($match->getKey())->lockForUpdate()->first();
+                if (! $match || $match->status !== 'pending' || ! $match->auto_confirm_at || $match->auto_confirm_at->gt(now())) {
+                    return false;
+                }
+
                 $match->update([
                     'status' => 'confirmed',
                     'confirmed_at' => Carbon::now(),
@@ -419,9 +438,13 @@ class BilliardMatchService
                 }
 
                 $this->telegramBot->sendMatchStatusUpdate($match, '⏰ Trận đấu đã tự động xác nhận sau 24 giờ không có khiếu nại!');
+
+                return true;
             });
 
-            $count++;
+            if ($confirmed) {
+                $count++;
+            }
         }
 
         return $count;

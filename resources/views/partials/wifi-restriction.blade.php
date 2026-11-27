@@ -12,7 +12,7 @@
         
         <!-- Checking State -->
         <div id="wifiCheckingBox" class="space-y-4">
-            <div class="w-16 h-16 mx-auto rounded-full bg-blue-50 border-2 border-blue-200 flex items-center justify-center text-blue-600">
+            <div class="w-16 h-16 mx-auto rounded-full bg-primary-soft border-2 border-primary/20 flex items-center justify-center text-primary">
                 <svg class="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
@@ -68,7 +68,7 @@
 
             <!-- Retry button -->
             <button type="button" onclick="performWifiCheck(true)" id="btnRetryWifi"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+                class="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 px-4 rounded-xl text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
